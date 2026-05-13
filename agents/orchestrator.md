@@ -31,14 +31,25 @@ Execute the complete SDLC autonomously: from input spec (PRD, brief, issue, YAML
 1. `AGENTS.md` — Agent discovery and registry
 2. `.sdlc/CONTINUITY.md` — Current session state (if exists)
 3. `.sdlc/state/orchestrator.json` — Phase progress (if exists)
-4. `.sdlc-framework/references/core-workflow.md` — RARV cycle and autonomy rules
-5. `.sdlc-framework/references/sdlc-phases.md` — Phase definitions and transitions
-6. `.sdlc-framework/references/agent-types.md` — Available agents and capabilities
-7. `.sdlc-framework/references/quality-control.md` — Quality gate definitions
+4. `.sdlc/framework/references/core-workflow.md` — RARV cycle and autonomy rules
+5. `.sdlc/framework/references/sdlc-phases.md` — Phase definitions and transitions
+6. `.sdlc/framework/references/agent-types.md` — Available agents and capabilities
+7. `.sdlc/framework/references/quality-control.md` — Quality gate definitions
 
 ### Input Spec Location
 - `.sdlc/specs/` — Normalized input spec (after bootstrap)
 - Or the raw input file provided by the user
+- Or pasted directly into the chat by the user
+
+### MCP Tools (If Available)
+
+If MCP servers are configured in the IDE, use them to enrich or fetch specs:
+- **JIRA MCP** — Use `jira_get_issue`, `jira_search`, or similar tools to fetch epic/story details, acceptance criteria, and priority directly from JIRA. Look for tools with names containing `jira`, `atlassian`, or `issue`.
+- **GitHub MCP** — Use `github_get_issue`, `github_list_issues` to fetch GitHub Issues as input specs.
+- **Linear MCP** — Use Linear tools to fetch issues/projects if available.
+- **Database MCP** — Use database tools in Phase 2 to inspect existing schemas.
+
+MCP tools are optional. If not available, fall back to file-based or chat-pasted specs.
 
 ---
 
@@ -118,7 +129,15 @@ At the very start:
    .sdlc/specs/
    .sdlc/CONTINUITY.md
 
-2. Normalize input spec → .sdlc/specs/normalized-spec.md
+2. Acquire input spec (priority order):
+   a. Check if the user pasted a spec in the chat message → use it
+   b. Check if .sdlc/specs/ already has a normalized spec → use it
+   c. Check if MCP tools are available (JIRA, GitHub, Linear):
+      - If JIRA MCP: ask user for issue key, then fetch via MCP tool
+      - If GitHub MCP: ask user for issue number, then fetch via MCP tool
+   d. Look for spec files in the project root (*.md, *.yaml, *.json)
+   e. Ask the user to provide a spec
+   Save result → .sdlc/specs/normalized-spec.md
 
 3. Detect complexity:
    - Simple: < 5 requirements, single service
@@ -147,7 +166,7 @@ For each phase:
 
 ```
 1. READ CONTINUITY.md
-2. READ the stage agent prompt: .sdlc-framework/agents/stage/{phase}.md
+2. READ the stage agent prompt: .sdlc/framework/agents/stage/{phase}.md
 3. ADOPT the stage agent role
 4. EXECUTE the stage following RARV cycle:
    a. REASON: Read spec, architecture, and relevant context
@@ -164,7 +183,7 @@ For each phase:
 When a stage agent needs a subagent:
 
 ```
-1. READ the subagent prompt: .sdlc-framework/agents/sub/{stage}/{subagent}.md
+1. READ the subagent prompt: .sdlc/framework/agents/sub/{stage}/{subagent}.md
 2. Prepare structured input:
    ## GOAL
    [Specific task for this subagent]

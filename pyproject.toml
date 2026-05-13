@@ -1,6 +1,6 @@
 [project]
 name = "autonomous-sdlc"
-version = "1.0.0"
+version = "1.1.0"
 description = "Bootstrap multi-agent SDLC workflows into any repository. 35 AI agents execute the full software development lifecycle from spec to production."
 requires-python = ">=3.11"
 dependencies = [
@@ -33,11 +33,11 @@ packages = ["src/sdlc_cli"]
 "templates/agents-md-template.md" = "sdlc_cli/core_pack/templates/agents-md-template.md"
 # Command templates (orchestrator slash command)
 "templates/commands" = "sdlc_cli/core_pack/commands"
-# Agent prompts (copied to .sdlc-framework/agents/)
+# Agent prompts (copied to .sdlc/agents/)
 "agents" = "sdlc_cli/core_pack/agents"
-# Reference docs (copied to .sdlc-framework/references/)
+# Reference docs (copied to .sdlc/references/)
 "references" = "sdlc_cli/core_pack/references"
-# Skill modules (copied to .sdlc-framework/skills/)
+# Skill modules (copied to .sdlc/skills/)
 "skills" = "sdlc_cli/core_pack/skills"
 # Example specs
 "examples" = "sdlc_cli/core_pack/examples"

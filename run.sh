@@ -424,7 +424,7 @@ cmd_help() {
   echo "  .txt    Plain text brief"
   echo "  string  One-liner brief (in quotes)"
   echo ""
-  echo "IDE setup is handled by the CLI: sdlc init . --integration <ide>"
+  echo "IDE setup is handled by the CLI: sdlc init --integration <ide>"
 }
 
 # ─────────────────────────────────────────────

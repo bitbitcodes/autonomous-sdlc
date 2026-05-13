@@ -7,7 +7,7 @@ description: "Autonomous SDLC Framework — loaded on every conversation"
 
 This project uses the **Autonomous SDLC Framework** for AI-driven development. 35 agents execute the full software development lifecycle autonomously.
 
-> **Full instructions are in `.sdlc-framework/agents/orchestrator.md`.** This file is the concise summary Windsurf loads at startup.
+> **Full instructions are in `.sdlc/framework/agents/orchestrator.md`.** This file is the concise summary Windsurf loads at startup.
 
 ## Available Workflows
 
@@ -15,7 +15,7 @@ Type `/sdlc.` in Cascade chat to see available commands:
 
 | Workflow | Purpose |
 |----------|---------|
-| `/sdlc.orchestrator` | Start or resume the full SDLC — reads your spec and drives all 9 phases |
+| `/sdlc.orchestrator` | Start or resume the full SDLC — reads your spec and drives all 10 phases |
 
 ## Priority Reading Order
 
@@ -25,7 +25,7 @@ Type `/sdlc.` in Cascade chat to see available commands:
 
 ## How to Operate
 
-- Read `.sdlc-framework/agents/orchestrator.md` for full orchestrator instructions
+- Read `.sdlc/framework/agents/orchestrator.md` for full orchestrator instructions
 - Follow the RARV cycle: Reason → Act → Reflect → Verify
 - Read CONTINUITY.md at the start of every turn
 - Update CONTINUITY.md at the end of every turn
@@ -38,8 +38,8 @@ Check `.sdlc/CONTINUITY.md` for the current phase and next steps.
 
 ## Agent Prompts Location
 
-- Orchestrator: `.sdlc-framework/agents/orchestrator.md`
-- Stage agents: `.sdlc-framework/agents/stage/*.md`
-- Subagents: `.sdlc-framework/agents/sub/**/*.md`
-- References: `.sdlc-framework/references/*.md`
-- Skills: `.sdlc-framework/skills/*.md`
+- Orchestrator: `.sdlc/framework/agents/orchestrator.md`
+- Stage agents: `.sdlc/framework/agents/stage/*.md`
+- Subagents: `.sdlc/framework/agents/sub/**/*.md`
+- References: `.sdlc/framework/references/*.md`
+- Skills: `.sdlc/framework/skills/*.md`

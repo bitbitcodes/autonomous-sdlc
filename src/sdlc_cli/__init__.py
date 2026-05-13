@@ -141,10 +141,10 @@ def init(
     console.print(f"[bold]Project:[/] {project_name}")
 
     console.print("\n[dim]Next steps:[/]")
-    console.print("  1. Add your spec: [cyan].sdlc-framework/run.sh start ./your-prd.md[/]")
+    console.print("  1. Add your spec: [cyan].sdlc/framework/run.sh start ./your-prd.md[/]")
     console.print("  2. Open your AI IDE and start a new conversation")
     console.print("  3. The orchestrator activates automatically via [cyan]/sdlc.orchestrator[/]")
-    console.print("  4. Check status: [cyan].sdlc-framework/run.sh status[/]")
+    console.print("  4. Check status: [cyan].sdlc/framework/run.sh status[/]")
     console.print()
 
 

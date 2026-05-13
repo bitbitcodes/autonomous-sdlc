@@ -1,0 +1,34 @@
+# Runtime state inside .sdlc/ (regenerated, gitignored)
+.sdlc/state/
+.sdlc/queue/
+.sdlc/memory/
+.sdlc/artifacts/
+.sdlc/specs/
+.sdlc/CONTINUITY.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Env
+.env
+.env.local

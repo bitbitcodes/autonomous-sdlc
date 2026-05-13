@@ -25,35 +25,32 @@ sdlc init .
 
 ## What It Does
 
-Running `sdlc init` scaffolds everything you need into your repo:
+Running `sdlc init` scaffolds everything into a single `.sdlc/` directory in your repo:
 
 ```
 your-project/
-├── .sdlc-framework/
-│   ├── agents/                   # 35 agent prompts (orchestrator + 9 stage + 25 sub)
-│   │   ├── orchestrator.md
-│   │   ├── stage/*.md
-│   │   └── sub/**/*.md
-│   ├── references/               # Architecture & workflow docs
-│   ├── skills/                   # Skill modules (loaded on demand)
-│   ├── templates/                # Agent prompt templates
-│   ├── examples/                 # Sample specs (PRD, YAML, brief)
-│   └── run.sh                    # Utility runner (status, reset, start)
 ├── .sdlc/
-│   ├── state/                    # Orchestrator phase tracking
-│   ├── queue/                    # Task queue (pending/active/completed)
-│   ├── memory/                   # 3-tier memory (episodic/semantic/learnings)
-│   ├── artifacts/                # Generated outputs per phase
-│   ├── specs/                    # Normalized input spec
+│   ├── framework/                # Installed by CLI — don't modify
+│   │   ├── agents/               #   35 agent prompts (orchestrator + 9 stage + 25 sub)
+│   │   ├── references/           #   Architecture & workflow docs
+│   │   ├── skills/               #   Skill modules (loaded on demand)
+│   │   ├── templates/            #   Agent prompt templates
+│   │   ├── examples/             #   Sample specs (PRD, YAML, brief)
+│   │   └── run.sh                #   Utility runner (status, reset, start)
 │   ├── init-options.json         # Saved configuration
-│   └── CONTINUITY.md             # Working memory
+│   ├── state/                    # Runtime (gitignored)
+│   ├── queue/                    # Runtime (gitignored)
+│   ├── memory/                   # Runtime (gitignored)
+│   ├── artifacts/                # Runtime (gitignored)
+│   ├── specs/                    # Runtime (gitignored)
+│   └── CONTINUITY.md             # Working memory (gitignored)
 ├── AGENTS.md                     # Agent discovery (OpenAI/AAIF standard)
 ├── .github/agents/               # (if Copilot selected)
 │   └── sdlc.orchestrator.md
 ├── .windsurf/                    # (if Windsurf selected)
 │   ├── workflows/sdlc.orchestrator.md
 │   └── rules/sdlc.md
-└── .env.example
+└── ...
 ```
 
 ## Supported AI IDEs
@@ -108,14 +105,66 @@ sdlc init . \
 
 ## After Initialization
 
-1. Add your spec:
-```bash
-.sdlc-framework/run.sh start ./your-prd.md
-.sdlc-framework/run.sh start "Build a REST API for task management"
+### Option A: Agent Dropdown (Easiest)
+
+Select the `sdlc.orchestrator` agent in your IDE and paste your spec — a JIRA story, PRD, or even a one-liner — directly into the chat. The orchestrator handles everything: bootstraps `.sdlc/`, normalizes your spec, detects complexity, and drives all 10 phases.
+
+| IDE | How |
+|-----|-----|
+| **Copilot** | Select `sdlc.orchestrator` from the agent dropdown → paste your spec |
+| **Windsurf** | Type `/sdlc.orchestrator` in Cascade chat → paste your spec |
+| **Claude Code** | Use `/sdlc-orchestrator` command → paste your spec |
+| **Cursor** | Start chat (context auto-loads) → paste your spec |
+
+**Example:** Select the agent, then paste your JIRA story:
+
 ```
-2. Open your AI IDE and start a conversation
-3. The orchestrator activates automatically via `/sdlc.orchestrator`
-4. Check status: `.sdlc-framework/run.sh status`
+PROJ-101 User Registration
+
+As a new user, I want to register with email and password.
+
+Acceptance Criteria:
+- Given a valid email and password, when I POST /api/v1/auth/register, then a 201 is returned
+- Given a duplicate email, when I POST /api/v1/auth/register, then a 409 is returned
+
+Tech Stack: Python, FastAPI, PostgreSQL
+```
+
+The orchestrator takes it from there — no other steps needed.
+
+**With JIRA MCP:** If you have a [JIRA MCP server](docs/mcp-integrations.md) configured, just say `Build the feature in JIRA epic PROJ-100` — the orchestrator fetches stories directly from JIRA.
+
+### Option B: CLI Start (For Larger Specs)
+
+For larger specs stored as files (PRD documents, YAML specs, multi-story JIRA epics), use the CLI to pre-load the spec before opening your IDE:
+
+```bash
+.sdlc/framework/run.sh start ./prd.md          # Markdown PRD
+.sdlc/framework/run.sh start ./spec.yaml        # YAML spec
+.sdlc/framework/run.sh start ./jira-epic.md     # JIRA epic (see examples/)
+.sdlc/framework/run.sh start "Build a task API" # One-liner
+```
+
+Then open your IDE and select the `sdlc.orchestrator` agent — it picks up the pre-loaded spec automatically.
+
+See [`examples/`](examples/) for sample specs including a [JIRA epic example](examples/sample-jira-epic.md).
+
+### Monitor Progress
+
+```bash
+.sdlc/framework/run.sh status    # Phase progress + queue counts
+cat .sdlc/CONTINUITY.md           # Current state in plain English
+```
+
+### Multi-Session
+
+IDE sessions have token limits. When one ends, just start a new conversation — the orchestrator reads `CONTINUITY.md` and resumes exactly where it left off.
+
+### What You Get
+
+Each phase produces artifacts in `.sdlc/artifacts/<phase>/` — requirements, API contracts, data models, implementation, test suites, security reports, CI/CD configs, and more. The actual codebase is written directly into your project directory.
+
+> **Full walkthrough:** [Usage Guide](docs/usage-guide.md) · **JIRA users:** [JIRA Workflow](docs/jira-workflow.md)
 
 ## Agents
 
@@ -203,6 +252,28 @@ Adding a new IDE integration is a single file in `src/sdlc_cli/integrations/your
 - **3-tier memory** — Episodic (traces), semantic (patterns), learnings (mistakes)
 - **Blind review** — 3 parallel reviewers with anti-sycophancy check
 
+## Documentation
+
+Full documentation lives in [`docs/`](docs/):
+
+| Document | Description |
+|----------|-------------|
+| [Getting Started](docs/getting-started.md) | Installation, first run, walkthrough |
+| [Usage Guide](docs/usage-guide.md) | End-to-end: feed spec → phases → artifacts |
+| [JIRA Workflow](docs/jira-workflow.md) | Using JIRA epics/stories as input |
+| [Architecture](docs/architecture.md) | System design, component model, data flow |
+| [Agents](docs/agents.md) | All 35 agents — roles, dispatch, handoff |
+| [SDLC Phases](docs/phases.md) | 10 phases from spec to observability |
+| [Quality Gates](docs/quality-gates.md) | 10 gates, blind review, severity model |
+| [Memory System](docs/memory-system.md) | 3-tier memory + CONTINUITY.md protocol |
+| [CLI Reference](docs/cli-reference.md) | `sdlc init` options, scaffold behavior |
+| [IDE Integrations](docs/ide-integrations.md) | 9 supported IDEs, adding your own |
+| [MCP Integrations](docs/mcp-integrations.md) | JIRA, GitHub, Database MCP setup |
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, coding conventions, and how to add new IDE integrations or agents.
+
 ## License
 
-MIT
+[MIT](LICENSE)

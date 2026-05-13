@@ -2,7 +2,7 @@
 
 This project uses the **Autonomous SDLC Framework** for AI-driven development. 35 agents execute the full software development lifecycle autonomously.
 
-> **Full instructions are in `.sdlc-framework/agents/orchestrator.md`.** This file is the concise summary Gemini loads at startup.
+> **Full instructions are in `.sdlc/framework/agents/orchestrator.md`.** This file is the concise summary Gemini loads at startup.
 
 ## Priority Reading Order
 
@@ -12,7 +12,7 @@ This project uses the **Autonomous SDLC Framework** for AI-driven development. 3
 
 ## How to Operate
 
-- Read `.sdlc-framework/agents/orchestrator.md` for full orchestrator instructions
+- Read `.sdlc/framework/agents/orchestrator.md` for full orchestrator instructions
 - Follow the RARV cycle: Reason → Act → Reflect → Verify
 - Read CONTINUITY.md at the start of every turn
 - Update CONTINUITY.md at the end of every turn
@@ -25,8 +25,8 @@ Check `.sdlc/CONTINUITY.md` for the current phase and next steps.
 
 ## Agent Prompts Location
 
-- Orchestrator: `.sdlc-framework/agents/orchestrator.md`
-- Stage agents: `.sdlc-framework/agents/stage/*.md`
-- Subagents: `.sdlc-framework/agents/sub/**/*.md`
-- References: `.sdlc-framework/references/*.md`
-- Skills: `.sdlc-framework/skills/*.md`
+- Orchestrator: `.sdlc/framework/agents/orchestrator.md`
+- Stage agents: `.sdlc/framework/agents/stage/*.md`
+- Subagents: `.sdlc/framework/agents/sub/**/*.md`
+- References: `.sdlc/framework/references/*.md`
+- Skills: `.sdlc/framework/skills/*.md`

@@ -15,7 +15,7 @@ from .config import create_config
 from .integrations import get_integration
 from .integrations.base import IntegrationBase
 
-# Framework directories to copy into .sdlc-framework/
+# Framework directories to copy into .sdlc/
 FRAMEWORK_COPY_DIRS = ["agents", "references", "skills"]
 
 # Runtime directories to create under .sdlc/
@@ -38,7 +38,7 @@ RUNTIME_DIRS = [
 ]
 
 GITIGNORE_ENTRIES = [
-    "# Autonomous SDLC Framework",
+    "# Autonomous SDLC Framework — runtime state (gitignored)",
     ".sdlc/state/",
     ".sdlc/queue/",
     ".sdlc/memory/",
@@ -68,8 +68,8 @@ def scaffold(
     dirs_created: list[str] = []
     files_created: list[str] = []
 
-    # 1. Copy framework directories into .sdlc-framework/
-    fw_dir = target_dir / ".sdlc-framework"
+    # 1. Copy framework directories into .sdlc/framework/
+    fw_dir = target_dir / ".sdlc" / "framework"
     for dirname in FRAMEWORK_COPY_DIRS:
         src_dir = _find_source_dir(dirname)
         if src_dir and src_dir.is_dir():
@@ -78,7 +78,7 @@ def scaffold(
                 shutil.rmtree(dst_dir)
             if not dst_dir.exists():
                 shutil.copytree(src_dir, dst_dir)
-                dirs_created.append(f".sdlc-framework/{dirname}/")
+                dirs_created.append(f".sdlc/framework/{dirname}/")
                 for f in dst_dir.rglob("*"):
                     if f.is_file():
                         files_created.append(str(f.relative_to(target_dir)))
@@ -91,7 +91,7 @@ def scaffold(
             if dst.exists():
                 shutil.rmtree(dst)
             shutil.copytree(examples_dir, dst)
-            dirs_created.append(".sdlc-framework/examples/")
+            dirs_created.append(".sdlc/framework/examples/")
 
     # Copy existing templates (agent/subagent/handoff templates)
     templates_src = _find_source_dir("templates")
@@ -114,7 +114,7 @@ def scaffold(
         if not dst.exists() or force:
             shutil.copy2(runner_src, dst)
             dst.chmod(0o755)
-            files_created.append(".sdlc-framework/run.sh")
+            files_created.append(".sdlc/framework/run.sh")
 
     # 2. Create runtime directories under .sdlc/
     for d in RUNTIME_DIRS:
