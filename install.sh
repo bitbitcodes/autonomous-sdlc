@@ -5,7 +5,7 @@ set -euo pipefail
 # Run this FROM your project repo to install the SDLC framework into it.
 #
 # Usage:
-#   curl -sL https://raw.githubusercontent.com/yourorg/autonomous-sdlc/main/install.sh | bash
+#   curl -sL https://raw.githubusercontent.com/bitbitcodes/autonomous-sdlc/main/install.sh | bash
 #   OR
 #   /path/to/autonomous-sdlc/install.sh [--ide windsurf|copilot|claude|cursor|opencode]
 
@@ -52,7 +52,7 @@ resolve_source() {
   local tmp_dir
   tmp_dir=$(mktemp -d)
   log_info "Downloading framework to ${tmp_dir}..."
-  git clone --depth 1 https://github.com/yourorg/autonomous-sdlc.git "$tmp_dir" 2>/dev/null || {
+  git clone --depth 1 https://github.com/bitbitcodes/autonomous-sdlc.git "$tmp_dir" 2>/dev/null || {
     log_error "Failed to clone. Run install.sh directly from the framework repo instead."
     exit 1
   }

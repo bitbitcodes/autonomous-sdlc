@@ -16,10 +16,10 @@ Bootstrap multi-agent SDLC workflows into any repository.
 
 ```bash
 # One-time usage (no install required)
-uvx --from git+https://github.com/yourorg/autonomous-sdlc.git sdlc init .
+uvx --from git+https://github.com/bitbitcodes/autonomous-sdlc.git sdlc init .
 
 # Or install persistently
-pip install git+https://github.com/yourorg/autonomous-sdlc.git
+pip install git+https://github.com/bitbitcodes/autonomous-sdlc.git
 sdlc init .
 ```
 
@@ -164,7 +164,7 @@ Each agent pauses at **quality gates** — 10 gates enforce phase transitions. F
 ### Setup
 
 ```bash
-git clone https://github.com/yourorg/autonomous-sdlc.git
+git clone https://github.com/bitbitcodes/autonomous-sdlc.git
 cd autonomous-sdlc
 pip install -e ".[test,dev]"
 ```
