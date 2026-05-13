@@ -104,10 +104,16 @@ Then open your IDE and select the `sdlc.orchestrator` agent — it picks up the 
 ### 4. Monitor Progress
 
 ```bash
-.sdlc/framework/run.sh status
+sdlc status                       # Rich dashboard in console
+.sdlc/framework/run.sh status     # Shell alternative
+cat .sdlc/STATUS.md               # Agent dashboard with subagent detail
 ```
 
-The orchestrator tracks progress in `.sdlc/state/orchestrator.json` and maintains working memory in `.sdlc/CONTINUITY.md`.
+The orchestrator tracks progress across several files:
+- **`STATUS.md`** — Tabular dashboard showing every phase, agent, subagent status, and key outcomes
+- **`state/activity-log.md`** — Chronological log of every agent action and artifact produced
+- **`state/orchestrator.json`** — Machine-readable phase progress
+- **`CONTINUITY.md`** — Working memory in plain English
 
 ## Non-Interactive Mode
 

@@ -80,6 +80,41 @@ sdlc init . --force --integration copilot -y
 sdlc init --here
 ```
 
+### `sdlc status`
+
+Show the current SDLC workflow status — phases, agents, and progress.
+
+```bash
+sdlc status [TARGET]
+```
+
+**Arguments:**
+
+| Argument | Description | Default |
+|----------|-------------|--------|
+| `TARGET` | Project directory path | Current directory |
+
+**Output includes:**
+
+| Section | Source | Description |
+|---------|--------|-------------|
+| Agent Dashboard | `STATUS.md` | Tabular status of all phases, agents, and subagents |
+| Current State | `orchestrator.json` | Phase progress, complexity, task counts |
+| Phase Progress | `orchestrator.json` | Rich table with status icons and gate results |
+| Queue | `queue/*.json` | Pending / active / completed task counts |
+| Activity Log | `activity-log.md` | Last 15 lines of agent actions |
+| Working Memory | `CONTINUITY.md` | Current phase, tasks, next steps |
+
+**Examples:**
+
+```bash
+# From inside the project
+sdlc status
+
+# Pointing to a specific project
+sdlc status /path/to/my-project
+```
+
 ### `sdlc version`
 
 Print the installed version.
@@ -120,6 +155,8 @@ flowchart TD
     STATE --> ST2["queue/{pending,active,completed}.json"]
     STATE --> ST3["memory indexes"]
     STATE --> ST4["CONTINUITY.md"]
+    STATE --> ST5["STATUS.md"]
+    STATE --> ST6["activity-log.md"]
 ```
 
 ### Framework Files (committed)
@@ -149,6 +186,8 @@ Created under `.sdlc/` and added to `.gitignore`:
 | `artifacts/<phase>/` | Generated outputs per phase |
 | `specs/` | Normalized input specifications |
 | `CONTINUITY.md` | Working memory |
+| `STATUS.md` | Agent dashboard — tabular status of all phases, agents, subagents |
+| `state/activity-log.md` | Chronological log of every agent action |
 
 ### IDE Config Files
 

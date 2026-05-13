@@ -25,12 +25,16 @@ Type `/sdlc.` in Cascade chat to see available commands:
 
 ## How to Operate
 
-- Read `.sdlc/framework/agents/orchestrator.md` for full orchestrator instructions
-- Follow the RARV cycle: Reason → Act → Reflect → Verify
-- Read CONTINUITY.md at the start of every turn
-- Update CONTINUITY.md at the end of every turn
-- Execute phases sequentially, dispatch subagents as needed
-- Enforce quality gates before phase transitions
+When the `/sdlc.orchestrator` workflow is active:
+
+1. **Do NOT directly implement the user's request.** You are an orchestrator, not a coder.
+2. Read `.sdlc/framework/agents/orchestrator.md` for full orchestrator instructions
+3. Follow the RARV cycle: Reason → Act → Reflect → Verify
+4. Read CONTINUITY.md at the start of every turn
+5. Update CONTINUITY.md at the end of every turn
+6. Execute phases sequentially (0→9), dispatch subagents as needed
+7. Enforce quality gates before phase transitions
+8. **Update state files at every phase:** `orchestrator.json`, `CONTINUITY.md`, `activity-log.md`, `STATUS.md`, `queue/*.json`
 
 ## Current State
 

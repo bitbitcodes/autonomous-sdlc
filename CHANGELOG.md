@@ -16,6 +16,16 @@ All notable changes to the Autonomous SDLC Framework.
 - `.sdlc/framework/` subfolder — Isolates installed framework files from runtime state
 - **MCP-aware orchestrator** — Orchestrator prompt detects and uses JIRA/GitHub/Linear MCP tools to fetch specs directly
 - **Agent dropdown workflow** — Primary usage path: select `sdlc.orchestrator` → paste spec → go
+- **`sdlc status` CLI command** — Rich console dashboard showing phases, agents, queue, activity log, and working memory
+- **`.sdlc/STATUS.md`** — Tabular agent dashboard with 4 tables: overall progress, phase & agent status, subagent detail, artifacts produced
+- **`.sdlc/state/activity-log.md`** — Chronological log of every agent dispatch, action, and artifact produced
+- **Framework compliance guardrails** — Command template and IDE rules now enforce "DO NOT skip phases" with explicit state update requirements
+
+### Fixed
+- `run.sh init` nested `.sdlc/` directory bug — `SDLC_DIR` now resolves relative to project root, not CWD
+- `run.sh` version updated from `1.0.0` to `1.1.0`
+- Stale "NEXT STEP" box now shows IDE-specific agent dropdown instructions
+- CONTINUITY.md template paths updated to use `.sdlc/framework/agents/`
 
 ### Changed
 - All agent/reference/skill paths now use `.sdlc/framework/` prefix

@@ -112,6 +112,82 @@ EOF
   echo '{"anti_patterns": []}' > "${SDLC_DIR}/memory/semantic/anti-patterns.json"
   echo '[]' > "${SDLC_DIR}/memory/learnings/index.json"
 
+  # Initialize STATUS.md — overall agent dashboard
+  cat > "${SDLC_DIR}/STATUS.md" << 'EOF'
+# SDLC Status Dashboard
+
+> Auto-updated by the orchestrator at every phase transition.
+> Last updated: not started
+
+## Overall Progress
+
+| Metric       | Value       |
+|--------------|-------------|
+| Status       | initialized |
+| Complexity   | —           |
+| Current Phase| 0 (Bootstrap) |
+| Tasks Done   | 0 / 0       |
+| Gate Passes  | 0 / 10      |
+
+## Phase & Agent Status
+
+| Phase | Name           | Agent                  | Subagents Used | Status  | Gate | Key Outcome |
+|-------|----------------|------------------------|----------------|---------|------|-------------|
+| 0     | Bootstrap      | orch-sdlc              | —              | pending | —    | —           |
+| 1     | Product        | stage-product          | —              | pending | —    | —           |
+| 2     | Architecture   | stage-architecture     | —              | pending | —    | —           |
+| 3     | Backlog        | stage-backlog          | —              | pending | —    | —           |
+| 4     | Development    | stage-development      | —              | pending | —    | —           |
+| 5     | Testing        | stage-testing          | —              | pending | —    | —           |
+| 6     | Security       | stage-security         | —              | pending | —    | —           |
+| 7     | Review         | stage-review           | —              | pending | —    | —           |
+| 8     | DevOps         | stage-devops           | —              | pending | —    | —           |
+| 9     | Observability  | stage-observability    | —              | pending | —    | —           |
+
+## Subagent Detail
+
+| Phase | Subagent                    | Status  | Outcome |
+|-------|-----------------------------|---------|---------|
+| 1     | sub-requirement-parser      | pending | —       |
+| 1     | sub-acceptance-criteria     | pending | —       |
+| 1     | sub-risk-analyzer           | pending | —       |
+| 1     | sub-assumption-extractor    | pending | —       |
+| 2     | sub-api-designer            | pending | —       |
+| 2     | sub-data-model-designer     | pending | —       |
+| 2     | sub-integration-planner     | pending | —       |
+| 2     | sub-nfr-evaluator           | pending | —       |
+| 4     | sub-repo-analyzer           | pending | —       |
+| 4     | sub-code-generator          | pending | —       |
+| 4     | sub-refactoring-agent       | pending | —       |
+| 4     | sub-documentation-agent     | pending | —       |
+| 5     | sub-unit-test               | pending | —       |
+| 5     | sub-integration-test        | pending | —       |
+| 5     | sub-regression-test         | pending | —       |
+| 5     | sub-test-data               | pending | —       |
+| 6     | sub-secret-scanner          | pending | —       |
+| 6     | sub-dependency-scanner      | pending | —       |
+| 6     | sub-owasp-reviewer          | pending | —       |
+| 6     | sub-policy-validator        | pending | —       |
+| 7     | sub-code-review             | pending | —       |
+| 7     | sub-maintainability         | pending | —       |
+| 7     | sub-performance             | pending | —       |
+
+## Artifacts Produced
+
+| Phase | Artifact | Path |
+|-------|----------|------|
+| —     | —        | —    |
+EOF
+
+  # Initialize activity log
+  cat > "${SDLC_DIR}/state/activity-log.md" << 'EOF'
+# Activity Log
+
+Records every agent dispatch, action, and artifact produced.
+
+> No agent actions yet. The orchestrator will append entries here as it executes phases.
+EOF
+
   # Initialize CONTINUITY.md
   cat > "${SDLC_DIR}/CONTINUITY.md" << 'EOF'
 # CONTINUITY — Working Memory
@@ -287,6 +363,16 @@ cmd_status() {
 
   print_banner
 
+  # Show STATUS.md dashboard if available
+  if [[ -f "${SDLC_DIR}/STATUS.md" ]]; then
+    echo -e "${CYAN}─── Agent Dashboard (STATUS.md) ───${NC}"
+    echo ""
+    cat "${SDLC_DIR}/STATUS.md" | sed 's/^/  /'
+    echo ""
+    echo -e "${CYAN}─── Detailed State ───${NC}"
+    echo ""
+  fi
+
   echo -e "${BLUE}Current State:${NC}"
   echo ""
 
@@ -366,6 +452,21 @@ for key, phase in state['phases'].items():
     echo "  Pending:   ${pending}"
     echo "  Active:    ${active}"
     echo "  Completed: ${completed}"
+  fi
+
+  echo ""
+
+  # Show activity log (last 20 lines)
+  if [[ -f "${SDLC_DIR}/state/activity-log.md" ]]; then
+    local log_lines
+    log_lines=$(wc -l < "${SDLC_DIR}/state/activity-log.md" | tr -d ' ')
+    if (( log_lines > 5 )); then
+      echo -e "${BLUE}Activity Log (last 20 lines):${NC}"
+      tail -20 "${SDLC_DIR}/state/activity-log.md" | sed 's/^/  /'
+    else
+      echo -e "${BLUE}Activity Log:${NC}"
+      echo "  No agent actions recorded yet."
+    fi
   fi
 }
 

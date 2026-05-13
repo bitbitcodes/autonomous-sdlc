@@ -39,10 +39,13 @@ your-project/
 │   │   └── run.sh                #   Utility runner (status, reset, start)
 │   ├── init-options.json         # Saved configuration
 │   ├── state/                    # Runtime (gitignored)
+│   │   ├── orchestrator.json     #   Phase progress
+│   │   └── activity-log.md       #   Agent action history
 │   ├── queue/                    # Runtime (gitignored)
 │   ├── memory/                   # Runtime (gitignored)
 │   ├── artifacts/                # Runtime (gitignored)
 │   ├── specs/                    # Runtime (gitignored)
+│   ├── STATUS.md                 # Agent dashboard (gitignored)
 │   └── CONTINUITY.md             # Working memory (gitignored)
 ├── AGENTS.md                     # Agent discovery (OpenAI/AAIF standard)
 ├── .github/agents/               # (if Copilot selected)
@@ -152,7 +155,9 @@ See [`examples/`](examples/) for sample specs including a [JIRA epic example](ex
 ### Monitor Progress
 
 ```bash
-.sdlc/framework/run.sh status    # Phase progress + queue counts
+sdlc status                       # Rich dashboard — phases, agents, queue, activity log
+.sdlc/framework/run.sh status     # Shell alternative (no Python install needed)
+cat .sdlc/STATUS.md               # Agent dashboard with subagent-level detail
 cat .sdlc/CONTINUITY.md           # Current state in plain English
 ```
 

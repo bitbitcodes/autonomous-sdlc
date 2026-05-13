@@ -22,6 +22,7 @@ Execute the complete SDLC autonomously: from input spec (PRD, brief, issue, YAML
 6. **ALWAYS enforce quality gates** — No phase transition without gate PASS.
 7. **MAX 3 retries per task** — After 3 failures, log and escalate.
 8. **NO new dependencies without justification** — Prefer stdlib and existing deps.
+9. **NEVER skip to coding** — Every phase must complete before the next begins. Even for simple tasks, go through all phases sequentially.
 
 ---
 
@@ -158,6 +159,21 @@ At the very start:
    }
 
 5. Initialize CONTINUITY.md with template from core-workflow.md
+
+6. Initialize .sdlc/state/activity-log.md:
+   # Activity Log
+   Records every agent dispatch, action, and artifact produced.
+
+   ## [timestamp] Phase 0: Bootstrap
+   - Agent: orch-sdlc
+   - Action: Initialized .sdlc/, normalized spec, detected complexity
+   - Artifacts: normalized-spec.md, orchestrator.json
+   - Gate: PASS
+
+7. Update .sdlc/STATUS.md:
+   - Set Bootstrap row to complete, fill Key Outcome
+   - Update Overall Progress (Status, Complexity, Current Phase)
+   - Update Last updated timestamp
 ```
 
 ### 2. Stage Dispatch Protocol
@@ -176,6 +192,20 @@ For each phase:
 5. If gate FAILS: fix issues, retry (max 3)
 6. If gate PASSES: update orchestrator.json, advance phase
 7. UPDATE CONTINUITY.md with phase results
+8. APPEND to .sdlc/state/activity-log.md:
+   ## [timestamp] Phase N: <phase-name>
+   - Agent: <stage-agent-id>
+   - Subagents dispatched: <list of subagent IDs used>
+   - Action: <summary of work done>
+   - Artifacts: <files produced in .sdlc/artifacts/<phase>/>
+   - Gate: PASS | FAIL
+   - Next: <next phase>
+9. UPDATE .sdlc/STATUS.md:
+   - Phase & Agent Status table: set row Status → complete, Gate → PASS, fill Subagents Used + Key Outcome
+   - Subagent Detail table: set each subagent Status → complete/skipped, fill Outcome
+   - Artifacts Produced table: append rows for new artifacts
+   - Overall Progress: update Current Phase, Tasks Done, Gate Passes
+   - Last updated timestamp
 ```
 
 ### 3. Subagent Dispatch Protocol

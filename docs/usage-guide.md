@@ -317,10 +317,38 @@ Each phase produces artifacts in its respective `.sdlc/artifacts/<phase>/` direc
 ### Check Status
 
 ```bash
+# Rich console dashboard (requires Python install)
+sdlc status
+
+# Shell alternative (no Python needed)
 .sdlc/framework/run.sh status
 ```
 
-Shows: current phase, task counts, phase completion status, queue sizes, and CONTINUITY.md summary.
+Both show: current phase, task counts, phase completion, agent assignments, queue sizes, activity log, and CONTINUITY.md summary.
+
+### Agent Dashboard (STATUS.md)
+
+The orchestrator maintains `.sdlc/STATUS.md` — a markdown file with tabular status of every phase, agent, and subagent:
+
+```bash
+cat .sdlc/STATUS.md
+```
+
+Includes four tables:
+- **Overall Progress** — Status, complexity, current phase, tasks done, gates passed
+- **Phase & Agent Status** — Each phase with its responsible agent, subagents used, status, gate result, and key outcome
+- **Subagent Detail** — All 23 subagents with individual status and outcome
+- **Artifacts Produced** — Every file generated, by phase
+
+### Activity Log
+
+Every agent action is recorded in `.sdlc/state/activity-log.md`:
+
+```bash
+cat .sdlc/state/activity-log.md
+```
+
+Each entry includes: timestamp, agent ID, subagents dispatched, action summary, artifacts produced, and gate result.
 
 ### Read CONTINUITY.md
 
@@ -338,13 +366,13 @@ This file is updated at the end of every AI turn and shows:
 - Next steps
 - Open questions and blocked items
 
-### Check Orchestrator State
+### Check Orchestrator State (JSON)
 
 ```bash
 cat .sdlc/state/orchestrator.json | python3 -m json.tool
 ```
 
-Shows phase-by-phase status and gate results.
+Machine-readable phase-by-phase status and gate results.
 
 ### Check Queue
 

@@ -144,8 +144,141 @@ def init(
     console.print("  1. Add your spec: [cyan].sdlc/framework/run.sh start ./your-prd.md[/]")
     console.print("  2. Open your AI IDE and start a new conversation")
     console.print("  3. The orchestrator activates automatically via [cyan]/sdlc.orchestrator[/]")
-    console.print("  4. Check status: [cyan].sdlc/framework/run.sh status[/]")
+    console.print("  4. Check status: [cyan]sdlc status[/]")
     console.print()
+
+
+@app.command()
+def status(
+    target: str | None = typer.Argument(None, help="Project directory (default: current)"),
+) -> None:
+    """Show the current SDLC workflow status — phases, agents, and progress."""
+    import json as _json
+
+    target_dir = Path(target).resolve() if target else Path.cwd()
+    sdlc_dir = target_dir / ".sdlc"
+
+    if not sdlc_dir.is_dir():
+        console.print("[red]Error:[/] .sdlc/ directory not found. Run [cyan]sdlc init[/] first.")
+        raise typer.Exit(1)
+
+    print_banner(console)
+
+    # ── STATUS.md dashboard ──
+    status_file = sdlc_dir / "STATUS.md"
+    if status_file.exists():
+        from rich.markdown import Markdown
+
+        console.print(Markdown(status_file.read_text()))
+        console.print()
+
+    # ── orchestrator.json ──
+    orch_file = sdlc_dir / "state" / "orchestrator.json"
+    if orch_file.exists():
+        state = _json.loads(orch_file.read_text())
+
+        phase_names = {
+            "0-bootstrap": "Bootstrap", "1-product": "Product",
+            "2-architecture": "Architecture", "3-backlog": "Backlog",
+            "4-development": "Development", "5-testing": "Testing",
+            "6-security": "Security", "7-review": "Review",
+            "8-devops": "DevOps", "9-observability": "Observability",
+        }
+        agent_map = {
+            "0-bootstrap": "orch-sdlc",
+            "1-product": "stage-product (4 sub)",
+            "2-architecture": "stage-architecture (4 sub)",
+            "3-backlog": "stage-backlog",
+            "4-development": "stage-development (4 sub)",
+            "5-testing": "stage-testing (4 sub)",
+            "6-security": "stage-security (4 sub)",
+            "7-review": "stage-review (3 sub)",
+            "8-devops": "stage-devops",
+            "9-observability": "stage-observability",
+        }
+        status_icons = {
+            "complete": "[green]✅ complete[/]",
+            "in_progress": "[yellow]🔄 active[/]",
+            "pending": "[dim]⬜ pending[/]",
+            "failed": "[red]❌ failed[/]",
+        }
+
+        # Summary
+        console.print("[bold]Current State[/]")
+        summary = Table(show_header=False, box=None, padding=(0, 2))
+        summary.add_column(style="bold")
+        summary.add_column()
+        summary.add_row("Status", str(state.get("status", "unknown")))
+        summary.add_row("Complexity", str(state.get("complexity") or "—"))
+        summary.add_row("Phase", str(state.get("current_phase", 0)))
+        summary.add_row(
+            "Tasks",
+            f"{state.get('completed_tasks', 0)} / {state.get('total_tasks', 0)} complete",
+        )
+        console.print(summary)
+        console.print()
+
+        # Phase table
+        phase_table = Table(title="Phase Progress", show_lines=True)
+        phase_table.add_column("#", justify="center", width=3)
+        phase_table.add_column("Phase", min_width=14)
+        phase_table.add_column("Agent", min_width=20)
+        phase_table.add_column("Status", min_width=14)
+        phase_table.add_column("Gate", justify="center", width=6)
+
+        phases = state.get("phases", {})
+        for key in sorted(phases.keys()):
+            phase = phases[key]
+            num = key.split("-")[0]
+            name = phase_names.get(key, key)
+            agent = agent_map.get(key, "")
+            st = status_icons.get(phase.get("status", "pending"), phase.get("status", ""))
+            gate = phase.get("gate") or "—"
+            phase_table.add_row(num, name, agent, st, gate)
+
+        console.print(phase_table)
+        console.print()
+
+    # ── Queue ──
+    queue_dir = sdlc_dir / "queue"
+    if queue_dir.is_dir():
+        counts = {}
+        for name in ("pending", "active", "completed"):
+            f = queue_dir / f"{name}.json"
+            if f.exists():
+                try:
+                    counts[name] = len(_json.loads(f.read_text()))
+                except Exception:
+                    counts[name] = "?"
+            else:
+                counts[name] = 0
+        console.print(
+            f"[bold]Queue:[/]  Pending: {counts.get('pending', 0)}  |  "
+            f"Active: {counts.get('active', 0)}  |  "
+            f"Completed: {counts.get('completed', 0)}"
+        )
+        console.print()
+
+    # ── Activity log (last 15 lines) ──
+    log_file = sdlc_dir / "state" / "activity-log.md"
+    if log_file.exists():
+        lines = log_file.read_text().strip().splitlines()
+        if len(lines) > 5:
+            console.print("[bold]Activity Log (recent):[/]")
+            for line in lines[-15:]:
+                console.print(f"  {line}")
+        else:
+            console.print("[dim]Activity Log: No agent actions recorded yet.[/]")
+        console.print()
+
+    # ── CONTINUITY.md summary ──
+    cont_file = sdlc_dir / "CONTINUITY.md"
+    if cont_file.exists():
+        lines = cont_file.read_text().strip().splitlines()
+        console.print("[bold]Working Memory (CONTINUITY.md):[/]")
+        for line in lines[:15]:
+            console.print(f"  {line}")
+        console.print()
 
 
 @app.command()
