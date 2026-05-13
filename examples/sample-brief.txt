@@ -1,0 +1,1 @@
+Build a REST API for a blog platform with user authentication, CRUD for posts and comments, and tag-based categorization. Use Python FastAPI with PostgreSQL.

@@ -1,0 +1,73 @@
+[project]
+name = "autonomous-sdlc"
+version = "1.0.0"
+description = "Bootstrap multi-agent SDLC workflows into any repository. 35 AI agents execute the full software development lifecycle from spec to production."
+requires-python = ">=3.11"
+dependencies = [
+    "typer>=0.15.0",
+    "rich>=13.0.0",
+    "readchar>=4.0.0",
+]
+readme = "README.md"
+license = {text = "MIT"}
+
+[project.scripts]
+sdlc = "sdlc_cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sdlc_cli"]
+
+[tool.hatch.build.targets.wheel.force-include]
+# IDE context templates
+"templates/windsurf-rules.md" = "sdlc_cli/core_pack/templates/windsurf-rules.md"
+"templates/copilot-instructions.md" = "sdlc_cli/core_pack/templates/copilot-instructions.md"
+"templates/claude-instructions.md" = "sdlc_cli/core_pack/templates/claude-instructions.md"
+"templates/cursor-rules.mdc" = "sdlc_cli/core_pack/templates/cursor-rules.mdc"
+"templates/opencode-instructions.md" = "sdlc_cli/core_pack/templates/opencode-instructions.md"
+"templates/gemini-instructions.md" = "sdlc_cli/core_pack/templates/gemini-instructions.md"
+"templates/generic-instructions.md" = "sdlc_cli/core_pack/templates/generic-instructions.md"
+"templates/agents-md-template.md" = "sdlc_cli/core_pack/templates/agents-md-template.md"
+# Command templates (orchestrator slash command)
+"templates/commands" = "sdlc_cli/core_pack/commands"
+# Agent prompts (copied to .sdlc-framework/agents/)
+"agents" = "sdlc_cli/core_pack/agents"
+# Reference docs (copied to .sdlc-framework/references/)
+"references" = "sdlc_cli/core_pack/references"
+# Skill modules (copied to .sdlc-framework/skills/)
+"skills" = "sdlc_cli/core_pack/skills"
+# Example specs
+"examples" = "sdlc_cli/core_pack/examples"
+# Runner script
+"run.sh" = "sdlc_cli/core_pack/run.sh"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
+dev = [
+    "ruff>=0.4.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--tb=short",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]

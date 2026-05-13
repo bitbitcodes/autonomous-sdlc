@@ -1,0 +1,44 @@
+project:
+  name: E-Commerce Product Catalog
+  description: Microservice for managing product catalog with search and filtering
+
+requirements:
+  functional:
+    - id: REQ-001
+      title: Product CRUD
+      description: Create, read, update, delete products with name, description, price, category, images
+    - id: REQ-002
+      title: Category Management
+      description: Hierarchical category tree with parent-child relationships
+    - id: REQ-003
+      title: Search
+      description: Full-text search across product names and descriptions with relevance ranking
+    - id: REQ-004
+      title: Filtering
+      description: Filter products by category, price range, availability, and custom attributes
+    - id: REQ-005
+      title: Inventory Tracking
+      description: Track stock levels, low-stock alerts, reserve stock for pending orders
+
+  non_functional:
+    - id: REQ-NF-001
+      title: Search Latency
+      description: Search results returned in < 100ms for p99
+    - id: REQ-NF-002
+      title: Catalog Size
+      description: Support up to 1M products
+    - id: REQ-NF-003
+      title: Availability
+      description: 99.9% uptime SLA
+
+technology:
+  language: Go
+  database: PostgreSQL
+  search: Elasticsearch
+  cache: Redis
+  api_style: REST with OpenAPI 3.0
+
+constraints:
+  - No vendor lock-in for cloud provider
+  - Must support Docker deployment
+  - All prices stored in cents (integer) to avoid floating point issues
