@@ -5,8 +5,17 @@ set -euo pipefail
 # Usage: ./run.sh <command> [args]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SDLC_DIR=".sdlc"
-VERSION="1.0.0"
+
+# Determine project root
+# When installed: script is at <project>/.sdlc/framework/run.sh
+# When developing: script is at <repo>/run.sh
+if [[ "$(basename "$(dirname "$SCRIPT_DIR")" )" == ".sdlc" ]]; then
+  PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+else
+  PROJECT_ROOT="$SCRIPT_DIR"
+fi
+SDLC_DIR="${PROJECT_ROOT}/.sdlc"
+VERSION="1.1.0"
 
 # Colors
 RED='\033[0;31m'
@@ -236,8 +245,8 @@ ${complexity}
 - Complexity detected as ${complexity} (${spec_lines} lines in spec)
 
 ## Next Steps
-1. Read agents/orchestrator.md — adopt orchestrator role
-2. Dispatch stage-product agent (agents/stage/product.md)
+1. Read .sdlc/framework/agents/orchestrator.md — adopt orchestrator role
+2. Dispatch stage-product agent (.sdlc/framework/agents/stage/product.md)
 3. Execute Phase 1: Product Discovery
 
 ## Open Questions
@@ -254,15 +263,14 @@ EOF
   echo -e "${CYAN}║                    NEXT STEP                                 ║${NC}"
   echo -e "${CYAN}╠═══════════════════════════════════════════════════════════════╣${NC}"
   echo -e "${CYAN}║                                                              ║${NC}"
-  echo -e "${CYAN}║  Paste the orchestrator prompt into your AI IDE:             ║${NC}"
+  echo -e "${CYAN}║  Open your AI IDE and select the sdlc.orchestrator agent:    ║${NC}"
   echo -e "${CYAN}║                                                              ║${NC}"
-  echo -e "${CYAN}║  1. Open agents/orchestrator.md                              ║${NC}"
-  echo -e "${CYAN}║  2. Copy the full content                                    ║${NC}"
-  echo -e "${CYAN}║  3. Paste into Windsurf/Cursor/Claude Code chat              ║${NC}"
-  echo -e "${CYAN}║  4. The orchestrator will read AGENTS.md and begin           ║${NC}"
+  echo -e "${CYAN}║  Copilot:    Select sdlc.orchestrator from agent dropdown    ║${NC}"
+  echo -e "${CYAN}║  Windsurf:   Type /sdlc.orchestrator in Cascade chat         ║${NC}"
+  echo -e "${CYAN}║  Claude Code: Type /sdlc-orchestrator in chat                ║${NC}"
+  echo -e "${CYAN}║  Cursor:     Start chat (context auto-loads)                 ║${NC}"
   echo -e "${CYAN}║                                                              ║${NC}"
-  echo -e "${CYAN}║  Or use with Claude Code:                                    ║${NC}"
-  echo -e "${CYAN}║  claude -p \"\$(cat agents/orchestrator.md)\"                    ║${NC}"
+  echo -e "${CYAN}║  The orchestrator picks up the pre-loaded spec and begins.   ║${NC}"
   echo -e "${CYAN}║                                                              ║${NC}"
   echo -e "${CYAN}╚═══════════════════════════════════════════════════════════════╝${NC}"
 }
@@ -302,6 +310,19 @@ phase_names = {
     '9-observability': 'Observability'
 }
 
+agent_map = {
+    '0-bootstrap': 'orch-sdlc',
+    '1-product': 'stage-product (4 subagents)',
+    '2-architecture': 'stage-architecture (4 subagents)',
+    '3-backlog': 'stage-backlog',
+    '4-development': 'stage-development (4 subagents)',
+    '5-testing': 'stage-testing (4 subagents)',
+    '6-security': 'stage-security (4 subagents)',
+    '7-review': 'stage-review (3 subagents)',
+    '8-devops': 'stage-devops',
+    '9-observability': 'stage-observability'
+}
+
 status_icons = {
     'complete': '✅',
     'in_progress': '🔄',
@@ -318,8 +339,10 @@ print('  Phases:')
 for key, phase in state['phases'].items():
     name = phase_names.get(key, key)
     icon = status_icons.get(phase['status'], '❓')
+    agent = agent_map.get(key, '')
     gate = f' (gate: {phase[\"gate\"]})' if phase['gate'] else ''
     print(f'    {icon} {name}: {phase[\"status\"]}{gate}')
+    print(f'       Agent: {agent}')
 " 2>/dev/null || cat "${SDLC_DIR}/state/orchestrator.json"
   fi
 
