@@ -3,11 +3,11 @@
 Bootstrap multi-agent SDLC workflows into any repository.
 
 ```
-               _____  __    ______
-   _____  ____/ / / _/ ____/ ____/
-  / ___/ / __  / / / / ___/ /
- (__  ) / /_/ / / / / /  / /___
-/____/  \__,_/ /_/  /_/   \____/
+               ___ ___ ____
+   _____  ____/ / / / / __/
+  / ___/ / __  / / / / /
+ (__  ) / /_/ / / / / /___
+/____/  \__,_/ /_/  \____/
 ```
 
 **autonomous-sdlc** scaffolds 40 AI agents into your project repo to execute the full software development lifecycle — from a spec to production-ready code with tests, security audit, CI/CD, and monitoring.
@@ -184,8 +184,8 @@ Spec → Orchestrator → Product → Story-Tasks → Architecture → Design �
 | Tier | Count | Agents |
 |------|-------|--------|
 | Orchestrator | 1 | SDLC Orchestrator — workflow control, delegation, validation |
-| Stage Agents | 11 | Product, Story-Tasks, Architecture, Design, Development, Testing, Security, Review, DevOps, Observability |
-| Subagents | 31 | Specialized workers dispatched by each stage agent |
+| Stage Agents | 10 | Product, Story-Tasks, Architecture, Design, Development, Testing, Security, Review, DevOps, Observability |
+| Subagents | 29 | Specialized workers dispatched by each stage agent |
 
 ### Subagents by Stage
 
