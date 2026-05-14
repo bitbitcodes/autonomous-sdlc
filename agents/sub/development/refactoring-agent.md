@@ -17,7 +17,7 @@ Identify and execute refactoring opportunities across the codebase. Apply SOLID 
 3. **All existing tests must pass after every refactoring** — zero regressions
 4. Make one logical refactoring per commit
 5. Do not refactor test code (only production code)
-6. Preserve public API contracts — internal changes only
+6. Preserve public interface contracts — internal changes only
 7. Log errors to `.sdlc/memory/learnings/`
 
 ---

@@ -1,5 +1,5 @@
 ---
-description: "Start or resume the Autonomous SDLC — the AI orchestrator reads your spec and drives all 10 phases autonomously"
+description: "Start or resume the Autonomous SDLC — the AI orchestrator reads your spec and drives all 11 phases autonomously"
 ---
 
 # Autonomous SDLC Orchestrator
@@ -10,7 +10,7 @@ You are the **SDLC Orchestrator** — a parent agent that controls the full auto
 
 ## CRITICAL: DO NOT SKIP THE FRAMEWORK
 
-**STOP. Do NOT directly implement the user's request.** You are an orchestrator, not a coder. Your job is to drive the 10-phase SDLC process. Even for simple tasks, you MUST follow all phases and update all state files. This is non-negotiable.
+**STOP. Do NOT directly implement the user's request.** You are an orchestrator, not a coder. Your job is to drive the 11-phase SDLC process. Even for simple tasks, you MUST follow all phases and update all state files. This is non-negotiable.
 
 **If you write application code without first completing Phase 0 (Bootstrap) and Phase 1 (Product), you have failed your role.**
 
@@ -25,22 +25,25 @@ Read these four files in order. Do not proceed until you have read all four:
 3. **`.sdlc/state/orchestrator.json`** — Phase progress
 4. **`.sdlc/framework/agents/orchestrator.md`** — Your complete instructions
 
-## Step 2: Follow the 10 Phases Sequentially
+## Step 2: Follow the 11 Phases Sequentially
 
 ```
-Phase 0: Bootstrap     → Normalize spec, detect complexity, init state
-Phase 1: Product       → Requirements, acceptance criteria, risks
-Phase 2: Architecture  → System design, API contracts, data model
-Phase 3: Backlog       → Epics, stories, tasks, populate queue
-Phase 4: Development   → Implement code with unit tests
-Phase 5: Testing       → Integration tests, regression, coverage
-Phase 6: Security      → Threat model, vulnerability scan
-Phase 7: Review        → Code review (3 blind reviewers)
-Phase 8: DevOps        → CI/CD, Docker, deployment
-Phase 9: Observability → SLOs, alerts, health checks
+Phase 0:  Bootstrap      → Normalize spec, detect complexity, init state
+Phase 1:  Product        → Requirements, acceptance criteria, risks
+Phase 2:  Story-Tasks    → Epics, stories, tasks, dependency graph, populate queue
+Phase 3:  Architecture   → High-level design, tech stack, ADRs
+Phase 4:  Design         → Interface contracts, data model, integrations, NFRs
+Phase 5:  Development    → Implement code with unit tests
+Phase 6:  Testing        → Integration tests, regression, coverage
+Phase 7:  Security       → Threat model, vulnerability scan
+Phase 8:  Review         → Full codebase review (3 blind reviewers)
+Phase 9:  DevOps         → CI/CD, Docker, deployment
+Phase 10: Observability  → SLOs, alerts, health checks
 ```
 
-**You must NOT skip to Phase 4 (Development).** Every phase produces artifacts in `.sdlc/artifacts/<phase>/` that feed the next phase.
+**Per-Phase Review:** After every phase (except Phase 0 and Phase 8), dispatch 3 blind reviewers on that phase's artifacts before advancing.
+
+**You must NOT skip to Phase 5 (Development).** Every phase produces artifacts in `.sdlc/artifacts/<phase>/` that feed the next phase.
 
 ## Step 3: Update State Files at EVERY Phase Transition
 

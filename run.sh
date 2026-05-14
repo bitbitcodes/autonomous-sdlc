@@ -61,8 +61,9 @@ cmd_init() {
 
   # Artifacts (per phase)
   mkdir -p "${SDLC_DIR}/artifacts/product"
+  mkdir -p "${SDLC_DIR}/artifacts/story-tasks"
   mkdir -p "${SDLC_DIR}/artifacts/architecture"
-  mkdir -p "${SDLC_DIR}/artifacts/backlog"
+  mkdir -p "${SDLC_DIR}/artifacts/design"
   mkdir -p "${SDLC_DIR}/artifacts/development"
   mkdir -p "${SDLC_DIR}/artifacts/testing"
   mkdir -p "${SDLC_DIR}/artifacts/security"
@@ -80,16 +81,17 @@ cmd_init() {
   "status": "initialized",
   "complexity": null,
   "phases": {
-    "0-bootstrap": { "status": "pending", "gate": null },
-    "1-product": { "status": "pending", "gate": null },
-    "2-architecture": { "status": "pending", "gate": null },
-    "3-backlog": { "status": "pending", "gate": null },
-    "4-development": { "status": "pending", "gate": null },
-    "5-testing": { "status": "pending", "gate": null },
-    "6-security": { "status": "pending", "gate": null },
-    "7-review": { "status": "pending", "gate": null },
-    "8-devops": { "status": "pending", "gate": null },
-    "9-observability": { "status": "pending", "gate": null }
+    "0-bootstrap": { "status": "pending", "gate": null, "review": null },
+    "1-product": { "status": "pending", "gate": null, "review": null },
+    "2-story-tasks": { "status": "pending", "gate": null, "review": null },
+    "3-architecture": { "status": "pending", "gate": null, "review": null },
+    "4-design": { "status": "pending", "gate": null, "review": null },
+    "5-development": { "status": "pending", "gate": null, "review": null },
+    "6-testing": { "status": "pending", "gate": null, "review": null },
+    "7-security": { "status": "pending", "gate": null, "review": null },
+    "8-review": { "status": "pending", "gate": null, "review": null },
+    "9-devops": { "status": "pending", "gate": null, "review": null },
+    "10-observability": { "status": "pending", "gate": null, "review": null }
   },
   "active_agents": [],
   "total_tasks": 0,
@@ -127,7 +129,7 @@ EOF
 | Complexity   | —           |
 | Current Phase| 0 (Bootstrap) |
 | Tasks Done   | 0 / 0       |
-| Gate Passes  | 0 / 10      |
+| Gate Passes  | 0 / 11      |
 
 ## Phase & Agent Status
 
@@ -135,14 +137,15 @@ EOF
 |-------|----------------|------------------------|----------------|---------|------|-------------|
 | 0     | Bootstrap      | orch-sdlc              | —              | pending | —    | —           |
 | 1     | Product        | stage-product          | —              | pending | —    | —           |
-| 2     | Architecture   | stage-architecture     | —              | pending | —    | —           |
-| 3     | Backlog        | stage-backlog          | —              | pending | —    | —           |
-| 4     | Development    | stage-development      | —              | pending | —    | —           |
-| 5     | Testing        | stage-testing          | —              | pending | —    | —           |
-| 6     | Security       | stage-security         | —              | pending | —    | —           |
-| 7     | Review         | stage-review           | —              | pending | —    | —           |
-| 8     | DevOps         | stage-devops           | —              | pending | —    | —           |
-| 9     | Observability  | stage-observability    | —              | pending | —    | —           |
+| 2     | Story-Tasks    | stage-story-tasks      | —              | pending | —    | —           |
+| 3     | Architecture   | stage-architecture     | —              | pending | —    | —           |
+| 4     | Design         | stage-design           | —              | pending | —    | —           |
+| 5     | Development    | stage-development      | —              | pending | —    | —           |
+| 6     | Testing        | stage-testing          | —              | pending | —    | —           |
+| 7     | Security       | stage-security         | —              | pending | —    | —           |
+| 8     | Review         | stage-review           | —              | pending | —    | —           |
+| 9     | DevOps         | stage-devops           | —              | pending | —    | —           |
+| 10    | Observability  | stage-observability    | —              | pending | —    | —           |
 
 ## Subagent Detail
 
@@ -152,25 +155,31 @@ EOF
 | 1     | sub-acceptance-criteria     | pending | —       |
 | 1     | sub-risk-analyzer           | pending | —       |
 | 1     | sub-assumption-extractor    | pending | —       |
-| 2     | sub-api-designer            | pending | —       |
-| 2     | sub-data-model-designer     | pending | —       |
-| 2     | sub-integration-planner     | pending | —       |
-| 2     | sub-nfr-evaluator           | pending | —       |
-| 4     | sub-repo-analyzer           | pending | —       |
-| 4     | sub-code-generator          | pending | —       |
-| 4     | sub-refactoring-agent       | pending | —       |
-| 4     | sub-documentation-agent     | pending | —       |
-| 5     | sub-unit-test               | pending | —       |
-| 5     | sub-integration-test        | pending | —       |
-| 5     | sub-regression-test         | pending | —       |
-| 5     | sub-test-data               | pending | —       |
-| 6     | sub-secret-scanner          | pending | —       |
-| 6     | sub-dependency-scanner      | pending | —       |
-| 6     | sub-owasp-reviewer          | pending | —       |
-| 6     | sub-policy-validator        | pending | —       |
-| 7     | sub-code-review             | pending | —       |
-| 7     | sub-maintainability         | pending | —       |
-| 7     | sub-performance             | pending | —       |
+| 2     | sub-story-writer            | pending | —       |
+| 2     | sub-task-decomposer         | pending | —       |
+| 2     | sub-dependency-mapper       | pending | —       |
+| 3     | sub-tech-stack-advisor      | pending | —       |
+| 3     | sub-solution-evaluator      | pending | —       |
+| 3     | sub-adr-writer              | pending | —       |
+| 4     | sub-interface-designer      | pending | —       |
+| 4     | sub-data-model-designer     | pending | —       |
+| 4     | sub-integration-planner     | pending | —       |
+| 4     | sub-nfr-evaluator           | pending | —       |
+| 5     | sub-repo-analyzer           | pending | —       |
+| 5     | sub-code-generator          | pending | —       |
+| 5     | sub-refactoring-agent       | pending | —       |
+| 5     | sub-documentation-agent     | pending | —       |
+| 6     | sub-unit-test               | pending | —       |
+| 6     | sub-integration-test        | pending | —       |
+| 6     | sub-regression-test         | pending | —       |
+| 6     | sub-test-data               | pending | —       |
+| 7     | sub-secret-scanner          | pending | —       |
+| 7     | sub-dependency-scanner      | pending | —       |
+| 7     | sub-owasp-reviewer          | pending | —       |
+| 7     | sub-policy-validator        | pending | —       |
+| 8     | sub-code-review             | pending | —       |
+| 8     | sub-maintainability         | pending | —       |
+| 8     | sub-performance             | pending | —       |
 
 ## Artifacts Produced
 
@@ -386,27 +395,29 @@ with open('${SDLC_DIR}/state/orchestrator.json', 'r') as f:
 phase_names = {
     '0-bootstrap': 'Bootstrap',
     '1-product': 'Product',
-    '2-architecture': 'Architecture',
-    '3-backlog': 'Backlog',
-    '4-development': 'Development',
-    '5-testing': 'Testing',
-    '6-security': 'Security',
-    '7-review': 'Review',
-    '8-devops': 'DevOps',
-    '9-observability': 'Observability'
+    '2-story-tasks': 'Story-Tasks',
+    '3-architecture': 'Architecture',
+    '4-design': 'Design',
+    '5-development': 'Development',
+    '6-testing': 'Testing',
+    '7-security': 'Security',
+    '8-review': 'Review',
+    '9-devops': 'DevOps',
+    '10-observability': 'Observability'
 }
 
 agent_map = {
     '0-bootstrap': 'orch-sdlc',
     '1-product': 'stage-product (4 subagents)',
-    '2-architecture': 'stage-architecture (4 subagents)',
-    '3-backlog': 'stage-backlog',
-    '4-development': 'stage-development (4 subagents)',
-    '5-testing': 'stage-testing (4 subagents)',
-    '6-security': 'stage-security (4 subagents)',
-    '7-review': 'stage-review (3 subagents)',
-    '8-devops': 'stage-devops',
-    '9-observability': 'stage-observability'
+    '2-story-tasks': 'stage-story-tasks (3 subagents)',
+    '3-architecture': 'stage-architecture (3 subagents)',
+    '4-design': 'stage-design (4 subagents)',
+    '5-development': 'stage-development (4 subagents)',
+    '6-testing': 'stage-testing (4 subagents)',
+    '7-security': 'stage-security (4 subagents)',
+    '8-review': 'stage-review (3 subagents)',
+    '9-devops': 'stage-devops',
+    '10-observability': 'stage-observability'
 }
 
 status_icons = {

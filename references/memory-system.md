@@ -57,7 +57,7 @@ Each task execution creates an episodic trace:
     "files_involved": ["src/routes/todos.ts", "src/db/todos.ts"]
   },
   "action_log": [
-    {"t": 0, "action": "read_file", "target": "api-contracts.yaml"},
+    {"t": 0, "action": "read_file", "target": "interface-contracts.yaml"},
     {"t": 5, "action": "write_file", "target": "src/routes/todos.ts"},
     {"t": 120, "action": "run_test", "result": "fail", "error": "missing return type"},
     {"t": 140, "action": "edit_file", "target": "src/routes/todos.ts"},

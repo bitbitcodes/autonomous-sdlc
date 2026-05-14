@@ -1,6 +1,6 @@
 # Autonomous SDLC Framework — Copilot Instructions
 
-This project uses the **Autonomous SDLC Framework** for AI-driven development. 35 agents execute the full software development lifecycle autonomously.
+This project uses the **Autonomous SDLC Framework** for AI-driven development. 40 agents execute the full software development lifecycle autonomously.
 
 > **Full instructions are in `.sdlc/framework/agents/orchestrator.md`.** This file is the concise summary Copilot loads at startup.
 
@@ -10,7 +10,7 @@ Type `/sdlc.` in Copilot Chat to see available commands:
 
 | Command | Purpose |
 |---------|---------|
-| `/sdlc.orchestrator` | Start or resume the full SDLC — reads your spec and drives all 10 phases |
+| `/sdlc.orchestrator` | Start or resume the full SDLC — reads your spec and drives all 11 phases |
 
 Each command has structured handoffs that suggest the next step automatically.
 

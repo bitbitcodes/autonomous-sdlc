@@ -46,7 +46,7 @@ The orchestrator automatically:
 - Saves your spec to `.sdlc/specs/normalized-spec.md`
 - Detects complexity
 - Begins Phase 1: Product Discovery
-- Drives all 10 phases
+- Drives all 11 phases
 
 ### Example: Single JIRA Story
 
@@ -174,7 +174,7 @@ Create a markdown file in your project (e.g., `jira-epic.md`) using this templat
 
 #### 4. Open Your AI IDE
 
-Start a conversation. The orchestrator picks up the JIRA-sourced spec and processes it through all 10 phases.
+Start a conversation. The orchestrator picks up the JIRA-sourced spec and processes it through all 11 phases.
 
 ### Example
 
@@ -190,7 +190,7 @@ See [`examples/sample-jira-epic.md`](../examples/sample-jira-epic.md) for a comp
 | Story Description | `**Description:**` | Detailed requirement |
 | Acceptance Criteria | `**Acceptance Criteria:**` | Maps directly to test generation in Phase 5 |
 | Story Points | `**Story Points:**` | Helps complexity detection |
-| Priority | `**Priority:**` | Influences task ordering in backlog phase |
+| Priority | `**Priority:**` | Influences task ordering in story-tasks phase |
 | Labels | `**Labels:**` | Used for tech stack detection |
 | Components | `## Technical Context` | Maps to architecture decisions |
 | Fix Version | `## Constraints` | Deadline/release constraints |
@@ -234,18 +234,20 @@ Use a JIRA epic when:
 
 The framework will:
 1. Parse all stories into structured requirements (Phase 1)
-2. Design architecture spanning all stories (Phase 2)
-3. Create a backlog with cross-story dependencies (Phase 3)
-4. Implement stories in dependency order (Phase 4)
+2. Decompose into stories/tasks with dependency mapping (Phase 2)
+3. Define architecture and ADRs (Phase 3)
+4. Detailed design (Phase 4)
+5. Implement stories in dependency order (Phase 5)
 
 ```mermaid
 flowchart TD
     EPIC["JIRA Epic<br/>5 Stories"] --> P1["Phase 1: Product<br/>Parse all stories into requirements"]
-    P1 --> P2["Phase 2: Architecture<br/>Design for full scope"]
-    P2 --> P3["Phase 3: Backlog<br/>Order by dependencies"]
-    P3 --> P4["Phase 4: Development<br/>Implement in order"]
+    P1 --> P2["Phase 2: Story-Tasks<br/>Order by dependencies"]
+    P2 --> P3["Phase 3: Architecture<br/>Design for full scope"]
+    P3 --> P4["Phase 4: Design<br/>Interface contracts, data model"]
+    P4 --> P5["Phase 5: Development<br/>Implement in order"]
 
-    subgraph "Backlog Order"
+    subgraph "Story-Tasks Order"
         T1["Story 1: Data model"]
         T2["Story 2: Auth (depends on 1)"]
         T3["Story 3: CRUD (depends on 1)"]
@@ -295,7 +297,7 @@ JIRA epics usually have a scope boundary, but it's implicit. Make it explicit:
 
 ### Handle Sub-Tasks
 
-If your JIRA stories have sub-tasks, you can include them as bullet points under each story — but the framework's backlog phase will create its own task breakdown anyway. It's usually enough to include stories only.
+If your JIRA stories have sub-tasks, you can include them as bullet points under each story — but the framework's story-tasks phase will create its own task breakdown anyway. It's usually enough to include stories only.
 
 ## Bulk Export from JIRA
 

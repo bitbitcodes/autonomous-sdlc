@@ -2,12 +2,12 @@
 
 ## Overview
 
-The framework has **35 agents** in a 3-tier hierarchy: 1 orchestrator, 9 stage agents, and 25 subagents. Every agent is a `.md` file under `.sdlc/framework/agents/`.
+The framework has **40 agents** in a 3-tier hierarchy: 1 orchestrator, 10 stage agents, and 29 subagents. After every phase, the orchestrator dispatches 3 blind reviewers to assess that phase's artifacts. Every agent is a `.md` file under `.sdlc/framework/agents/`.
 
 ```mermaid
 graph TD
-    O["Orchestrator (1)"] -->|dispatches| S["Stage Agents (9)"]
-    S -->|dispatches| SUB["Subagents (25)"]
+    O["Orchestrator (1)"] -->|dispatches| S["Stage Agents (10)"]
+    S -->|dispatches| SUB["Subagents (29)"]
 
     style O fill:#ff6b6b,stroke:#333,color:#fff,font-weight:bold
     style S fill:#4ecdc4,stroke:#333,color:#fff,font-weight:bold
@@ -39,7 +39,7 @@ Every agent prompt follows this standard format:
 | **ID** | `orch-sdlc` |
 | **File** | `.sdlc/framework/agents/orchestrator.md` |
 | **Role** | Workflow control, phase transitions, task delegation, quality gate enforcement |
-| **Dispatches** | All 9 stage agents sequentially |
+| **Dispatches** | All 10 stage agents sequentially |
 
 The orchestrator:
 - Reads `AGENTS.md` to discover available agents
@@ -69,14 +69,15 @@ stateDiagram-v2
 | # | Agent | ID | File | Subagents |
 |---|-------|----|------|-----------|
 | 1 | Product | `stage-product` | `agents/stage/product.md` | 4 |
-| 2 | Architecture | `stage-architecture` | `agents/stage/architecture.md` | 4 |
-| 3 | Backlog | `stage-backlog` | `agents/stage/backlog.md` | 0 |
-| 4 | Development | `stage-development` | `agents/stage/development.md` | 4 |
-| 5 | Testing | `stage-testing` | `agents/stage/testing.md` | 4 |
-| 6 | Security | `stage-security` | `agents/stage/security.md` | 4 |
-| 7 | Review | `stage-review` | `agents/stage/review.md` | 3 |
-| 8 | DevOps | `stage-devops` | `agents/stage/devops.md` | 0 |
-| 9 | Observability | `stage-observability` | `agents/stage/observability.md` | 0 |
+| 2 | Story-Tasks | `stage-story-tasks` | `agents/stage/story-tasks.md` | 3 |
+| 3 | Architecture | `stage-architecture` | `agents/stage/architecture.md` | 3 |
+| 4 | Design | `stage-design` | `agents/stage/design.md` | 4 |
+| 5 | Development | `stage-development` | `agents/stage/development.md` | 4 |
+| 6 | Testing | `stage-testing` | `agents/stage/testing.md` | 4 |
+| 7 | Security | `stage-security` | `agents/stage/security.md` | 4 |
+| 8 | Review | `stage-review` | `agents/stage/review.md` | 3 |
+| 9 | DevOps | `stage-devops` | `agents/stage/devops.md` | 0 |
+| 10 | Observability | `stage-observability` | `agents/stage/observability.md` | 0 |
 
 ## Subagents by Stage
 
@@ -89,14 +90,30 @@ stateDiagram-v2
 | Risk Analyzer | `sub-risk-analyzer` | `agents/sub/product/risk-analyzer.md` | Identify risks with severity and mitigations |
 | Assumption Extractor | `sub-assumption-extractor` | `agents/sub/product/assumption-extractor.md` | Surface hidden assumptions in specs |
 
-### Architecture Subagents (4)
+### Story-Tasks Subagents (3)
 
 | Agent | ID | File | Task |
 |-------|----|------|------|
-| API Designer | `sub-api-designer` | `agents/sub/architecture/api-designer.md` | Design REST/GraphQL APIs (OpenAPI 3.x) |
-| Data Model Designer | `sub-data-model-designer` | `agents/sub/architecture/data-model-designer.md` | Database schemas, ERDs, migrations |
-| Integration Planner | `sub-integration-planner` | `agents/sub/architecture/integration-planner.md` | External system integrations |
-| NFR Evaluator | `sub-nfr-evaluator` | `agents/sub/architecture/nfr-evaluator.md` | Non-functional requirements evaluation |
+| Story Writer | `sub-story-writer` | `agents/sub/story-tasks/story-writer.md` | Decompose requirements into user stories |
+| Task Decomposer | `sub-task-decomposer` | `agents/sub/story-tasks/task-decomposer.md` | Break stories into implementable tasks |
+| Dependency Mapper | `sub-dependency-mapper` | `agents/sub/story-tasks/dependency-mapper.md` | Build dependency graph & critical path |
+
+### Architecture Subagents (3) — ADR-Focused
+
+| Agent | ID | File | Task |
+|-------|----|------|------|
+| Tech Stack Advisor | `sub-tech-stack-advisor` | `agents/sub/architecture/tech-stack-advisor.md` | Technology stack recommendation |
+| Solution Evaluator | `sub-solution-evaluator` | `agents/sub/architecture/solution-evaluator.md` | Alternative solution trade-off analysis |
+| ADR Writer | `sub-adr-writer` | `agents/sub/architecture/adr-writer.md` | Architecture Decision Records |
+
+### Design Subagents (4)
+
+| Agent | ID | File | Task |
+|-------|----|------|------|
+| Interface Designer | `sub-interface-designer` | `agents/sub/design/interface-designer.md` | Design interface contracts (APIs, CLIs, UIs, events, protocols) |
+| Data Model Designer | `sub-data-model-designer` | `agents/sub/design/data-model-designer.md` | Data/state models (databases, files, in-memory, event stores) |
+| Integration Planner | `sub-integration-planner` | `agents/sub/design/integration-planner.md` | External system integrations |
+| NFR Evaluator | `sub-nfr-evaluator` | `agents/sub/design/nfr-evaluator.md` | Non-functional requirements evaluation |
 
 ### Development Subagents (4)
 
@@ -189,8 +206,8 @@ When one agent passes work to another:
 ```json
 {
   "from": "stage-product",
-  "to": "stage-architecture",
-  "phase": "product → architecture",
+  "to": "stage-story-tasks",
+  "phase": "product → story-tasks",
   "completed_work": "Requirements parsed, acceptance criteria generated",
   "artifacts_produced": [
     ".sdlc/artifacts/product/requirements.md",

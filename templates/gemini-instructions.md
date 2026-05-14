@@ -1,6 +1,6 @@
 # Autonomous SDLC Framework
 
-This project uses the **Autonomous SDLC Framework** for AI-driven development. 35 agents execute the full software development lifecycle autonomously.
+This project uses the **Autonomous SDLC Framework** for AI-driven development. 40 agents execute the full software development lifecycle autonomously.
 
 > **Full instructions are in `.sdlc/framework/agents/orchestrator.md`.** This file is the concise summary Gemini loads at startup.
 

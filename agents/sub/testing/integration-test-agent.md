@@ -26,8 +26,8 @@ Write integration tests that verify component interactions: API endpoint behavio
 ## CONTEXT
 
 ### Files to Read
-- `.sdlc/artifacts/architecture/api-contracts.yaml` — API contracts to verify
-- `.sdlc/artifacts/architecture/data-model.md` — Database interactions
+- `.sdlc/artifacts/design/interface-contracts.*` — Interface contracts to verify
+- `.sdlc/artifacts/design/data-model.md` — Database interactions
 - Source code (routes, services, models)
 - `.sdlc/artifacts/testing/test-data/` — Test fixtures
 
@@ -38,7 +38,7 @@ Check `.sdlc/memory/learnings/` for entries tagged with `integration-tests`, `ap
 
 ## INPUT
 
-- API contracts, data model, source code, test fixtures
+- Interface contracts, data model, source code, test fixtures
 
 ---
 

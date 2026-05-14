@@ -26,7 +26,7 @@ Generate comprehensive documentation: code-level docs (JSDoc/docstrings), API do
 
 ### Files to Read
 - Full codebase (source files)
-- `.sdlc/artifacts/architecture/api-contracts.yaml` — For API docs
+- `.sdlc/artifacts/design/interface-contracts.*` — For interface documentation
 - `.sdlc/artifacts/architecture/system-design.md` — For architecture docs
 - Existing README.md (if any)
 

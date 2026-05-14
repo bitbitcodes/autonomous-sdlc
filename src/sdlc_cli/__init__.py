@@ -179,22 +179,24 @@ def status(
 
         phase_names = {
             "0-bootstrap": "Bootstrap", "1-product": "Product",
-            "2-architecture": "Architecture", "3-backlog": "Backlog",
-            "4-development": "Development", "5-testing": "Testing",
-            "6-security": "Security", "7-review": "Review",
-            "8-devops": "DevOps", "9-observability": "Observability",
+            "2-story-tasks": "Story-Tasks", "3-architecture": "Architecture",
+            "4-design": "Design", "5-development": "Development",
+            "6-testing": "Testing", "7-security": "Security",
+            "8-review": "Review", "9-devops": "DevOps",
+            "10-observability": "Observability",
         }
         agent_map = {
             "0-bootstrap": "orch-sdlc",
             "1-product": "stage-product (4 sub)",
-            "2-architecture": "stage-architecture (4 sub)",
-            "3-backlog": "stage-backlog",
-            "4-development": "stage-development (4 sub)",
-            "5-testing": "stage-testing (4 sub)",
-            "6-security": "stage-security (4 sub)",
-            "7-review": "stage-review (3 sub)",
-            "8-devops": "stage-devops",
-            "9-observability": "stage-observability",
+            "2-story-tasks": "stage-story-tasks (3 sub)",
+            "3-architecture": "stage-architecture (3 sub)",
+            "4-design": "stage-design (4 sub)",
+            "5-development": "stage-development (4 sub)",
+            "6-testing": "stage-testing (4 sub)",
+            "7-security": "stage-security (4 sub)",
+            "8-review": "stage-review (3 sub)",
+            "9-devops": "stage-devops",
+            "10-observability": "stage-observability",
         }
         status_icons = {
             "complete": "[green]✅ complete[/]",

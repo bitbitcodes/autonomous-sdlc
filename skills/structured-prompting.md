@@ -11,8 +11,11 @@ Every dispatch prompt MUST include these four sections:
 ### 1. GOAL
 What success looks like — measurable outcome.
 
-**Good:**
-> Create POST /api/users endpoint. Success: endpoint returns 201, tests pass, matches OpenAPI spec.
+**Good (API project):**
+> Create POST /api/users endpoint. Success: endpoint returns 201, tests pass, matches interface contract.
+
+**Good (CLI project):**
+> Implement `config set` command. Success: command writes config to ~/.myapp/config.yaml, exit code 0, help text matches CLI spec.
 
 **Bad:**
 > Implement user registration functionality.
@@ -34,7 +37,7 @@ Files to read, previous attempts, related decisions.
 
 **Good:**
 > - Existing auth pattern: src/auth/login.ts
-> - OpenAPI spec: .sdlc/artifacts/architecture/api-contracts.yaml (POST /api/users section)
+> - Interface contract: .sdlc/artifacts/design/interface-contracts.* (relevant section)
 > - User model: src/models/user.ts
 > - Previous attempt failed with: "bcrypt not imported" (see learnings)
 
@@ -59,7 +62,7 @@ Exact deliverables expected — file paths, formats, checklists.
 ```
 ## GOAL
 Create POST /api/users endpoint that registers new users.
-Success: Endpoint works, returns 201 with user object, tests pass, matches OpenAPI spec.
+Success: Endpoint works, returns 201 with user object, tests pass, matches interface contract.
 
 ## CONSTRAINTS
 - Use bcrypt for password hashing (already in dependencies)
@@ -70,7 +73,7 @@ Success: Endpoint works, returns 201 with user object, tests pass, matches OpenA
 
 ## CONTEXT
 - Existing auth pattern: src/auth/login.ts
-- OpenAPI spec: .sdlc/artifacts/architecture/api-contracts.yaml (POST /api/users)
+- Interface contract: .sdlc/artifacts/design/interface-contracts.yaml (POST /api/users)
 - User model: src/models/user.ts
 - Database: PostgreSQL, using Prisma ORM
 - Validation: Zod (see src/validation/schemas.ts for pattern)

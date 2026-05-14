@@ -3,14 +3,16 @@
 ## Phase Overview
 
 ```
-Phase 0       Phase 1       Phase 2          Phase 3       Phase 4
-Bootstrap --> Product ----> Architecture --> Backlog ----> Development
-  (Setup)    (Discover)     (Design)       (Decompose)    (Build)
-                                                             |
-Phase 8       Phase 7       Phase 6         Phase 5         |
-Growth <--- Observability < DevOps <------- Testing <-------+
-(Iterate)   (Monitor)      (Deploy)        (Verify)
+Phase 0       Phase 1       Phase 2          Phase 3          Phase 4       Phase 5
+Bootstrap --> Product ----> Story-Tasks ---> Architecture --> Design -----> Development
+  (Setup)    (Discover)    (Decompose)      (Decide)        (Detail)       (Build)
+                                                                              |
+Phase 10       Phase 9       Phase 8         Phase 7        Phase 6          |
+Observability < DevOps <--- Review <------- Security <---- Testing <--------+
+  (Monitor)    (Deploy)     (Assess)        (Audit)        (Verify)
 ```
+
+**Per-Phase Review:** After every phase (except Phase 8 which IS the full review), the orchestrator dispatches 3 blind reviewers to assess that phase's artifacts before advancing.
 
 ---
 
@@ -29,24 +31,9 @@ Growth <--- Observability < DevOps <------- Testing <-------+
 6. Detect project complexity (simple / medium / complex / enterprise)
 7. Select agent team based on complexity
 
-**Directory Structure Created:**
-```
-.sdlc/
-├── state/orchestrator.json
-├── queue/pending.json
-├── queue/active.json
-├── queue/completed.json
-├── memory/episodic/
-├── memory/semantic/
-├── memory/learnings/
-├── artifacts/
-├── specs/
-└── CONTINUITY.md
-```
-
 **Output:** Initialized `.sdlc/` directory, normalized spec, agent team selection.
 
-**Quality Gate:** Spec is parseable and non-empty.
+**Quality Gate 1:** Spec is parseable and non-empty.
 
 ---
 
@@ -54,7 +41,7 @@ Growth <--- Observability < DevOps <------- Testing <-------+
 
 **Purpose:** Analyze requirements, identify risks, surface assumptions, generate acceptance criteria.
 
-**Stage Agent:** `stage-product`
+**Stage Agent:** `stage-product` (4 subagents)
 
 **Subagents Dispatched:**
 | Subagent | Task |
@@ -64,90 +51,101 @@ Growth <--- Observability < DevOps <------- Testing <-------+
 | `sub-risk-analyzer` | Identify technical, business, and schedule risks |
 | `sub-assumption-extractor` | Surface hidden assumptions in the spec |
 
-**Actions:**
-1. Parse raw input into structured requirements
-2. Identify functional and non-functional requirements
-3. Generate acceptance criteria (Given/When/Then)
-4. Analyze risks with severity and mitigations
-5. Extract assumptions and flag for validation
-6. Produce consolidated Product Discovery Document
-
 **Output:**
 - `.sdlc/artifacts/product/requirements.md` — Structured requirements
 - `.sdlc/artifacts/product/acceptance-criteria.md` — Testable criteria
 - `.sdlc/artifacts/product/risks.md` — Risk register
 - `.sdlc/artifacts/product/assumptions.md` — Assumption log
 
-**Quality Gate:** All requirements have acceptance criteria. Risks are categorized with mitigations.
+**Quality Gate 2:** All requirements have acceptance criteria. Risks are categorized with mitigations.
+
+**Per-Phase Review:** 3 blind reviewers assess Phase 1 artifacts.
 
 ---
 
-## Phase 2: Architecture
+## Phase 2: Story-Tasks
 
-**Purpose:** Design system architecture, define API contracts, model data, evaluate NFRs.
+**Purpose:** Decompose requirements into implementable epics, stories, and tasks. Prioritize work and populate the queue.
 
-**Stage Agent:** `stage-architecture`
+**Stage Agent:** `stage-story-tasks` (3 subagents)
 
 **Subagents Dispatched:**
 | Subagent | Task |
 |----------|------|
-| `sub-api-designer` | Design API contracts (OpenAPI/GraphQL) |
-| `sub-data-model-designer` | Design database schema and ERDs |
+| `sub-story-writer` | Decompose requirements into user stories with acceptance criteria |
+| `sub-task-decomposer` | Break stories into implementable tasks with estimates |
+| `sub-dependency-mapper` | Build dependency graph, identify critical path, detect cycles |
+
+**Output:**
+- `.sdlc/artifacts/story-tasks/epics.md` — Epic definitions
+- `.sdlc/artifacts/story-tasks/stories.md` — User stories with criteria
+- `.sdlc/artifacts/story-tasks/tasks.json` — Task list with dependencies
+- `.sdlc/artifacts/story-tasks/dependency-graph.md` — Dependency graph
+- `.sdlc/queue/pending.json` — Populated task queue
+
+**Quality Gate 3:** Every story traces to a requirement. Every task has done criteria. No circular dependencies.
+
+**Per-Phase Review:** 3 blind reviewers assess Phase 2 artifacts.
+
+---
+
+## Phase 3: Architecture
+
+**Purpose:** Define high-level system architecture, select technology stack, evaluate alternatives, and document all decisions as ADRs.
+
+**Stage Agent:** `stage-architecture` (3 subagents)
+
+**Subagents Dispatched:**
+| Subagent | Task |
+|----------|------|
+| `sub-tech-stack-advisor` | Analyze requirements and recommend technology stack |
+| `sub-solution-evaluator` | Evaluate alternative solutions with trade-off analysis |
+| `sub-adr-writer` | Write Architecture Decision Records |
+
+**Output:**
+- `.sdlc/artifacts/architecture/system-design.md` — High-level architecture
+- `.sdlc/artifacts/architecture/tech-stack.md` — Technology stack with justification
+- `.sdlc/artifacts/architecture/solution-evaluation.md` — Trade-off analysis
+- `.sdlc/artifacts/architecture/adrs/` — Architecture Decision Records
+
+**Quality Gate 4:** System design has components and patterns. Tech stack justified. ADRs for all major decisions.
+
+**Per-Phase Review:** 3 blind reviewers assess Phase 3 artifacts.
+
+---
+
+## Phase 4: Design
+
+**Purpose:** Create detailed technical design: interface contracts, data/state models, integration plans, NFR evaluation. All design decisions reference ADRs from Phase 3.
+
+**Stage Agent:** `stage-design` (4 subagents)
+
+**Subagents Dispatched:**
+| Subagent | Task |
+|----------|------|
+| `sub-interface-designer` | Design interface contracts (APIs, CLIs, UIs, events, protocols) |
+| `sub-data-model-designer` | Design data/state model (databases, file storage, in-memory state) |
 | `sub-integration-planner` | Plan external system integrations |
 | `sub-nfr-evaluator` | Evaluate non-functional requirements |
 
-**Actions:**
-1. Choose technology stack based on requirements and constraints
-2. Design system architecture (components, interactions, boundaries)
-3. Define API contracts with request/response schemas
-4. Design data models with relationships and constraints
-5. Plan external integrations (auth, payments, etc.)
-6. Evaluate NFRs (performance, scalability, security, availability)
-7. Document architecture decisions (ADRs)
-
 **Output:**
-- `.sdlc/artifacts/architecture/system-design.md` — Architecture overview
-- `.sdlc/artifacts/architecture/api-contracts.yaml` — OpenAPI spec
-- `.sdlc/artifacts/architecture/data-model.md` — Database schema & ERD
-- `.sdlc/artifacts/architecture/integrations.md` — Integration plan
-- `.sdlc/artifacts/architecture/nfr-assessment.md` — NFR evaluation
-- `.sdlc/artifacts/architecture/adrs/` — Architecture Decision Records
+- `.sdlc/artifacts/design/detailed-design.md` — Detailed technical design
+- `.sdlc/artifacts/design/interface-contracts.*` — Interface contracts (format varies by project type)
+- `.sdlc/artifacts/design/data-model.md` — Data/state model
+- `.sdlc/artifacts/design/integrations.md` — Integration plan
+- `.sdlc/artifacts/design/nfr-assessment.md` — NFR evaluation
 
-**Quality Gate:** API contracts are valid OpenAPI. Data model is normalized. All NFRs have target metrics.
+**Quality Gate 5:** Interface contracts valid for the project type. Data/state model defined. NFRs have targets. Designs reference ADRs.
+
+**Per-Phase Review:** 3 blind reviewers assess Phase 4 artifacts.
 
 ---
 
-## Phase 3: Backlog
+## Phase 5: Development
 
-**Purpose:** Decompose architecture into implementable epics, stories, and tasks. Prioritize work.
+**Purpose:** Implement the codebase task by task from the story-tasks queue.
 
-**Stage Agent:** `stage-backlog`
-
-**Subagents Dispatched:** None (backlog agent handles directly)
-
-**Actions:**
-1. Decompose system design into epics (major features/components)
-2. Break epics into user stories with acceptance criteria
-3. Break stories into implementable tasks (< 4 hours each)
-4. Establish dependencies between tasks
-5. Prioritize using MoSCoW or weighted scoring
-6. Populate `.sdlc/queue/pending.json` with all tasks
-
-**Output:**
-- `.sdlc/artifacts/backlog/epics.md` — Epic definitions
-- `.sdlc/artifacts/backlog/stories.md` — User stories with criteria
-- `.sdlc/artifacts/backlog/tasks.json` — Task list with dependencies
-- `.sdlc/queue/pending.json` — Populated task queue
-
-**Quality Gate:** Every story traces back to a requirement. Every task has clear done criteria. No circular dependencies.
-
----
-
-## Phase 4: Development
-
-**Purpose:** Implement the codebase task by task following the backlog.
-
-**Stage Agent:** `stage-development`
+**Stage Agent:** `stage-development` (4 subagents)
 
 **Subagents Dispatched:**
 | Subagent | Task |
@@ -157,37 +155,22 @@ Growth <--- Observability < DevOps <------- Testing <-------+
 | `sub-refactoring-agent` | Refactor code for quality and maintainability |
 | `sub-documentation-agent` | Generate code-level and API documentation |
 
-**Workflow Per Task:**
-1. Claim task from `.sdlc/queue/pending.json`
-2. Move to `.sdlc/queue/active.json`
-3. Read task definition, acceptance criteria, and relevant architecture docs
-4. Implement code following existing patterns
-5. Write unit tests alongside implementation
-6. Run tests — fix until passing
-7. Commit checkpoint
-8. Move task to `.sdlc/queue/completed.json`
-
-**Implementation Rules:**
-- Spec-first: read the API contract/data model before writing code
-- Test alongside: write tests as you implement, not after
-- Small commits: one logical change per commit
-- No dead code: remove unused imports, variables, functions
-- Follow existing patterns: check repo-analyzer output first
-
 **Output:**
-- Source code implementing all backlog tasks
+- Source code implementing all tasks
 - Unit tests for all implemented code
 - `.sdlc/artifacts/development/implementation-log.md`
 
-**Quality Gate:** All unit tests pass. No build errors. Code follows project conventions.
+**Quality Gate 6:** All unit tests pass. No build errors. Code follows project conventions.
+
+**Per-Phase Review:** 3 blind reviewers assess Phase 5 code.
 
 ---
 
-## Phase 5: Testing
+## Phase 6: Testing
 
 **Purpose:** Comprehensive testing beyond unit tests — integration, regression, E2E.
 
-**Stage Agent:** `stage-testing`
+**Stage Agent:** `stage-testing` (4 subagents)
 
 **Subagents Dispatched:**
 | Subagent | Task |
@@ -197,27 +180,23 @@ Growth <--- Observability < DevOps <------- Testing <-------+
 | `sub-regression-test` | Build regression suite from acceptance criteria |
 | `sub-test-data` | Generate test fixtures and mock data |
 
-**Testing Phases:**
-1. **Unit Tests** — Verify individual functions/methods (≥ 80% coverage)
-2. **Integration Tests** — Verify component interactions (API endpoints, DB queries)
-3. **Regression Tests** — Map acceptance criteria to test cases
-4. **E2E Tests** — Full user flow testing (if applicable)
-
 **Output:**
 - Test suites (unit, integration, regression, E2E)
 - `.sdlc/artifacts/testing/coverage-report.md`
 - `.sdlc/artifacts/testing/test-results.md`
 - `.sdlc/artifacts/testing/test-data/` — Fixtures and mocks
 
-**Quality Gate:** Unit coverage ≥ 80%. All tests pass. Every acceptance criterion has a test.
+**Quality Gate 7:** Unit coverage ≥ 80%. All tests pass. Every acceptance criterion has a test.
+
+**Per-Phase Review:** 3 blind reviewers assess Phase 6 artifacts.
 
 ---
 
-## Phase 6: Security
+## Phase 7: Security
 
 **Purpose:** Security audit — scan for secrets, vulnerabilities, OWASP issues, policy compliance.
 
-**Stage Agent:** `stage-security`
+**Stage Agent:** `stage-security` (4 subagents)
 
 **Subagents Dispatched:**
 | Subagent | Task |
@@ -227,14 +206,6 @@ Growth <--- Observability < DevOps <------- Testing <-------+
 | `sub-owasp-reviewer` | Review for OWASP Top 10 vulnerabilities |
 | `sub-policy-validator` | Check security policy compliance |
 
-**Actions:**
-1. Scan codebase for hardcoded secrets and credentials
-2. Audit all dependencies for known vulnerabilities
-3. Review code for OWASP Top 10 issues (injection, XSS, auth bypass, etc.)
-4. Validate against security policies (CORS, CSP, rate limiting, etc.)
-5. Generate security findings with severity ratings
-6. Fix Critical and High severity findings automatically
-
 **Output:**
 - `.sdlc/artifacts/security/secret-scan.md`
 - `.sdlc/artifacts/security/dependency-audit.md`
@@ -242,15 +213,17 @@ Growth <--- Observability < DevOps <------- Testing <-------+
 - `.sdlc/artifacts/security/policy-compliance.md`
 - `.sdlc/artifacts/security/security-summary.md`
 
-**Quality Gate:** Zero Critical/High findings. All secrets removed. Dependencies patched or documented.
+**Quality Gate 8:** Zero Critical/High findings. All secrets removed. Dependencies patched or documented.
+
+**Per-Phase Review:** 3 blind reviewers assess Phase 7 artifacts.
 
 ---
 
-## Phase 7: Review
+## Phase 8: Review (Final Full-Codebase Review)
 
-**Purpose:** Multi-perspective code review — quality, maintainability, performance.
+**Purpose:** Multi-perspective blind code review across the entire codebase — quality, maintainability, performance.
 
-**Stage Agent:** `stage-review`
+**Stage Agent:** `stage-review` (3 subagents)
 
 **Subagents Dispatched:**
 | Subagent | Task |
@@ -260,21 +233,10 @@ Growth <--- Observability < DevOps <------- Testing <-------+
 | `sub-performance` | Performance bottlenecks, optimization |
 
 **Review Protocol:**
-1. All 3 reviewers run in parallel (blind — no visibility of each other's findings)
+1. All 3 reviewers run in parallel (blind — no shared findings)
 2. Each produces VERDICT (PASS/FAIL) + FINDINGS with severity
-3. Aggregate findings
-4. If unanimous PASS: run anti-sycophancy check (Devil's Advocate reviewer)
-5. Fix Critical/High/Medium issues
-6. Re-run reviewers until all PASS
-
-**Severity Handling:**
-| Severity | Action |
-|----------|--------|
-| Critical | BLOCK — must fix before proceeding |
-| High | BLOCK — must fix before proceeding |
-| Medium | BLOCK — fix before deployment |
-| Low | TODO comment — fix later |
-| Cosmetic | Informational only |
+3. If unanimous PASS: run anti-sycophancy check (Devil's Advocate)
+4. Fix Critical/High/Medium issues, re-run until all PASS
 
 **Output:**
 - `.sdlc/artifacts/review/code-review.md`
@@ -282,52 +244,33 @@ Growth <--- Observability < DevOps <------- Testing <-------+
 - `.sdlc/artifacts/review/performance-review.md`
 - `.sdlc/artifacts/review/review-summary.md`
 
-**Quality Gate:** All reviewers PASS. No Critical/High/Medium findings remaining.
+**Quality Gate 9:** All reviewers PASS. No Critical/High/Medium findings remaining.
 
 ---
 
-## Phase 8: DevOps
+## Phase 9: DevOps
 
 **Purpose:** Set up CI/CD, infrastructure configuration, deployment pipeline.
 
-**Stage Agent:** `stage-devops`
-
-**Subagents Dispatched:** None (DevOps agent handles directly)
-
-**Actions:**
-1. Generate CI/CD pipeline configuration (GitHub Actions / GitLab CI)
-2. Create Dockerfile and docker-compose.yml (if applicable)
-3. Set up environment configurations (dev, staging, production)
-4. Configure deployment strategy (blue-green, canary, rolling)
-5. Set up infrastructure as code (if applicable)
-6. Create deployment runbook
+**Stage Agent:** `stage-devops` (no subagents)
 
 **Output:**
-- `.sdlc/artifacts/devops/ci-cd.yml`
-- `.sdlc/artifacts/devops/Dockerfile`
-- `.sdlc/artifacts/devops/docker-compose.yml`
-- `.sdlc/artifacts/devops/deployment-runbook.md`
-- `.sdlc/artifacts/devops/env-configs/`
+- `.github/workflows/ci.yml` — CI/CD pipeline
+- `Dockerfile`, `docker-compose.yml` — Containerization
+- `.sdlc/artifacts/devops/env-configs/` — Environment configs
+- `.sdlc/artifacts/devops/deployment-runbook.md` — Deployment runbook
 
-**Quality Gate:** CI pipeline runs without errors. Docker builds successfully. Deployment runbook is complete.
+**Quality Gate 10:** CI pipeline valid. Docker builds. Deployment runbook complete.
+
+**Per-Phase Review:** 3 blind reviewers assess Phase 9 artifacts.
 
 ---
 
-## Phase 9: Observability
+## Phase 10: Observability
 
 **Purpose:** Define monitoring, alerting, SLOs, and operational readiness.
 
-**Stage Agent:** `stage-observability`
-
-**Subagents Dispatched:** None (Observability agent handles directly)
-
-**Actions:**
-1. Define SLOs/SLIs for the application
-2. Set up structured logging configuration
-3. Define alert rules and escalation paths
-4. Create dashboard specifications
-5. Write operational runbook
-6. Define health check endpoints
+**Stage Agent:** `stage-observability` (no subagents)
 
 **Output:**
 - `.sdlc/artifacts/observability/slo-definitions.md`
@@ -336,24 +279,9 @@ Growth <--- Observability < DevOps <------- Testing <-------+
 - `.sdlc/artifacts/observability/dashboard-specs.md`
 - `.sdlc/artifacts/observability/runbook.md`
 
-**Quality Gate:** SLOs defined for all critical paths. Health checks implemented. Alert rules cover error scenarios.
+**Quality Gate 11:** SLOs defined for all critical paths. Health checks implemented. Alert rules cover error scenarios.
 
----
-
-## Final Review (Before Delivery)
-
-```
-1. Dispatch 3 reviewers across ENTIRE implementation:
-   - Code Review Agent: Full codebase quality
-   - Maintainability Reviewer: All requirements met
-   - Performance Reviewer: Full performance audit
-
-2. Aggregate findings across all files
-3. Fix Critical/High/Medium issues
-4. Re-run all 3 reviewers until all PASS
-5. Generate final report in .sdlc/artifacts/final-review.md
-6. Mark project as COMPLETE only after all PASS
-```
+**Per-Phase Review:** 3 blind reviewers assess Phase 10 artifacts.
 
 ---
 
@@ -361,13 +289,14 @@ Growth <--- Observability < DevOps <------- Testing <-------+
 
 | Gate | Phase | Pass Criteria |
 |------|-------|---------------|
-| Spec Valid | 0 | Input spec parseable and non-empty |
-| Requirements Complete | 1 | All requirements have acceptance criteria |
-| Architecture Valid | 2 | API contracts valid, data model normalized |
-| Backlog Traceable | 3 | All stories trace to requirements |
-| Build Passes | 4 | Zero build errors, all unit tests pass |
-| Coverage Met | 5 | Unit ≥ 80%, all acceptance criteria tested |
-| Security Clear | 6 | Zero Critical/High findings |
-| Review Passed | 7 | All 3 reviewers PASS |
-| Pipeline Green | 8 | CI/CD runs without errors |
-| Observability Ready | 9 | SLOs defined, health checks implemented |
+| 1 — Spec Valid | 0 (Bootstrap) | Input spec parseable and non-empty |
+| 2 — Requirements Complete | 1 (Product) | All requirements have acceptance criteria |
+| 3 — Story-Task Traceable | 2 (Story-Tasks) | All stories trace to requirements, no cycles |
+| 4 — Architecture Sound | 3 (Architecture) | System design + ADRs for all decisions |
+| 5 — Design Complete | 4 (Design) | Interface contracts valid, data/state model defined, NFRs targeted |
+| 6 — Build Green | 5 (Development) | Zero build errors, all unit tests pass |
+| 7 — Coverage Met | 6 (Testing) | Unit ≥ 80%, all acceptance criteria tested |
+| 8 — Security Clear | 7 (Security) | Zero Critical/High findings |
+| 9 — Review Passed | 8 (Review) | All 3 reviewers PASS |
+| 10 — Pipeline Green | 9 (DevOps) | CI/CD runs without errors |
+| 11 — Observability Ready | 10 (Observability) | SLOs defined, health checks implemented |

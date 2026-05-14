@@ -18,20 +18,23 @@ flowchart TD
     style ESCALATE fill:#d63031,color:#fff
 ```
 
-## The 10 Gates
+## The 11 Gates
 
 | # | Gate | Phase | Pass Criteria |
 |---|------|-------|---------------|
-| 1 | **Input Validation** | Bootstrap | Spec is parseable, non-empty, has actionable requirements |
-| 2 | **Requirements Completeness** | Product | All requirements structured with acceptance criteria, risks identified |
-| 3 | **Architecture Soundness** | Architecture | API contracts valid (OpenAPI), data model normalized, NFRs have targets |
-| 4 | **Backlog Traceability** | Backlog | Stories trace to requirements, tasks have done criteria, no circular deps |
-| 5 | **Build Green** | Development | Zero build errors, zero lint errors, all unit tests pass |
-| 6 | **Test Coverage** | Testing | Unit ≥ 80%, all acceptance criteria have tests, integration tests pass |
-| 7 | **Security Clear** | Security | Zero Critical/High findings, no hardcoded secrets, deps patched |
-| 8 | **Review Passed** | Review | All 3 reviewers PASS, no Critical/High/Medium findings |
-| 9 | **Pipeline Green** | DevOps | CI/CD runs without errors, Docker builds, runbook complete |
-| 10 | **Observability Ready** | Observability | SLOs defined, health checks implemented, alerts configured |
+| 1 | **Input Validation** | 0 (Bootstrap) | Spec is parseable, non-empty, has actionable requirements |
+| 2 | **Requirements Completeness** | 1 (Product) | All requirements structured with acceptance criteria, risks identified |
+| 3 | **Story-Task Traceability** | 2 (Story-Tasks) | Stories trace to requirements, tasks have done criteria, no circular deps |
+| 4 | **Architecture Soundness** | 3 (Architecture) | System design documented, tech stack justified, ADRs for all decisions |
+| 5 | **Design Completeness** | 4 (Design) | Interface contracts valid for project type, data/state model defined, NFRs have targets, designs reference ADRs |
+| 6 | **Build Green** | 5 (Development) | Zero build errors, zero lint errors, all unit tests pass |
+| 7 | **Test Coverage** | 6 (Testing) | Unit ≥ 80%, all acceptance criteria have tests, integration tests pass |
+| 8 | **Security Clear** | 7 (Security) | Zero Critical/High findings, no hardcoded secrets, deps patched |
+| 9 | **Review Passed** | 8 (Review) | All 3 reviewers PASS, no Critical/High/Medium findings |
+| 10 | **Pipeline Green** | 9 (DevOps) | CI/CD runs without errors, Docker builds, runbook complete |
+| 11 | **Observability Ready** | 10 (Observability) | SLOs defined, health checks implemented, alerts configured |
+
+**Per-Phase Review:** After every phase (except Phase 0 and Phase 8), the orchestrator dispatches 3 blind reviewers on that phase’s artifacts. Both the quality gate AND per-phase review must PASS before advancing.
 
 ## Gate Details
 
@@ -52,16 +55,7 @@ CHECK: Assumptions are documented
 OUTPUT: .sdlc/artifacts/product/ contains all deliverables
 ```
 
-### Gate 3: Architecture Soundness
-```
-CHECK: API contract is valid OpenAPI 3.x (parseable)
-CHECK: Data model has primary keys and foreign keys defined
-CHECK: Every NFR has a measurable target
-CHECK: ADRs exist for major decisions
-OUTPUT: .sdlc/artifacts/architecture/ contains all deliverables
-```
-
-### Gate 4: Backlog Traceability
+### Gate 3: Story-Task Traceability
 ```
 CHECK: Every user story references a requirement ID
 CHECK: Every task has clear done criteria
@@ -70,7 +64,25 @@ CHECK: All tasks estimated (S/M/L or hours)
 OUTPUT: .sdlc/queue/pending.json populated
 ```
 
-### Gate 5: Build Green
+### Gate 4: Architecture Soundness
+```
+CHECK: System design has component diagram and communication patterns
+CHECK: Tech stack selected with justification for each layer
+CHECK: ADRs exist for technology stack, API style, and database choice
+CHECK: Solution evaluation covers ≥ 2 alternatives per decision
+OUTPUT: .sdlc/artifacts/architecture/ contains all deliverables
+```
+
+### Gate 5: Design Completeness
+```
+CHECK: Interface contracts exist and are valid for the project type
+CHECK: Data/state model defines storage structures and access patterns
+CHECK: Every NFR has a measurable target
+CHECK: Every design decision references an ADR
+OUTPUT: .sdlc/artifacts/design/ contains all deliverables
+```
+
+### Gate 6: Build Green
 ```
 CHECK: Build completes without errors
 CHECK: Linter reports zero errors
@@ -79,7 +91,7 @@ CHECK: All unit tests pass
 OUTPUT: Clean build + passing test suite
 ```
 
-### Gate 6: Test Coverage
+### Gate 7: Test Coverage
 ```
 CHECK: Unit test coverage ≥ 80%
 CHECK: Every acceptance criterion has at least one test
@@ -88,7 +100,7 @@ CHECK: Test data fixtures exist
 OUTPUT: .sdlc/artifacts/testing/ contains reports
 ```
 
-### Gate 7: Security Clear
+### Gate 8: Security Clear
 ```
 CHECK: Secret scanner finds zero secrets in code
 CHECK: Dependency scanner finds zero Critical/High CVEs
@@ -97,7 +109,7 @@ CHECK: Security policies enforced (CORS, CSP, rate limiting)
 OUTPUT: .sdlc/artifacts/security/ contains reports
 ```
 
-### Gate 8: Review Passed
+### Gate 9: Review Passed
 ```
 CHECK: All 3 reviewers return PASS verdict
 CHECK: No Critical/High/Medium findings remain
@@ -105,7 +117,7 @@ CHECK: Anti-sycophancy check passed (if unanimous PASS)
 OUTPUT: .sdlc/artifacts/review/ contains reports
 ```
 
-### Gate 9: Pipeline Green
+### Gate 10: Pipeline Green
 ```
 CHECK: CI pipeline configuration is valid
 CHECK: Docker build succeeds (if applicable)
@@ -114,7 +126,7 @@ CHECK: Environment configs exist for all targets
 OUTPUT: .sdlc/artifacts/devops/ contains configs
 ```
 
-### Gate 10: Observability Ready
+### Gate 11: Observability Ready
 ```
 CHECK: SLOs defined for critical user journeys
 CHECK: Health check endpoint implemented
@@ -152,7 +164,7 @@ graph LR
 
 ## Blind Review System
 
-Used in Phase 7. Three reviewers operate independently:
+Used in Phase 8 (Review) and per-phase reviews. Three reviewers operate independently:
 
 ```mermaid
 flowchart TD

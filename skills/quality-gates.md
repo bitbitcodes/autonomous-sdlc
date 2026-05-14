@@ -1,6 +1,8 @@
 # Quality Gates
 
-Detailed enforcement rules for the 10 quality gates that govern phase transitions.
+Detailed enforcement rules for the 11 quality gates that govern phase transitions.
+
+**Per-Phase Review:** After every phase (except Phase 0 and Phase 8), the orchestrator dispatches 3 blind reviewers on that phase's artifacts. Both the quality gate AND per-phase review must PASS before advancing.
 
 ---
 
@@ -52,19 +54,7 @@ Every gate check produces a structured result:
 
 ---
 
-## Gate 3: Architecture Soundness (Phase 2)
-
-| Check | Pass Criteria |
-|-------|--------------|
-| Valid OpenAPI | `api-contracts.yaml` parses as valid OpenAPI 3.x |
-| Data model keys | Every entity has primary key defined |
-| Foreign keys | All relationships have foreign keys |
-| NFR targets | Every NFR has a measurable target metric |
-| ADR exists | At least 1 ADR for technology stack choice |
-
----
-
-## Gate 4: Backlog Traceability (Phase 3)
+## Gate 3: Story-Task Traceability (Phase 2)
 
 | Check | Pass Criteria |
 |-------|--------------|
@@ -76,7 +66,31 @@ Every gate check produces a structured result:
 
 ---
 
-## Gate 5: Build Green (Phase 4)
+## Gate 4: Architecture Soundness (Phase 3)
+
+| Check | Pass Criteria |
+|-------|--------------|
+| System design | Component diagram and communication patterns defined |
+| Tech stack justified | Each layer has justified technology choice |
+| ADRs exist | ADRs for technology stack, API style, and database choice |
+| Solution evaluation | ≥ 2 alternatives evaluated per major decision |
+| Decisions traceable | All decisions traceable to requirements |
+
+---
+
+## Gate 5: Design Completeness (Phase 4)
+
+| Check | Pass Criteria |
+|-------|--------------|
+| Valid interface contracts | `interface-contracts.*` exists and is valid for the project type |
+| Data/state model | Storage structures and access patterns defined |
+| Relationships | All data relationships documented |
+| NFR targets | Every NFR has a measurable target metric |
+| ADR references | Every design decision references an ADR |
+
+---
+
+## Gate 6: Build Green (Phase 5)
 
 | Check | Pass Criteria |
 |-------|--------------|
@@ -88,7 +102,7 @@ Every gate check produces a structured result:
 
 ---
 
-## Gate 6: Test Coverage (Phase 5)
+## Gate 7: Test Coverage (Phase 6)
 
 | Check | Pass Criteria |
 |-------|--------------|
@@ -100,7 +114,7 @@ Every gate check produces a structured result:
 
 ---
 
-## Gate 7: Security Clear (Phase 6)
+## Gate 8: Security Clear (Phase 7)
 
 | Check | Pass Criteria |
 |-------|--------------|
@@ -111,7 +125,7 @@ Every gate check produces a structured result:
 
 ---
 
-## Gate 8: Review Passed (Phase 7)
+## Gate 9: Review Passed (Phase 8)
 
 | Check | Pass Criteria |
 |-------|--------------|
@@ -123,7 +137,7 @@ Every gate check produces a structured result:
 
 ---
 
-## Gate 9: Pipeline Green (Phase 8)
+## Gate 10: Pipeline Green (Phase 9)
 
 | Check | Pass Criteria |
 |-------|--------------|
@@ -134,7 +148,7 @@ Every gate check produces a structured result:
 
 ---
 
-## Gate 10: Observability Ready (Phase 9)
+## Gate 11: Observability Ready (Phase 10)
 
 | Check | Pass Criteria |
 |-------|--------------|
@@ -159,7 +173,7 @@ Every gate check produces a structured result:
 
 ## Blind Review Protocol
 
-Used in Gate 8 (Review):
+Used in Gate 9 (Review) and per-phase reviews:
 
 1. Dispatch 3 reviewers simultaneously
 2. Each reviewer sees only the codebase — NOT other reviewers' findings

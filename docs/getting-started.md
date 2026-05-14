@@ -57,7 +57,7 @@ flowchart LR
 your-project/
 ├── .sdlc/
 │   ├── framework/          ← Installed by CLI (committed, don't modify)
-│   │   ├── agents/         ←   35 agent prompts
+│   │   ├── agents/         ←   40 agent prompts
 │   │   ├── references/     ←   Workflow & architecture docs
 │   │   ├── skills/         ←   Skill modules
 │   │   ├── templates/      ←   Agent prompt templates
@@ -89,7 +89,7 @@ The easiest path — no terminal commands needed:
 | **Claude Code** | Type `/sdlc-orchestrator` in chat |
 | **Cursor** | Context auto-loads; say "start the SDLC orchestrator" |
 
-The orchestrator reads your message, saves it to `.sdlc/specs/normalized-spec.md`, and begins driving all 10 phases autonomously.
+The orchestrator reads your message, saves it to `.sdlc/specs/normalized-spec.md`, and begins driving all 11 phases autonomously.
 
 **Alternative (for large specs as files):**
 
@@ -135,16 +135,17 @@ Once initialized, the AI orchestrator drives the full SDLC autonomously:
 ```mermaid
 flowchart TD
     SPEC[Your Spec] --> P0[Phase 0: Bootstrap]
-    P0 --> P1[Phase 1: Product Discovery]
-    P1 --> P2[Phase 2: Architecture]
-    P2 --> P3[Phase 3: Backlog]
-    P3 --> P4[Phase 4: Development]
-    P4 --> P5[Phase 5: Testing]
-    P5 --> P6[Phase 6: Security]
-    P6 --> P7[Phase 7: Review]
-    P7 --> P8[Phase 8: DevOps]
-    P8 --> P9[Phase 9: Observability]
-    P9 --> DONE[Production Ready]
+    P0 --> P1[Phase 1: Product]
+    P1 --> P2[Phase 2: Story-Tasks]
+    P2 --> P3[Phase 3: Architecture]
+    P3 --> P4[Phase 4: Design]
+    P4 --> P5[Phase 5: Development]
+    P5 --> P6[Phase 6: Testing]
+    P6 --> P7[Phase 7: Security]
+    P7 --> P8[Phase 8: Review]
+    P8 --> P9[Phase 9: DevOps]
+    P9 --> P10[Phase 10: Observability]
+    P10 --> DONE[Production Ready]
 
     style SPEC fill:#f9f,stroke:#333,stroke-width:2px
     style DONE fill:#9f9,stroke:#333,stroke-width:2px

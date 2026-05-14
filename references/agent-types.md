@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Autonomous SDLC Framework has 35 agents organized in a 3-tier hierarchy: 1 orchestrator, 9 stage agents, and 25 subagents. The orchestrator dispatches only the agents needed — typically all 9 stages run sequentially, but subagents are selected based on project complexity.
+The Autonomous SDLC Framework has 40 agents organized in a 3-tier hierarchy: 1 orchestrator, 10 stage agents, and 29 subagents. The orchestrator dispatches only the agents needed — typically all 10 stage agents run sequentially, but subagents are selected based on project complexity. After every phase (except Phase 8), the orchestrator dispatches the full Review agent (3 blind reviewers) to assess that phase's artifacts.
 
 ---
 
@@ -16,17 +16,18 @@ The Autonomous SDLC Framework has 35 agents organized in a 3-tier hierarchy: 1 o
 
 ## Stage Agents
 
-| Agent | ID | Capabilities | Subagent Count |
-|-------|----|-------------|----------------|
-| Product Agent | `stage-product` | Requirements analysis, stakeholder synthesis, feature prioritization, scope definition | 4 |
-| Architecture Agent | `stage-architecture` | System design, technology selection, API contracts, data modeling, NFR evaluation | 4 |
-| Backlog Agent | `stage-backlog` | Epic/story/task decomposition, dependency mapping, prioritization (MoSCoW), sprint planning | 0 |
-| Development Agent | `stage-development` | Code generation, implementation orchestration, pattern enforcement, test-alongside workflow | 4 |
-| Testing Agent | `stage-testing` | Test strategy, coverage orchestration, test data management, regression planning | 4 |
-| Security Agent | `stage-security` | Threat modeling, vulnerability scanning, OWASP review, policy compliance | 4 |
-| Review Agent | `stage-review` | Blind review orchestration, severity aggregation, anti-sycophancy checks | 3 |
-| DevOps Agent | `stage-devops` | CI/CD pipelines, Docker, IaC, deployment strategies, environment configuration | 0 |
-| Observability Agent | `stage-observability` | SLO/SLI definition, logging, alerting, dashboards, health checks, runbooks | 0 |
+| Agent | ID | Phase | Capabilities | Subagent Count |
+|-------|----|-------|-------------|----------------|
+| Product Agent | `stage-product` | 1 | Requirements analysis, stakeholder synthesis, feature prioritization, scope definition | 4 |
+| Story-Tasks Agent | `stage-story-tasks` | 2 | Epic/story/task decomposition, dependency mapping, prioritization, queue population | 3 |
+| Architecture Agent | `stage-architecture` | 3 | High-level system design, tech stack selection, solution evaluation, ADR authoring | 3 |
+| Design Agent | `stage-design` | 4 | Interface contracts, data/state modeling, integration planning, NFR evaluation | 4 |
+| Development Agent | `stage-development` | 5 | Code generation, implementation orchestration, pattern enforcement, test-alongside workflow | 4 |
+| Testing Agent | `stage-testing` | 6 | Test strategy, coverage orchestration, test data management, regression planning | 4 |
+| Security Agent | `stage-security` | 7 | Threat modeling, vulnerability scanning, OWASP review, policy compliance | 4 |
+| Review Agent | `stage-review` | 8 | Blind review orchestration, severity aggregation, anti-sycophancy checks | 3 |
+| DevOps Agent | `stage-devops` | 9 | CI/CD pipelines, Docker, IaC, deployment strategies, environment configuration | 0 |
+| Observability Agent | `stage-observability` | 10 | SLO/SLI definition, logging, alerting, dashboards, health checks, runbooks | 0 |
 
 ---
 
@@ -41,14 +42,34 @@ The Autonomous SDLC Framework has 35 agents organized in a 3-tier hierarchy: 1 o
 
 ---
 
-## Architecture Subagents
+## Story-Tasks Subagents
 
 | Agent | ID | Capabilities |
 |-------|----|-------------|
-| API Designer | `sub-api-designer` | Design RESTful/GraphQL API contracts. Generate OpenAPI 3.x specs. Define request/response schemas, error codes, pagination, auth. |
-| Data Model Designer | `sub-data-model-designer` | Design database schemas (relational/NoSQL). Define entities, relationships, constraints, indexes. Generate migration scripts. |
-| Integration Planner | `sub-integration-planner` | Plan external system integrations (auth providers, payment gateways, APIs). Define integration patterns, error handling, fallbacks. |
-| NFR Evaluator | `sub-nfr-evaluator` | Evaluate non-functional requirements: performance targets, scalability limits, availability SLAs, security requirements, compliance needs. |
+| Story Writer | `sub-story-writer` | Decompose requirements into user stories with acceptance criteria. Group by epics. Ensure full requirement traceability. |
+| Task Decomposer | `sub-task-decomposer` | Break stories into implementable tasks (< 4 hours). Assign agent types. Estimate effort (S/M/L). Define done criteria. |
+| Dependency Mapper | `sub-dependency-mapper` | Build dependency graph. Identify critical path. Detect circular dependencies. Flag parallelizable tasks. |
+
+---
+
+## Architecture Subagents (ADR-Focused)
+
+| Agent | ID | Capabilities |
+|-------|----|-------------|
+| Tech Stack Advisor | `sub-tech-stack-advisor` | Analyze requirements and recommend technology stack. Evaluate compatibility. Justify each choice against alternatives. |
+| Solution Evaluator | `sub-solution-evaluator` | Evaluate alternative architectural solutions. Produce weighted trade-off analysis. Recommend best-fit option per decision. |
+| ADR Writer | `sub-adr-writer` | Write Architecture Decision Records. Document context, options, rationale, consequences. Number sequentially. |
+
+---
+
+## Design Subagents
+
+| Agent | ID | Capabilities |
+|-------|----|-------------|
+| Interface Designer | `sub-interface-designer` | Design interface contracts appropriate to project type: OpenAPI for REST APIs, GraphQL schemas, CLI specs, UI component specs, event catalogs, protocol definitions. Reference ADRs. |
+| Data Model Designer | `sub-data-model-designer` | Design data/state models: relational schemas, document stores, file structures, in-memory state, event stores. Define structures, relationships, access patterns. Reference storage ADR. |
+| Integration Planner | `sub-integration-planner` | Plan integrations: API calls, message queues, IPC, file I/O, SDK calls, hardware interfaces, plugin systems. Define patterns, error handling, fallbacks. Reference ADRs. |
+| NFR Evaluator | `sub-nfr-evaluator` | Evaluate non-functional requirements: performance targets, scalability limits, availability SLAs, security requirements. Reference ADRs. |
 
 ---
 
@@ -105,7 +126,7 @@ Agents execute via role switching — the AI IDE takes on each agent's persona t
 
 ```
 # Sequential stage execution
-for stage in product architecture backlog development testing security review devops observability; do
+for stage in product story-tasks architecture design development testing security review devops observability; do
   # AI reads agents/stage/$stage.md and executes
 done
 

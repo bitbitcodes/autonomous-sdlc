@@ -2,6 +2,53 @@
 
 All notable changes to the Autonomous SDLC Framework.
 
+## [2.1.0] - 2026-05-13
+
+### Changed
+- **API Designer** renamed to **Interface Designer** (`sub-interface-designer`) — now designs interface contracts appropriate to the project type (OpenAPI for APIs, CLI specs, UI component specs, event catalogs, protocol definitions, etc.)
+- **Data Model Designer** broadened to handle all storage types: relational databases, NoSQL, file-based storage, in-memory state, event stores, ML feature stores
+- **Integration Planner** broadened to cover all integration types: API calls, message queues, IPC, file I/O, SDK calls, hardware interfaces, plugin systems
+- **Tech Stack Advisor** example template broadened to show multiple project types (API, CLI, frontend, mobile, ML, library, desktop)
+- **Solution Evaluator** example changed from API-style comparison to architecture-style comparison (Monolith vs Microservices vs Serverless)
+- **Gate 5 (Design Completeness)** generalized: "valid interface contracts for project type" instead of "valid OpenAPI 3.x"
+- All quality gates, references, skills, docs, and registries updated for project-type-aware language
+- Artifact path `api-contracts.yaml` replaced with `interface-contracts.*` (extension varies by project type)
+- Observability health checks broadened beyond HTTP endpoints to include heartbeats, status commands, etc.
+
+### Removed
+- `agents/sub/design/api-designer.md` — Replaced by `agents/sub/design/interface-designer.md`
+
+## [2.0.0] - 2026-05-13
+
+### Added
+- **Phase 2: Story-Tasks** — New phase with 3 subagents (Story Writer, Task Decomposer, Dependency Mapper) for epic/story/task decomposition and dependency graph generation
+- **Phase 4: Design** — New phase with 4 subagents (Interface Designer, Data Model Designer, Integration Planner, NFR Evaluator) for detailed technical design referencing ADRs
+- **Architecture subagents (ADR-focused)** — 3 new subagents: Tech Stack Advisor, Solution Evaluator, ADR Writer
+- **Per-phase review** — After every phase (except Phase 0 and Phase 8), 3 blind reviewers assess that phase's artifacts before advancing
+- **`review` field in orchestrator.json** — Tracks per-phase review status alongside gate status
+- **11 quality gates** — New gates for Story-Task Traceability (Gate 3) and Design Completeness (Gate 5)
+
+### Changed
+- **BREAKING:** Phase numbering changed from 0–9 to 0–10 (11 phases total)
+- **BREAKING:** `orchestrator.json` phase keys renamed (e.g., `2-architecture` → `3-architecture`, `3-backlog` → removed)
+- **Architecture phase** refocused on high-level system design, tech stack selection, and ADR authoring (was: detailed design + API contracts)
+- **Backlog phase** renamed to **Story-Tasks** with 3 production-grade subagents (was: no subagents)
+- Agent count: 35 → 40 (1 orchestrator + 10 stage agents + 29 subagents)
+- Phase 5–10 renumbered: Development (4→5), Testing (5→6), Security (6→7), Review (7→8), DevOps (8→9), Observability (9→10)
+- All stage agent prompts updated with correct phase numbers, artifact paths, and gate references
+- Orchestrator prompt updated for 11-phase flow and per-phase review protocol
+- All IDE templates updated (Windsurf, Copilot, Claude, Cursor, Gemini, opencode, generic)
+- All documentation updated (README, agents, phases, quality-gates, architecture, usage-guide, jira-workflow, getting-started, cli-reference)
+- CLI scaffold (`scaffold.py`, `__init__.py`) updated with new artifact directories and phase maps
+- `run.sh` updated: artifact dirs, orchestrator.json init, STATUS.md dashboard, status display
+- AGENTS.md and agents-md-template.md updated with new agent registry
+- References (sdlc-phases.md, agent-types.md, quality-control.md) and skills (quality-gates.md) rewritten
+
+### Removed
+- `agents/stage/backlog.md` — Replaced by `agents/stage/story-tasks.md`
+- `agents/sub/architecture/{api-designer,data-model-designer,integration-planner,nfr-evaluator}.md` — Moved to `agents/sub/design/`
+- `artifacts/backlog/` directory — Replaced by `artifacts/story-tasks/`
+
 ## [1.1.0] - 2026-05-13
 
 ### Added

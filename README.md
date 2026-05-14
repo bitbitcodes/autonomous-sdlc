@@ -10,7 +10,7 @@ Bootstrap multi-agent SDLC workflows into any repository.
 /____/  \__,_/ /_/  /_/   \____/
 ```
 
-**autonomous-sdlc** scaffolds 35 AI agents into your project repo to execute the full software development lifecycle — from a spec to production-ready code with tests, security audit, CI/CD, and monitoring.
+**autonomous-sdlc** scaffolds 40 AI agents into your project repo to execute the full software development lifecycle — from a spec to production-ready code with tests, security audit, CI/CD, and monitoring.
 
 ## Quick Start
 
@@ -31,7 +31,7 @@ Running `sdlc init` scaffolds everything into a single `.sdlc/` directory in you
 your-project/
 ├── .sdlc/
 │   ├── framework/                # Installed by CLI — don't modify
-│   │   ├── agents/               #   35 agent prompts (orchestrator + 9 stage + 25 sub)
+│   │   ├── agents/               #   40 agent prompts (orchestrator + 10 stage + 29 sub)
 │   │   ├── references/           #   Architecture & workflow docs
 │   │   ├── skills/               #   Skill modules (loaded on demand)
 │   │   ├── templates/            #   Agent prompt templates
@@ -110,7 +110,7 @@ sdlc init . \
 
 ### Option A: Agent Dropdown (Easiest)
 
-Select the `sdlc.orchestrator` agent in your IDE and paste your spec — a JIRA story, PRD, or even a one-liner — directly into the chat. The orchestrator handles everything: bootstraps `.sdlc/`, normalizes your spec, detects complexity, and drives all 10 phases.
+Select the `sdlc.orchestrator` agent in your IDE and paste your spec — a JIRA story, PRD, or even a one-liner — directly into the chat. The orchestrator handles everything: bootstraps `.sdlc/`, normalizes your spec, detects complexity, and drives all 11 phases.
 
 | IDE | How |
 |-----|-----|
@@ -167,7 +167,7 @@ IDE sessions have token limits. When one ends, just start a new conversation —
 
 ### What You Get
 
-Each phase produces artifacts in `.sdlc/artifacts/<phase>/` — requirements, API contracts, data models, implementation, test suites, security reports, CI/CD configs, and more. The actual codebase is written directly into your project directory.
+Each phase produces artifacts in `.sdlc/artifacts/<phase>/` — requirements, interface contracts, data models, implementation, test suites, security reports, CI/CD configs, and more. The actual codebase is written directly into your project directory.
 
 > **Full walkthrough:** [Usage Guide](docs/usage-guide.md) · **JIRA users:** [JIRA Workflow](docs/jira-workflow.md)
 
@@ -176,7 +176,7 @@ Each phase produces artifacts in `.sdlc/artifacts/<phase>/` — requirements, AP
 ### Workflow
 
 ```
-Spec → Orchestrator → Product → Architecture → Backlog → Development → Testing → Security → Review → DevOps → Observability
+Spec → Orchestrator → Product → Story-Tasks → Architecture → Design → Development → Testing → Security → Review → DevOps → Observability
 ```
 
 ### Agent Hierarchy
@@ -184,15 +184,17 @@ Spec → Orchestrator → Product → Architecture → Backlog → Development �
 | Tier | Count | Agents |
 |------|-------|--------|
 | Orchestrator | 1 | SDLC Orchestrator — workflow control, delegation, validation |
-| Stage Agents | 9 | Product, Architecture, Backlog, Development, Testing, Security, Review, DevOps, Observability |
-| Subagents | 25 | Specialized workers dispatched by each stage agent |
+| Stage Agents | 11 | Product, Story-Tasks, Architecture, Design, Development, Testing, Security, Review, DevOps, Observability |
+| Subagents | 31 | Specialized workers dispatched by each stage agent |
 
 ### Subagents by Stage
 
 | Stage | Subagents |
 |-------|-----------|
 | **Product** | Requirement Parser, Acceptance Criteria Generator, Risk Analyzer, Assumption Extractor |
-| **Architecture** | API Designer, Data Model Designer, Integration Planner, NFR Evaluator |
+| **Story-Tasks** | Story Writer, Task Decomposer, Dependency Mapper |
+| **Architecture** | Tech Stack Advisor, Solution Evaluator, ADR Writer |
+| **Design** | Interface Designer, Data Model Designer, Integration Planner, NFR Evaluator |
 | **Development** | Repo Analyzer, Code Generator, Refactoring Agent, Documentation Agent |
 | **Testing** | Unit Test Agent, Integration Test Agent, Regression Test Agent, Test Data Generator |
 | **Security** | Secret Scanner, Dependency Scanner, OWASP Reviewer, Policy Validator |
@@ -207,7 +209,7 @@ Every agent follows: **Reason → Act → Reflect → Verify**
 3. **Reflect** — Verify success, update working memory
 4. **Verify** — Run tests, check spec compliance, enforce quality gates
 
-Each agent pauses at **quality gates** — 10 gates enforce phase transitions. Failures trigger self-correction: capture error → analyze root cause → update learnings → retry (max 3).
+Each agent pauses at **quality gates** — 11 gates enforce phase transitions. After every phase, 3 blind reviewers assess the artifacts before advancing. Failures trigger self-correction: capture error → analyze root cause → update learnings → retry (max 3).
 
 ## Development
 
@@ -253,7 +255,7 @@ Adding a new IDE integration is a single file in `src/sdlc_cli/integrations/your
 - **Markdown-driven** — Every agent is a `.md` file. No framework dependency.
 - **CONTINUITY.md** — Working memory read/written every turn for cross-session persistence
 - **Structured prompting** — GOAL / CONSTRAINTS / CONTEXT / OUTPUT format
-- **10 Quality gates** — Must pass before each phase transition
+- **11 Quality gates** — Must pass before each phase transition, with per-phase blind review
 - **3-tier memory** — Episodic (traces), semantic (patterns), learnings (mistakes)
 - **Blind review** — 3 parallel reviewers with anti-sycophancy check
 
@@ -267,9 +269,9 @@ Full documentation lives in [`docs/`](docs/):
 | [Usage Guide](docs/usage-guide.md) | End-to-end: feed spec → phases → artifacts |
 | [JIRA Workflow](docs/jira-workflow.md) | Using JIRA epics/stories as input |
 | [Architecture](docs/architecture.md) | System design, component model, data flow |
-| [Agents](docs/agents.md) | All 35 agents — roles, dispatch, handoff |
-| [SDLC Phases](docs/phases.md) | 10 phases from spec to observability |
-| [Quality Gates](docs/quality-gates.md) | 10 gates, blind review, severity model |
+| [Agents](docs/agents.md) | All 40 agents — roles, dispatch, handoff |
+| [SDLC Phases](docs/phases.md) | 11 phases from spec to observability |
+| [Quality Gates](docs/quality-gates.md) | 11 gates, per-phase blind review, severity model |
 | [Memory System](docs/memory-system.md) | 3-tier memory + CONTINUITY.md protocol |
 | [CLI Reference](docs/cli-reference.md) | `sdlc init` options, scaffold behavior |
 | [IDE Integrations](docs/ide-integrations.md) | 9 supported IDEs, adding your own |

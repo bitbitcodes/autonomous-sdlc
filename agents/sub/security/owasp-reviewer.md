@@ -25,7 +25,7 @@ Review the codebase for all OWASP Top 10 (2021) vulnerability categories. For ea
 
 ### Files to Read
 - Full codebase (especially auth, input handling, data access layers)
-- `.sdlc/artifacts/architecture/api-contracts.yaml` — Endpoints to review
+- `.sdlc/artifacts/design/interface-contracts.*` — Interfaces to review
 - `.sdlc/artifacts/architecture/system-design.md` — Architecture context
 
 ### Memory Check

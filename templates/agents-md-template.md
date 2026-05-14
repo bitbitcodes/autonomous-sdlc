@@ -22,8 +22,9 @@ This file follows the OpenAI/AAIF agent discovery standard. It describes the age
 | ID | Prompt | Role | Subagents |
 |----|--------|------|-----------|
 | `stage-product` | `.sdlc/framework/agents/stage/product.md` | Requirements analysis & stakeholder synthesis | 4 |
-| `stage-architecture` | `.sdlc/framework/agents/stage/architecture.md` | System design, API contracts, data modeling | 4 |
-| `stage-backlog` | `.sdlc/framework/agents/stage/backlog.md` | Epic/story/task decomposition & prioritization | 0 |
+| `stage-story-tasks` | `.sdlc/framework/agents/stage/story-tasks.md` | Epic/story/task decomposition, dependency mapping & queue population | 3 |
+| `stage-architecture` | `.sdlc/framework/agents/stage/architecture.md` | High-level system design, tech stack selection & ADR authoring | 3 |
+| `stage-design` | `.sdlc/framework/agents/stage/design.md` | Interface contracts, data/state modeling, integration planning & NFR evaluation | 4 |
 | `stage-development` | `.sdlc/framework/agents/stage/development.md` | Code generation & implementation orchestration | 4 |
 | `stage-testing` | `.sdlc/framework/agents/stage/testing.md` | Test strategy & coverage orchestration | 4 |
 | `stage-security` | `.sdlc/framework/agents/stage/security.md` | Threat modeling & vulnerability scanning | 4 |
@@ -41,13 +42,27 @@ This file follows the OpenAI/AAIF agent discovery standard. It describes the age
 | `sub-risk-analyzer` | `.sdlc/framework/agents/sub/product/risk-analyzer.md` | Identify risks & mitigations |
 | `sub-assumption-extractor` | `.sdlc/framework/agents/sub/product/assumption-extractor.md` | Surface hidden assumptions |
 
-#### Architecture Subagents
+#### Story-Tasks Subagents
 | ID | Prompt | Focus |
 |----|--------|-------|
-| `sub-api-designer` | `.sdlc/framework/agents/sub/architecture/api-designer.md` | API contract design (OpenAPI) |
-| `sub-data-model-designer` | `.sdlc/framework/agents/sub/architecture/data-model-designer.md` | Database schema & ERD |
-| `sub-integration-planner` | `.sdlc/framework/agents/sub/architecture/integration-planner.md` | External system integration |
-| `sub-nfr-evaluator` | `.sdlc/framework/agents/sub/architecture/nfr-evaluator.md` | Non-functional requirements |
+| `sub-story-writer` | `.sdlc/framework/agents/sub/story-tasks/story-writer.md` | Decompose requirements into user stories |
+| `sub-task-decomposer` | `.sdlc/framework/agents/sub/story-tasks/task-decomposer.md` | Break stories into implementable tasks |
+| `sub-dependency-mapper` | `.sdlc/framework/agents/sub/story-tasks/dependency-mapper.md` | Build dependency graph & critical path |
+
+#### Architecture Subagents (ADR-Focused)
+| ID | Prompt | Focus |
+|----|--------|-------|
+| `sub-tech-stack-advisor` | `.sdlc/framework/agents/sub/architecture/tech-stack-advisor.md` | Technology stack recommendation |
+| `sub-solution-evaluator` | `.sdlc/framework/agents/sub/architecture/solution-evaluator.md` | Alternative solution trade-off analysis |
+| `sub-adr-writer` | `.sdlc/framework/agents/sub/architecture/adr-writer.md` | Architecture Decision Records |
+
+#### Design Subagents
+| ID | Prompt | Focus |
+|----|--------|-------|
+| `sub-interface-designer` | `.sdlc/framework/agents/sub/design/interface-designer.md` | Interface contract design (APIs, CLIs, UIs, events, protocols) |
+| `sub-data-model-designer` | `.sdlc/framework/agents/sub/design/data-model-designer.md` | Data/state model design |
+| `sub-integration-planner` | `.sdlc/framework/agents/sub/design/integration-planner.md` | External system integration |
+| `sub-nfr-evaluator` | `.sdlc/framework/agents/sub/design/nfr-evaluator.md` | Non-functional requirements |
 
 #### Development Subagents
 | ID | Prompt | Focus |

@@ -9,7 +9,7 @@ The simplest way to use the framework — no terminal commands needed after setu
 ```mermaid
 flowchart LR
     SELECT["Select<br/>sdlc.orchestrator"] --> PASTE["Paste your spec<br/>(JIRA story, PRD, brief)"]
-    PASTE --> GO["Orchestrator runs<br/>all 10 phases"]
+    PASTE --> GO["Orchestrator runs<br/>all 11 phases"]
     GO --> DONE["Production-ready<br/>codebase"]
 
     style SELECT fill:#6c5ce7,color:#fff
@@ -20,7 +20,7 @@ flowchart LR
 
 1. **Select the agent** — Pick `sdlc.orchestrator` from your IDE's agent/command dropdown
 2. **Paste your spec** — JIRA story, PRD, requirements, or even a one-liner
-3. **The orchestrator takes over** — It bootstraps `.sdlc/`, normalizes your spec, detects complexity, and drives all 10 phases autonomously
+3. **The orchestrator takes over** — It bootstraps `.sdlc/`, normalizes your spec, detects complexity, and drives all 11 phases autonomously
 
 ### Per-IDE Instructions
 
@@ -81,7 +81,7 @@ flowchart TD
     BOOT --> IDE["4. Open AI IDE<br/>Select sdlc.orchestrator"]
     IDE --> ORCH["5. Orchestrator Activates<br/>Reads pre-loaded spec"]
     ORCH --> PHASES["6. Phases Execute<br/>Product → Architecture → ... → Observability"]
-    PHASES --> DONE["7. Project Complete<br/>All 10 quality gates passed"]
+    PHASES --> DONE["7. Project Complete<br/>All 11 quality gates passed"]
 
     style SPEC fill:#6c5ce7,color:#fff
     style DONE fill:#00b894,color:#fff,font-weight:bold
@@ -221,7 +221,7 @@ sequenceDiagram
 
 ## Watch the Phases Execute
 
-The orchestrator drives all 10 phases autonomously. Here's what happens in each:
+The orchestrator drives all 11 phases autonomously. Here's what happens in each:
 
 ### Phase 1: Product Discovery
 
@@ -234,24 +234,33 @@ The AI reads your spec and produces:
 | Risk Register | `.sdlc/artifacts/product/risks.md` | Identified risks with severity + mitigations |
 | Assumptions | `.sdlc/artifacts/product/assumptions.md` | Hidden assumptions surfaced for validation |
 
-### Phase 2: Architecture
+### Phase 2: Story-Tasks
 
 | Artifact | Path | What It Contains |
-|----------|------|-----------------|
-| System Design | `.sdlc/artifacts/architecture/system-design.md` | Component diagram, tech stack decisions |
-| API Contracts | `.sdlc/artifacts/architecture/api-contracts.yaml` | OpenAPI 3.x specification |
-| Data Model | `.sdlc/artifacts/architecture/data-model.md` | Database schema, ERD, relationships |
-| ADRs | `.sdlc/artifacts/architecture/adrs/` | Architecture Decision Records |
-
-### Phase 3: Backlog
-
-| Artifact | Path | What It Contains |
-|----------|------|-----------------|
-| Epics | `.sdlc/artifacts/backlog/epics.md` | Epic definitions |
-| Stories | `.sdlc/artifacts/backlog/stories.md` | User stories with acceptance criteria |
+|----------|------|------------------|
+| Epics | `.sdlc/artifacts/story-tasks/epics.md` | Epic definitions |
+| Stories | `.sdlc/artifacts/story-tasks/stories.md` | User stories with acceptance criteria |
+| Dependency Graph | `.sdlc/artifacts/story-tasks/dependency-graph.md` | Task dependency map |
 | Task Queue | `.sdlc/queue/pending.json` | Prioritized task list with dependencies |
 
-### Phase 4: Development
+### Phase 3: Architecture
+
+| Artifact | Path | What It Contains |
+|----------|------|------------------|
+| System Design | `.sdlc/artifacts/architecture/system-design.md` | High-level architecture |
+| Tech Stack | `.sdlc/artifacts/architecture/tech-stack.md` | Technology selection + justification |
+| ADRs | `.sdlc/artifacts/architecture/adrs/` | Architecture Decision Records |
+
+### Phase 4: Design
+
+| Artifact | Path | What It Contains |
+|----------|------|------------------|
+| Interface Contracts | `.sdlc/artifacts/design/interface-contracts.*` | Interface contracts (format varies by project type) |
+| Data Model | `.sdlc/artifacts/design/data-model.md` | Data/state model |
+| NFR Assessment | `.sdlc/artifacts/design/nfr-assessment.md` | Non-functional requirements evaluation |
+| Integrations | `.sdlc/artifacts/design/integrations.md` | External system integration plan |
+
+### Phase 5: Development
 
 The AI implements code task-by-task:
 - Claims tasks from the queue
@@ -259,7 +268,7 @@ The AI implements code task-by-task:
 - Commits after each passing task
 - Moves completed tasks to `queue/completed.json`
 
-### Phase 5–9: Testing → Security → Review → DevOps → Observability
+### Phase 6–10: Testing → Security → Review → DevOps → Observability
 
 Each phase produces artifacts in its respective `.sdlc/artifacts/<phase>/` directory.
 
@@ -275,15 +284,20 @@ Each phase produces artifacts in its respective `.sdlc/artifacts/<phase>/` direc
 │   │   └── assumptions.md
 │   ├── architecture/
 │   │   ├── system-design.md
-│   │   ├── api-contracts.yaml
-│   │   ├── data-model.md
-│   │   ├── nfr-assessment.md
-│   │   ├── integrations.md
+│   │   ├── tech-stack.md
+│   │   ├── solution-evaluation.md
 │   │   └── adrs/
-│   ├── backlog/
+│   ├── story-tasks/
 │   │   ├── epics.md
 │   │   ├── stories.md
-│   │   └── tasks.json
+│   │   ├── tasks.json
+│   │   └── dependency-graph.md
+│   ├── design/
+│   │   ├── detailed-design.md
+│   │   ├── interface-contracts.*
+│   │   ├── data-model.md
+│   │   ├── integrations.md
+│   │   └── nfr-assessment.md
 │   ├── development/
 │   │   └── (implementation logs)
 │   ├── testing/

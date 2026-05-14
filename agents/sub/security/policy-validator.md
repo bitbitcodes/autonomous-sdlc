@@ -27,7 +27,7 @@ Validate that the application enforces required security policies: CORS, CSP, ra
 - Source code (middleware, configuration, auth modules)
 - Configuration files (nginx, Apache, app config)
 - `.sdlc/artifacts/architecture/system-design.md` — Architecture context
-- `.sdlc/artifacts/architecture/nfr-assessment.md` — Security NFRs
+- `.sdlc/artifacts/design/nfr-assessment.md` — Security NFRs
 
 ### Memory Check
 Check `.sdlc/memory/learnings/` for entries tagged with `security-policy`, `compliance`.

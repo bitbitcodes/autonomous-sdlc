@@ -165,7 +165,7 @@ These are copied from the installed package into `.sdlc/framework/`:
 
 | Directory | Contents |
 |-----------|----------|
-| `agents/` | 35 agent prompt files (orchestrator + 9 stage + 25 sub) |
+| `agents/` | 40 agent prompt files (orchestrator + 10 stage + 29 sub) |
 | `references/` | 5 reference docs (workflow, phases, agents, memory, quality) |
 | `skills/` | 5 skill modules (prompting, dispatch, gates, testing, memory) |
 | `templates/` | 3 agent templates (stage, subagent, handoff) |

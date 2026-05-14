@@ -51,50 +51,59 @@ graph TB
 
 ## Component Model
 
-### 1. Agent Layer (35 agents)
+### 1. Agent Layer (40 agents)
 
 Agents are markdown prompt files organized in a 3-tier hierarchy:
 
 ```mermaid
 graph TD
     O[Orchestrator<br/>1 agent] --> S1[Product]
-    O --> S2[Architecture]
-    O --> S3[Backlog]
-    O --> S4[Development]
-    O --> S5[Testing]
-    O --> S6[Security]
-    O --> S7[Review]
-    O --> S8[DevOps]
-    O --> S9[Observability]
+    O --> S2[Story-Tasks]
+    O --> S3[Architecture]
+    O --> S4[Design]
+    O --> S5[Development]
+    O --> S6[Testing]
+    O --> S7[Security]
+    O --> S8[Review]
+    O --> S9[DevOps]
+    O --> S10[Observability]
 
     S1 --> S1A[Requirement Parser]
     S1 --> S1B[Acceptance Criteria]
     S1 --> S1C[Risk Analyzer]
     S1 --> S1D[Assumption Extractor]
 
-    S2 --> S2A[API Designer]
-    S2 --> S2B[Data Model Designer]
-    S2 --> S2C[Integration Planner]
-    S2 --> S2D[NFR Evaluator]
+    S2 --> S2A[Story Writer]
+    S2 --> S2B[Task Decomposer]
+    S2 --> S2C[Dependency Mapper]
 
-    S4 --> S4A[Repo Analyzer]
-    S4 --> S4B[Code Generator]
-    S4 --> S4C[Refactoring Agent]
-    S4 --> S4D[Documentation Agent]
+    S3 --> S3A[Tech Stack Advisor]
+    S3 --> S3B[Solution Evaluator]
+    S3 --> S3C[ADR Writer]
 
-    S5 --> S5A[Unit Test]
-    S5 --> S5B[Integration Test]
-    S5 --> S5C[Regression Test]
-    S5 --> S5D[Test Data Generator]
+    S4 --> S4A[Interface Designer]
+    S4 --> S4B[Data Model Designer]
+    S4 --> S4C[Integration Planner]
+    S4 --> S4D[NFR Evaluator]
 
-    S6 --> S6A[Secret Scanner]
-    S6 --> S6B[Dependency Scanner]
-    S6 --> S6C[OWASP Reviewer]
-    S6 --> S6D[Policy Validator]
+    S5 --> S5A[Repo Analyzer]
+    S5 --> S5B[Code Generator]
+    S5 --> S5C[Refactoring Agent]
+    S5 --> S5D[Documentation Agent]
 
-    S7 --> S7A[Code Review]
-    S7 --> S7B[Maintainability]
-    S7 --> S7C[Performance]
+    S6 --> S6A[Unit Test]
+    S6 --> S6B[Integration Test]
+    S6 --> S6C[Regression Test]
+    S6 --> S6D[Test Data Generator]
+
+    S7 --> S7A[Secret Scanner]
+    S7 --> S7B[Dependency Scanner]
+    S7 --> S7C[OWASP Reviewer]
+    S7 --> S7D[Policy Validator]
+
+    S8 --> S8A[Code Review]
+    S8 --> S8B[Maintainability]
+    S8 --> S8C[Performance]
 
     style O fill:#ff6b6b,stroke:#333,color:#fff
     style S1 fill:#4ecdc4,stroke:#333,color:#fff
@@ -106,6 +115,7 @@ graph TD
     style S7 fill:#4ecdc4,stroke:#333,color:#fff
     style S8 fill:#4ecdc4,stroke:#333,color:#fff
     style S9 fill:#4ecdc4,stroke:#333,color:#fff
+    style S10 fill:#4ecdc4,stroke:#333,color:#fff
 ```
 
 ### 2. State Layer
@@ -271,5 +281,5 @@ sequenceDiagram
 2. **IDE-native** — Uses each IDE's native config system (rules, instructions, agents).
 3. **Portable** — Single `.sdlc/` directory. Move it, fork it, customize it.
 4. **Observable** — All state is JSON/Markdown. Human-readable, git-friendly.
-5. **Composable** — Use all 35 agents or cherry-pick individual stages.
+5. **Composable** — Use all 40 agents or cherry-pick individual stages.
 6. **Memory-driven** — Agents learn from mistakes via the 3-tier memory system.

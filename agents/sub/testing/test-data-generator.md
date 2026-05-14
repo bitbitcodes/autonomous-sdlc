@@ -25,8 +25,8 @@ Generate comprehensive test data: fixtures, factory functions, mock responses, a
 ## CONTEXT
 
 ### Files to Read
-- `.sdlc/artifacts/architecture/data-model.md` — Entity definitions
-- `.sdlc/artifacts/architecture/api-contracts.yaml` — Request/response schemas
+- `.sdlc/artifacts/design/data-model.md` — Entity definitions
+- `.sdlc/artifacts/design/interface-contracts.*` — Interface schemas
 - Source code (model definitions)
 
 ### Memory Check
@@ -36,7 +36,7 @@ Check `.sdlc/memory/learnings/` for entries tagged with `test-data`, `fixtures`.
 
 ## INPUT
 
-- Data model and API contract schemas
+- Data model and interface contract schemas
 
 ---
 
@@ -98,7 +98,7 @@ export const edgeCaseUsers = {
 - Every entity in the data model has a factory function
 - Edge cases covered (empty, null, max length, special chars)
 - Data is deterministic (no Math.random or Date.now)
-- Mock API responses match the actual API contract schemas
+- Mock responses match the actual interface contract schemas
 - No real PII in test data
 
 ---

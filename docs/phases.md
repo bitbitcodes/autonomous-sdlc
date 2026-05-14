@@ -2,20 +2,21 @@
 
 ## Phase Pipeline
 
-The framework executes 10 sequential phases, each with a quality gate:
+The framework executes 11 sequential phases, each with a quality gate. After every phase (except Phase 0 and Phase 8), 3 blind reviewers assess that phase’s artifacts.
 
 ```mermaid
 flowchart TD
     P0["Phase 0: Bootstrap<br/>Initialize, normalize spec"] -->|"Gate 1: Spec Valid"| P1
     P1["Phase 1: Product<br/>Requirements, risks, criteria"] -->|"Gate 2: Requirements Complete"| P2
-    P2["Phase 2: Architecture<br/>Design, APIs, data model"] -->|"Gate 3: Architecture Sound"| P3
-    P3["Phase 3: Backlog<br/>Epics, stories, tasks"] -->|"Gate 4: Backlog Traceable"| P4
-    P4["Phase 4: Development<br/>Implement codebase"] -->|"Gate 5: Build Green"| P5
-    P5["Phase 5: Testing<br/>Unit, integration, regression"] -->|"Gate 6: Coverage Met"| P6
-    P6["Phase 6: Security<br/>Scan, audit, remediate"] -->|"Gate 7: Security Clear"| P7
-    P7["Phase 7: Review<br/>Blind 3-reviewer system"] -->|"Gate 8: Review Passed"| P8
-    P8["Phase 8: DevOps<br/>CI/CD, Docker, deploy"] -->|"Gate 9: Pipeline Green"| P9
-    P9["Phase 9: Observability<br/>SLOs, alerts, monitoring"] -->|"Gate 10: Observability Ready"| DONE
+    P2["Phase 2: Story-Tasks<br/>Epics, stories, tasks, deps"] -->|"Gate 3: Story-Task Traceable"| P3
+    P3["Phase 3: Architecture<br/>System design, ADRs"] -->|"Gate 4: Architecture Sound"| P4
+    P4["Phase 4: Design<br/>APIs, data model, NFRs"] -->|"Gate 5: Design Complete"| P5
+    P5["Phase 5: Development<br/>Implement codebase"] -->|"Gate 6: Build Green"| P6
+    P6["Phase 6: Testing<br/>Unit, integration, regression"] -->|"Gate 7: Coverage Met"| P7
+    P7["Phase 7: Security<br/>Scan, audit, remediate"] -->|"Gate 8: Security Clear"| P8
+    P8["Phase 8: Review<br/>Blind 3-reviewer system"] -->|"Gate 9: Review Passed"| P9
+    P9["Phase 9: DevOps<br/>CI/CD, Docker, deploy"] -->|"Gate 10: Pipeline Green"| P10
+    P10["Phase 10: Observability<br/>SLOs, alerts, monitoring"] -->|"Gate 11: Observability Ready"| DONE
 
     DONE["PROJECT COMPLETE"]
 
@@ -23,12 +24,13 @@ flowchart TD
     style P1 fill:#a29bfe,color:#fff
     style P2 fill:#74b9ff,color:#fff
     style P3 fill:#81ecec,color:#000
-    style P4 fill:#55efc4,color:#000
-    style P5 fill:#ffeaa7,color:#000
-    style P6 fill:#fab1a0,color:#000
-    style P7 fill:#ff7675,color:#fff
-    style P8 fill:#fd79a8,color:#fff
-    style P9 fill:#e17055,color:#fff
+    style P4 fill:#00cec9,color:#000
+    style P5 fill:#55efc4,color:#000
+    style P6 fill:#ffeaa7,color:#000
+    style P7 fill:#fab1a0,color:#000
+    style P8 fill:#ff7675,color:#fff
+    style P9 fill:#fd79a8,color:#fff
+    style P10 fill:#e17055,color:#fff
     style DONE fill:#00b894,color:#fff,font-weight:bold
 ```
 
@@ -73,58 +75,82 @@ flowchart LR
 
 **Gate 2 — Requirements Complete:** All requirements have IDs, acceptance criteria, and risk assessment.
 
-## Phase 2: Architecture
+## Phase 2: Story-Tasks
 
-**Purpose:** Design system architecture, API contracts, data models.
+**Purpose:** Decompose requirements into implementable epics, stories, and tasks.
 
-**Agent:** `stage-architecture` with 4 subagents
+**Agent:** `stage-story-tasks` with 3 subagents
 
 ```mermaid
 flowchart LR
-    REQ[Requirements] --> AD[API Designer]
-    REQ --> DM[Data Model Designer]
-    REQ --> IP[Integration Planner]
-    REQ --> NE[NFR Evaluator]
-    AD & DM & IP & NE --> OUT[Architecture Artifacts]
+    REQ[Requirements] --> SW[Story Writer]
+    SW --> TD[Task Decomposer]
+    TD --> DM[Dependency Mapper]
+    DM --> OUT[Story-Tasks Artifacts + Queue]
 ```
 
 **Artifacts:**
 | File | Content |
 |------|---------|
-| `artifacts/architecture/system-design.md` | Architecture overview, component diagram |
-| `artifacts/architecture/api-contracts.yaml` | OpenAPI 3.x specification |
-| `artifacts/architecture/data-model.md` | Database schema, ERD, relationships |
-| `artifacts/architecture/integrations.md` | External system integration plan |
-| `artifacts/architecture/nfr-assessment.md` | NFR evaluation with target metrics |
-| `artifacts/architecture/adrs/` | Architecture Decision Records |
-
-**Gate 3 — Architecture Sound:** API contracts are valid OpenAPI, data model is normalized, NFRs have measurable targets.
-
-## Phase 3: Backlog
-
-**Purpose:** Decompose architecture into implementable work items.
-
-**Agent:** `stage-backlog` (no subagents)
-
-```mermaid
-flowchart TD
-    ARCH[Architecture] --> EPICS[Epics]
-    EPICS --> STORIES[User Stories + Acceptance Criteria]
-    STORIES --> TASKS["Tasks (< 4h each)"]
-    TASKS --> QUEUE[".sdlc/queue/pending.json"]
-```
-
-**Artifacts:**
-| File | Content |
-|------|---------|
-| `artifacts/backlog/epics.md` | Epic definitions |
-| `artifacts/backlog/stories.md` | User stories with criteria |
-| `artifacts/backlog/tasks.json` | Task list with dependencies |
+| `artifacts/story-tasks/epics.md` | Epic definitions |
+| `artifacts/story-tasks/stories.md` | User stories with criteria |
+| `artifacts/story-tasks/tasks.json` | Task list with dependencies |
+| `artifacts/story-tasks/dependency-graph.md` | Dependency graph |
 | `queue/pending.json` | Populated task queue |
 
-**Gate 4 — Backlog Traceable:** Every story traces to a requirement. No circular dependencies.
+**Gate 3 — Story-Task Traceable:** Every story traces to a requirement. No circular dependencies.
 
-## Phase 4: Development
+## Phase 3: Architecture
+
+**Purpose:** Define high-level system architecture, select tech stack, document decisions as ADRs.
+
+**Agent:** `stage-architecture` with 3 subagents
+
+```mermaid
+flowchart LR
+    REQ[Requirements + Stories] --> TSA[Tech Stack Advisor]
+    REQ --> SE[Solution Evaluator]
+    TSA & SE --> AW[ADR Writer]
+    AW --> OUT[Architecture Artifacts]
+```
+
+**Artifacts:**
+| File | Content |
+|------|---------|
+| `artifacts/architecture/system-design.md` | High-level architecture |
+| `artifacts/architecture/tech-stack.md` | Technology stack with justification |
+| `artifacts/architecture/solution-evaluation.md` | Trade-off analysis |
+| `artifacts/architecture/adrs/` | Architecture Decision Records |
+
+**Gate 4 — Architecture Sound:** System design documented, tech stack justified, ADRs for all major decisions.
+
+## Phase 4: Design
+
+**Purpose:** Create detailed technical design: interface contracts, data/state models, integrations, NFRs. All design decisions reference ADRs.
+
+**Agent:** `stage-design` with 4 subagents
+
+```mermaid
+flowchart LR
+    ADR[ADRs + System Design] --> ID[Interface Designer]
+    ADR --> DM[Data Model Designer]
+    ADR --> IP[Integration Planner]
+    ADR --> NE[NFR Evaluator]
+    ID & DM & IP & NE --> OUT[Design Artifacts]
+```
+
+**Artifacts:**
+| File | Content |
+|------|---------|
+| `artifacts/design/detailed-design.md` | Detailed technical design |
+| `artifacts/design/interface-contracts.*` | Interface contracts (format varies by project type) |
+| `artifacts/design/data-model.md` | Data/state model |
+| `artifacts/design/integrations.md` | External system integration plan |
+| `artifacts/design/nfr-assessment.md` | NFR evaluation with target metrics |
+
+**Gate 5 — Design Complete:** Interface contracts valid for the project type, data/state model defined, NFRs have targets, designs reference ADRs.
+
+## Phase 5: Development
 
 **Purpose:** Implement the codebase task by task.
 
@@ -152,9 +178,9 @@ flowchart TD
 6. Commit checkpoint
 7. Move to `queue/completed.json`
 
-**Gate 5 — Build Green:** Zero build errors, zero lint errors, all unit tests pass.
+**Gate 6 — Build Green:** Zero build errors, zero lint errors, all unit tests pass.
 
-## Phase 5: Testing
+## Phase 6: Testing
 
 **Purpose:** Comprehensive testing beyond unit tests.
 
@@ -166,9 +192,9 @@ flowchart TD
 3. **Regression Tests** — From acceptance criteria (sub-regression-test)
 4. **Test Data** — Fixtures, mocks, factories (sub-test-data)
 
-**Gate 6 — Coverage Met:** Unit ≥80%, all acceptance criteria have tests, integration tests pass.
+**Gate 7 — Coverage Met:** Unit ≥80%, all acceptance criteria have tests, integration tests pass.
 
-## Phase 6: Security
+## Phase 7: Security
 
 **Purpose:** Security audit — scan, review, remediate.
 
@@ -185,9 +211,9 @@ flowchart LR
     FIX --> REPORT[Security Summary]
 ```
 
-**Gate 7 — Security Clear:** Zero Critical/High findings, no hardcoded secrets, dependencies patched.
+**Gate 8 — Security Clear:** Zero Critical/High findings, no hardcoded secrets, dependencies patched.
 
-## Phase 7: Review
+## Phase 8: Review
 
 **Purpose:** Multi-perspective code review with anti-sycophancy.
 
@@ -219,9 +245,9 @@ flowchart TD
 - Unanimous PASS triggers an **anti-sycophancy check** (Devil's Advocate)
 - Severity: Critical/High/Medium block; Low → TODO; Cosmetic → info only
 
-**Gate 8 — Review Passed:** All reviewers PASS, no Critical/High/Medium findings.
+**Gate 9 — Review Passed:** All reviewers PASS, no Critical/High/Medium findings.
 
-## Phase 8: DevOps
+## Phase 9: DevOps
 
 **Purpose:** CI/CD pipeline, containerization, deployment.
 
@@ -229,9 +255,9 @@ flowchart TD
 
 **Outputs:** CI/CD config (GitHub Actions / GitLab CI), Dockerfile, docker-compose, deployment runbook, environment configs.
 
-**Gate 9 — Pipeline Green:** CI runs without errors, Docker builds, runbook complete.
+**Gate 10 — Pipeline Green:** CI runs without errors, Docker builds, runbook complete.
 
-## Phase 9: Observability
+## Phase 10: Observability
 
 **Purpose:** Monitoring, alerting, operational readiness.
 
@@ -239,19 +265,14 @@ flowchart TD
 
 **Outputs:** SLO/SLI definitions, logging config, alert rules, dashboard specs, operational runbook, health check endpoints.
 
-**Gate 10 — Observability Ready:** SLOs defined, health checks implemented, alerts configured.
+**Gate 11 — Observability Ready:** SLOs defined, health checks implemented, alerts configured.
 
-## Final Review
+## Per-Phase Review
 
-After all phases, a final cross-codebase review runs:
+After every phase (except Phase 0 and Phase 8), the orchestrator dispatches the full Review agent (3 blind reviewers) to assess that phase’s artifacts:
 
-```mermaid
-flowchart TD
-    ALL[All Phases Complete] --> FR[Final Review: 3 Blind Reviewers]
-    FR --> FIX[Fix Remaining Issues]
-    FIX --> RE[Re-Review Until All PASS]
-    RE --> REPORT[".sdlc/artifacts/final-review.md"]
-    REPORT --> DONE["PROJECT COMPLETE"]
-
-    style DONE fill:#00b894,color:#fff,font-weight:bold
 ```
+Phase N completes → Quality Gate N → PASS → Per-Phase Review (3 blind reviewers) → PASS → Phase N+1
+```
+
+Phase 8 (Review) is the final full-codebase review and does NOT get a secondary per-phase review.

@@ -86,7 +86,7 @@ autonomous-sdlc/
 │       ├── codex/              # Codex CLI integration
 │       ├── amp/                # Amp integration
 │       └── kilocode/           # Kilo Code integration
-├── agents/                     # 35 agent prompt files (bundled into package)
+├── agents/                     # 40 agent prompt files (bundled into package)
 ├── references/                 # Framework reference docs
 ├── skills/                     # Skill modules
 ├── templates/                  # IDE context templates + command templates
