@@ -120,6 +120,48 @@ CHECK: All integration tests pass
 CHECK: All regression tests pass
 ```
 
+### Trace Logging
+
+After completing each subagent dispatch and at phase completion, append a trace entry to `.sdlc/state/agent-trace.json`. Read the file, parse JSON, push a new entry to the `traces` array, write back.
+
+**Stage-level entry** (after all subagents complete):
+```json
+{
+  "id": "T<next>",
+  "agent": "stage-testing",
+  "role": "stage",
+  "phase": 6,
+  "phase_name": "testing",
+  "parent_id": "<orchestrator trace id>",
+  "action": "<summary of work done>",
+  "input_artifacts": [".sdlc/artifacts/product/acceptance-criteria.md", ".sdlc/artifacts/development/implementation-log.md"],
+  "output_artifacts": [".sdlc/artifacts/testing/coverage-report.md", ".sdlc/artifacts/testing/test-results.md", ".sdlc/artifacts/testing/criteria-coverage.md"],
+  "dispatched": ["sub-unit-test", "sub-integration-test", "sub-regression-test", "sub-test-data"],
+  "status": "complete",
+  "gate": "pass",
+  "timestamp": "<ISO timestamp>"
+}
+```
+
+**Subagent-level entry** (after each subagent completes):
+```json
+{
+  "id": "T<next>",
+  "agent": "<subagent-id>",
+  "role": "subagent",
+  "phase": 6,
+  "phase_name": "testing",
+  "parent_id": "<this stage trace id>",
+  "action": "<what the subagent did>",
+  "input_artifacts": ["<files read>"],
+  "output_artifacts": ["<files produced>"],
+  "dispatched": [],
+  "status": "complete",
+  "gate": null,
+  "timestamp": "<ISO timestamp>"
+}
+```
+
 ### Handoff
 ```json
 {

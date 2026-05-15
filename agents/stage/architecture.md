@@ -121,6 +121,48 @@ CHECK: Solution evaluation covers ≥ 2 alternatives per decision
 CHECK: All decisions are traceable to requirements
 ```
 
+### Trace Logging
+
+After completing each subagent dispatch and at phase completion, append a trace entry to `.sdlc/state/agent-trace.json`. Read the file, parse JSON, push a new entry to the `traces` array, write back.
+
+**Stage-level entry** (after all subagents complete):
+```json
+{
+  "id": "T<next>",
+  "agent": "stage-architecture",
+  "role": "stage",
+  "phase": 3,
+  "phase_name": "architecture",
+  "parent_id": "<orchestrator trace id>",
+  "action": "<summary of work done>",
+  "input_artifacts": [".sdlc/artifacts/product/requirements.md", ".sdlc/artifacts/story-tasks/stories.md"],
+  "output_artifacts": [".sdlc/artifacts/architecture/system-design.md", ".sdlc/artifacts/architecture/tech-stack.md", ".sdlc/artifacts/architecture/solution-evaluation.md"],
+  "dispatched": ["sub-tech-stack-advisor", "sub-solution-evaluator", "sub-adr-writer"],
+  "status": "complete",
+  "gate": "pass",
+  "timestamp": "<ISO timestamp>"
+}
+```
+
+**Subagent-level entry** (after each subagent completes):
+```json
+{
+  "id": "T<next>",
+  "agent": "<subagent-id>",
+  "role": "subagent",
+  "phase": 3,
+  "phase_name": "architecture",
+  "parent_id": "<this stage trace id>",
+  "action": "<what the subagent did>",
+  "input_artifacts": ["<files read>"],
+  "output_artifacts": ["<files produced>"],
+  "dispatched": [],
+  "status": "complete",
+  "gate": null,
+  "timestamp": "<ISO timestamp>"
+}
+```
+
 ### Handoff
 ```json
 {

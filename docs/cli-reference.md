@@ -115,6 +115,184 @@ sdlc status
 sdlc status /path/to/my-project
 ```
 
+### `sdlc trace`
+
+Show the agent interaction map — which agent did what, dispatched whom, and artifact flow.
+
+```bash
+sdlc trace [TARGET] [OPTIONS]
+```
+
+**Arguments:**
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `TARGET` | Project directory path | Current directory |
+
+**Options:**
+
+| Flag | Short | Description | Default |
+|------|-------|-------------|---------|
+| `--phase` | `-p` | Filter to a specific phase number | (all) |
+| `--verify` | `-v` | Cross-check traced artifacts against files on disk | `false` |
+
+**Output includes:**
+
+| Section | Description |
+|---------|-------------|
+| Interaction Tree | Rich tree showing orchestrator → stage → subagent hierarchy |
+| Artifact Flow | Input/output artifacts for each agent |
+| Gate Results | Quality gate pass/fail per phase |
+| Verification | (with `--verify`) Confirms artifacts exist on disk, flags missing |
+
+**Examples:**
+
+```bash
+# Full interaction map
+sdlc trace
+
+# Filter to Phase 1 (Product)
+sdlc trace --phase 1
+
+# Verify all traced artifacts exist on disk
+sdlc trace --verify
+
+# Combine: check Phase 5 artifacts
+sdlc trace --phase 5 --verify
+```
+
+**Data source:** `.sdlc/state/agent-trace.json` — populated by the orchestrator and stage agents during execution. Each entry records the agent ID, role (orchestrator/stage/subagent), parent-child relationship, input/output artifacts, and dispatched agents.
+
+### `sdlc dashboard`
+
+Launch a real-time web dashboard that auto-updates as agents execute.
+
+```bash
+sdlc dashboard [TARGET] [OPTIONS]
+```
+
+**Arguments:**
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `TARGET` | Project directory path | Current directory |
+
+**Options:**
+
+| Flag | Short | Description | Default |
+|------|-------|-------------|---------|
+| `--port` | `-p` | HTTP server port (WebSocket = port+1) | `8420` |
+
+**Requirements:** `pip install autonomous-sdlc[dashboard]` (adds `websockets` package)
+
+**Dashboard sections:**
+
+| Section | Data Source | Description |
+|---------|------------|-------------|
+| Phase Progress | `orchestrator.json` | Colored pill badges per phase |
+| Agent Interaction Map | `agent-trace.json` | Live tree of agent dispatches |
+| Active Agent | `orchestrator.json` | Currently running agent |
+| Task Queue | `queue/*.json` | Pending/active/completed bars |
+| Activity Feed | `activity-log.md` | Last 30 lines of agent actions |
+| Working Memory | `CONTINUITY.md` | Current context |
+
+**Examples:**
+
+```bash
+# Launch dashboard (opens browser automatically)
+sdlc dashboard
+
+# Custom port
+sdlc dashboard --port 9000
+
+# Point to a different project
+sdlc dashboard /path/to/my-project
+```
+
+### `sdlc models`
+
+Show or manage per-agent model routing configuration.
+
+```bash
+sdlc models [TARGET] [--edit] [--reset]
+```
+
+**Arguments:**
+
+| Argument | Description |
+|----------|-------------|
+| `TARGET` | Project directory (default: current directory) |
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--edit, -e` | Open `model-config.json` in `$EDITOR` |
+| `--reset` | Reset model config to defaults |
+
+**Model Tiers:**
+
+The framework uses 3 capability tiers to assign models to agents:
+
+| Tier | Default Model | Purpose |
+|------|---------------|---------|
+| `reasoning` | `claude-sonnet-4` | Complex analysis, planning, architecture decisions |
+| `coding` | `claude-sonnet-4` | Code generation, test writing, infrastructure |
+| `fast` | `gpt-4.1-mini` | Focused subtasks, parsing, data extraction |
+
+**Default Assignments:**
+
+| Agent Tier | Agents |
+|------------|--------|
+| `reasoning` | `orch-sdlc`, `stage-product`, `stage-story-tasks`, `stage-architecture`, `stage-design`, `stage-security`, `stage-review` |
+| `coding` | `stage-development`, `stage-testing`, `stage-devops`, `stage-observability` |
+| `fast` | All `sub-*` subagents |
+
+**Config File:** `.sdlc/model-config.json` (committed, not gitignored)
+
+```json
+{
+  "tiers": {
+    "reasoning": "claude-sonnet-4",
+    "coding": "claude-sonnet-4",
+    "fast": "gpt-4.1-mini"
+  },
+  "agent_tiers": {
+    "orch-sdlc": "reasoning",
+    "stage-development": "coding",
+    "sub-*": "fast"
+  },
+  "overrides": {
+    "sub-code-generator": "claude-sonnet-4"
+  }
+}
+```
+
+**Resolution order:** `overrides[agent_id]` → `tiers[agent_tiers[agent_id]]` → `tiers[agent_tiers["sub-*"]]` → `tiers["fast"]`
+
+**IDE-Native Support:**
+
+| IDE | Model Switching |
+|-----|-----------------|
+| **Cursor** | Per-stage `.mdc` files with `model:` frontmatter (auto-generated) |
+| **Others** | `## MODEL` hint in dispatch prompt for manual switching |
+
+**Examples:**
+
+```bash
+# View current model assignments
+sdlc models
+
+# Edit model config in $EDITOR
+sdlc models --edit
+
+# Reset to default tiers
+sdlc models --reset
+
+# View models for a specific project
+sdlc models /path/to/project
+```
+
 ### `sdlc version`
 
 Print the installed version.
@@ -187,6 +365,7 @@ Created under `.sdlc/` and added to `.gitignore`:
 | `specs/` | Normalized input specifications |
 | `CONTINUITY.md` | Working memory |
 | `STATUS.md` | Agent dashboard — tabular status of all phases, agents, subagents |
+| `state/agent-trace.json` | Structured agent interaction trace (powers `sdlc trace`) |
 | `state/activity-log.md` | Chronological log of every agent action |
 
 ### IDE Config Files
@@ -217,6 +396,17 @@ After init, use `.sdlc/framework/run.sh` to manage the framework:
 # Check status
 .sdlc/framework/run.sh status
 
+# Agent interaction trace
+.sdlc/framework/run.sh trace
+
+# Real-time web dashboard
+.sdlc/framework/run.sh dashboard
+
+# Model routing config
+.sdlc/framework/run.sh models
+.sdlc/framework/run.sh models --edit
+.sdlc/framework/run.sh models --reset
+
 # Reset state (keeps framework files)
 .sdlc/framework/run.sh reset
 ```
@@ -242,11 +432,15 @@ The Python CLI is built with:
 - **rich** — Terminal formatting (tables, status spinners, colors)
 - **readchar** — Arrow-key interactive selector
 - **hatchling** — Build backend
+- **websockets** *(optional)* — WebSocket server for `sdlc dashboard`
 
 ```
 src/sdlc_cli/
-├── __init__.py        # Typer app, init command
+├── __init__.py        # Typer app, init/status/trace/dashboard/models commands
 ├── scaffold.py        # Core scaffold logic
+├── models.py          # Per-agent model routing config
+├── dashboard.py       # WebSocket server + file watcher
+├── dashboard_html.py  # Single-page dashboard HTML template
 ├── banner.py          # ASCII art banner
 ├── config.py          # Config persistence
 ├── version.py         # Version string

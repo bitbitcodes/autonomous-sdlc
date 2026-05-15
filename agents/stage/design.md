@@ -127,6 +127,48 @@ CHECK: Every design decision references an ADR
 CHECK: Integration points have error handling defined
 ```
 
+### Trace Logging
+
+After completing each subagent dispatch and at phase completion, append a trace entry to `.sdlc/state/agent-trace.json`. Read the file, parse JSON, push a new entry to the `traces` array, write back.
+
+**Stage-level entry** (after all subagents complete):
+```json
+{
+  "id": "T<next>",
+  "agent": "stage-design",
+  "role": "stage",
+  "phase": 4,
+  "phase_name": "design",
+  "parent_id": "<orchestrator trace id>",
+  "action": "<summary of work done>",
+  "input_artifacts": [".sdlc/artifacts/product/requirements.md", ".sdlc/artifacts/architecture/system-design.md", ".sdlc/artifacts/architecture/adrs/"],
+  "output_artifacts": [".sdlc/artifacts/design/detailed-design.md", ".sdlc/artifacts/design/interface-contracts.*", ".sdlc/artifacts/design/data-model.md", ".sdlc/artifacts/design/integrations.md", ".sdlc/artifacts/design/nfr-assessment.md"],
+  "dispatched": ["sub-interface-designer", "sub-data-model-designer", "sub-integration-planner", "sub-nfr-evaluator"],
+  "status": "complete",
+  "gate": "pass",
+  "timestamp": "<ISO timestamp>"
+}
+```
+
+**Subagent-level entry** (after each subagent completes):
+```json
+{
+  "id": "T<next>",
+  "agent": "<subagent-id>",
+  "role": "subagent",
+  "phase": 4,
+  "phase_name": "design",
+  "parent_id": "<this stage trace id>",
+  "action": "<what the subagent did>",
+  "input_artifacts": ["<files read>"],
+  "output_artifacts": ["<files produced>"],
+  "dispatched": [],
+  "status": "complete",
+  "gate": null,
+  "timestamp": "<ISO timestamp>"
+}
+```
+
 ### Handoff
 ```json
 {

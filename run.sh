@@ -188,6 +188,9 @@ EOF
 | —     | —        | —    |
 EOF
 
+  # Initialize agent trace log
+  echo '{"traces": []}' > "${SDLC_DIR}/state/agent-trace.json"
+
   # Initialize activity log
   cat > "${SDLC_DIR}/state/activity-log.md" << 'EOF'
 # Activity Log
@@ -482,6 +485,219 @@ for key, phase in state['phases'].items():
 }
 
 # ─────────────────────────────────────────────
+# trace — Show agent interaction map
+# ─────────────────────────────────────────────
+
+cmd_trace() {
+  if [[ ! -d "$SDLC_DIR" ]]; then
+    log_error "Not initialized. Run: ./run.sh init"
+    exit 1
+  fi
+
+  local trace_file="${SDLC_DIR}/state/agent-trace.json"
+  if [[ ! -f "$trace_file" ]]; then
+    log_error "No trace file found. Run the orchestrator first."
+    exit 1
+  fi
+
+  local phase_filter="${1:-}"
+
+  echo -e "${CYAN}"
+  echo "  ╔═══════════════════════════════════════════╗"
+  echo "  ║        Agent Interaction Map              ║"
+  echo "  ╚═══════════════════════════════════════════╝"
+  echo -e "${NC}"
+
+  python3 -c "
+import json, os, sys
+
+with open('${trace_file}', 'r') as f:
+    data = json.load(f)
+
+traces = data.get('traces', [])
+if not traces:
+    print('  No agent interactions recorded yet.')
+    print('  Run the orchestrator to generate trace data.')
+    sys.exit(0)
+
+phase_filter = '${phase_filter}' if '${phase_filter}' else None
+
+# Group by phase
+phases = {}
+for t in traces:
+    p = t.get('phase', 0)
+    if phase_filter and str(p) != phase_filter:
+        continue
+    phases.setdefault(p, [])
+    phases[p].append(t)
+
+status_icon = {'complete': '✅', 'in_progress': '🔄', 'pending': '⬜', 'failed': '❌', 'skipped': '⏭️'}
+verified = 0
+missing = 0
+
+for phase_num in sorted(phases.keys()):
+    entries = phases[phase_num]
+    # Find the stage-level entry
+    stage = next((e for e in entries if e.get('role') in ('orchestrator', 'stage')), entries[0])
+    icon = status_icon.get(stage.get('status', 'pending'), '❓')
+    print(f\"Phase {phase_num}: {stage.get('phase_name', '?').title()} {icon}\")
+    print(f\"  {stage['agent']}\")
+
+    # Show subagent dispatches
+    subs = [e for e in entries if e.get('role') == 'subagent']
+    for i, sub in enumerate(subs):
+        is_last = (i == len(subs) - 1)
+        prefix = '└──' if is_last else '├──'
+        sub_icon = status_icon.get(sub.get('status', 'pending'), '❓')
+        print(f\"  {prefix} {sub['agent']} {sub_icon}\")
+        child_prefix = '    ' if is_last else '│   '
+        # Show inputs
+        for inp in sub.get('input_artifacts', []):
+            exists = os.path.isfile(os.path.join('${PROJECT_ROOT}', inp))
+            mark = '✅' if exists else '⚠️  MISSING'
+            print(f\"  {child_prefix}In:  {os.path.basename(inp)} {mark}\")
+        # Show outputs
+        for out in sub.get('output_artifacts', []):
+            exists = os.path.isfile(os.path.join('${PROJECT_ROOT}', out))
+            if exists:
+                verified += 1
+                mark = '✅'
+            else:
+                missing += 1
+                mark = '⚠️  MISSING'
+            print(f\"  {child_prefix}Out: {os.path.basename(out)} {mark}\")
+
+    # Show stage-level outputs if no subs
+    if not subs:
+        for out in stage.get('output_artifacts', []):
+            exists = os.path.isfile(os.path.join('${PROJECT_ROOT}', out))
+            if exists:
+                verified += 1
+                mark = '✅'
+            else:
+                missing += 1
+                mark = '⚠️  MISSING'
+            print(f\"  └── Out: {os.path.basename(out)} {mark}\")
+
+    gate = stage.get('gate', '')
+    if gate:
+        print(f\"  Gate: {gate.upper()}\")
+    print()
+
+print('─── Artifact Verification ───')
+print(f'✅ {verified} artifacts traced and verified on disk')
+if missing:
+    print(f'⚠️  {missing} artifacts traced but MISSING on disk')
+else:
+    print(f'✅ 0 artifacts traced but missing on disk')
+" 2>/dev/null || log_error "Could not render trace (python3 required)"
+}
+
+# ─────────────────────────────────────────────
+# dashboard — Launch real-time web dashboard
+# ─────────────────────────────────────────────
+
+cmd_dashboard() {
+  if [[ ! -d "$SDLC_DIR" ]]; then
+    log_error "Not initialized. Run: ./run.sh init"
+    exit 1
+  fi
+
+  local port="${1:-8420}"
+
+  if ! python3 -c 'import websockets' 2>/dev/null; then
+    log_error "The 'websockets' package is required for the dashboard."
+    echo "  Install it with: pip install websockets"
+    echo "  or: pip install autonomous-sdlc[dashboard]"
+    exit 1
+  fi
+
+  echo -e "${CYAN}SDLC Dashboard${NC} starting on http://127.0.0.1:${port}"
+  echo "WebSocket on port $((port + 1))"
+  echo "Press Ctrl+C to stop."
+  echo ""
+
+  python3 -c "
+import sys, os
+sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
+from pathlib import Path
+from sdlc_cli.dashboard import serve
+serve(Path('${SDLC_DIR}'), port=${port})
+"
+}
+
+# ─────────────────────────────────────────────
+# models — Show/manage per-agent model routing
+# ─────────────────────────────────────────────
+
+cmd_models() {
+  if [[ ! -d "$SDLC_DIR" ]]; then
+    log_error "Not initialized. Run: ./run.sh init"
+    exit 1
+  fi
+
+  local flag="${1:-}"
+
+  if [[ "$flag" == "--reset" ]]; then
+    python3 -c "
+import sys, os
+sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
+from pathlib import Path
+from sdlc_cli.models import write_config
+write_config(Path('${SDLC_DIR}'))
+print('Model config reset to defaults.')
+"
+    return
+  fi
+
+  if [[ "$flag" == "--edit" ]]; then
+    local config_file="${SDLC_DIR}/model-config.json"
+    if [[ ! -f "$config_file" ]]; then
+      python3 -c "
+import sys, os
+sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
+from pathlib import Path
+from sdlc_cli.models import write_config
+write_config(Path('${SDLC_DIR}'))
+"
+    fi
+    "${EDITOR:-vi}" "$config_file"
+    return
+  fi
+
+  # Display current config
+  python3 -c "
+import sys, os, json
+sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
+from pathlib import Path
+from sdlc_cli.models import load_config, resolve_all, default_config, write_config, TIER_DESCRIPTIONS
+
+sdlc_dir = Path('${SDLC_DIR}')
+config = load_config(sdlc_dir)
+if config is None:
+    config = default_config()
+    write_config(sdlc_dir, config)
+
+tiers = config.get('tiers', {})
+print('Model Tiers:')
+print(f'  {"Tier":<12} {"Model":<22} Purpose')
+print(f'  {"-"*12} {"-"*22} {"-"*40}')
+for t, m in tiers.items():
+    desc = TIER_DESCRIPTIONS.get(t, '')
+    print(f'  {t:<12} {m:<22} {desc}')
+
+print()
+resolved = resolve_all(config)
+print('Agent Assignments:')
+print(f'  {"Agent":<24} {"Tier":<12} Model')
+print(f'  {"-"*24} {"-"*12} {"-"*22}')
+for aid in sorted(resolved):
+    info = resolved[aid]
+    print(f'  {aid:<24} {info["tier"]:<12} {info["model"]}')
+"
+}
+
+# ─────────────────────────────────────────────
 # reset — Reset .sdlc/ state (keep framework)
 # ─────────────────────────────────────────────
 
@@ -541,6 +757,9 @@ cmd_help() {
   echo "  init                Initialize .sdlc/ directory structure"
   echo "  start <spec>        Start SDLC with an input spec"
   echo "  status              Show current SDLC status"
+  echo "  trace [phase]       Show agent interaction map"
+  echo "  dashboard [port]    Launch real-time web dashboard (default: 8420)"
+  echo "  models [--edit|--reset]  Show/manage per-agent model routing"
   echo "  reset               Reset .sdlc/ state"
   echo "  prompt [agent]      Output an agent's prompt (default: orchestrator)"
   echo "  help                Show this help message"
@@ -571,11 +790,14 @@ main() {
   shift || true
 
   case "$cmd" in
-    init)    cmd_init "$@" ;;
-    start)   cmd_start "$@" ;;
-    status)  cmd_status "$@" ;;
-    reset)   cmd_reset "$@" ;;
-    prompt)  cmd_prompt "$@" ;;
+    init)       cmd_init "$@" ;;
+    start)      cmd_start "$@" ;;
+    status)     cmd_status "$@" ;;
+    trace)      cmd_trace "$@" ;;
+    dashboard)  cmd_dashboard "$@" ;;
+    models)     cmd_models "$@" ;;
+    reset)      cmd_reset "$@" ;;
+    prompt)     cmd_prompt "$@" ;;
     help|-h|--help) cmd_help ;;
     version|-v|--version) echo "autonomous-sdlc v${VERSION}" ;;
     *)

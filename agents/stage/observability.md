@@ -133,6 +133,29 @@ CHECK: Alert rules defined for error scenarios
 CHECK: Logging configuration uses structured format (JSON)
 ```
 
+### Trace Logging
+
+At phase completion, append a trace entry to `.sdlc/state/agent-trace.json`. Read the file, parse JSON, push a new entry to the `traces` array, write back.
+
+**Stage-level entry:**
+```json
+{
+  "id": "T<next>",
+  "agent": "stage-observability",
+  "role": "stage",
+  "phase": 10,
+  "phase_name": "observability",
+  "parent_id": "<orchestrator trace id>",
+  "action": "<summary of work done>",
+  "input_artifacts": [".sdlc/artifacts/architecture/system-design.md", ".sdlc/artifacts/devops/deployment-runbook.md"],
+  "output_artifacts": [".sdlc/artifacts/observability/slo-definitions.md", ".sdlc/artifacts/observability/logging-config.md", ".sdlc/artifacts/observability/alert-rules.md", ".sdlc/artifacts/observability/dashboard-specs.md", ".sdlc/artifacts/observability/runbook.md"],
+  "dispatched": [],
+  "status": "complete",
+  "gate": "pass",
+  "timestamp": "<ISO timestamp>"
+}
+```
+
 ### Handoff
 ```json
 {

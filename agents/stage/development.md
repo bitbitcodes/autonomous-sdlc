@@ -133,6 +133,48 @@ CHECK: Type checker reports zero errors (if typed language)
 CHECK: All unit tests pass
 ```
 
+### Trace Logging
+
+After completing each subagent dispatch and at phase completion, append a trace entry to `.sdlc/state/agent-trace.json`. Read the file, parse JSON, push a new entry to the `traces` array, write back.
+
+**Stage-level entry** (after all subagents complete):
+```json
+{
+  "id": "T<next>",
+  "agent": "stage-development",
+  "role": "stage",
+  "phase": 5,
+  "phase_name": "development",
+  "parent_id": "<orchestrator trace id>",
+  "action": "<summary of work done>",
+  "input_artifacts": [".sdlc/artifacts/design/interface-contracts.*", ".sdlc/artifacts/design/data-model.md", ".sdlc/artifacts/story-tasks/tasks.json"],
+  "output_artifacts": [".sdlc/artifacts/development/codebase-analysis.md", ".sdlc/artifacts/development/implementation-log.md"],
+  "dispatched": ["sub-repo-analyzer", "sub-code-generator", "sub-refactoring-agent", "sub-documentation-agent"],
+  "status": "complete",
+  "gate": "pass",
+  "timestamp": "<ISO timestamp>"
+}
+```
+
+**Subagent-level entry** (after each subagent completes):
+```json
+{
+  "id": "T<next>",
+  "agent": "<subagent-id>",
+  "role": "subagent",
+  "phase": 5,
+  "phase_name": "development",
+  "parent_id": "<this stage trace id>",
+  "action": "<what the subagent did>",
+  "input_artifacts": ["<files read>"],
+  "output_artifacts": ["<files produced>"],
+  "dispatched": [],
+  "status": "complete",
+  "gate": null,
+  "timestamp": "<ISO timestamp>"
+}
+```
+
 ### Handoff
 ```json
 {

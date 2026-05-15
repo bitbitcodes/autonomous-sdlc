@@ -5,11 +5,11 @@ from rich.console import Console
 from rich.text import Text
 
 BANNER = r"""
-               _____  __    ______
-   _____  ____/ / / _/ ____/ ____/
-  / ___/ / __  / / / / ___/ /
- (__  ) / /_/ / / / / /  / /___
-/____/  \__,_/ /_/  /_/   \____/
+               ___ ___ ____
+   _____  ____/ / / / / __/
+  / ___/ / __  / / / / /
+ (__  ) / /_/ / / / / /___
+/____/  \__,_/ /_/  \____/
 """
 
 TAGLINE = "Autonomous SDLC -- Bootstrap multi-agent AI development into any repo"

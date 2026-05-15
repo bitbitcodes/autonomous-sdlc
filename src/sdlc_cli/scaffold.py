@@ -134,6 +134,7 @@ def scaffold(
         ".sdlc/memory/semantic/patterns.json",
         ".sdlc/memory/semantic/anti-patterns.json",
         ".sdlc/memory/learnings/index.json",
+        ".sdlc/state/agent-trace.json",
         ".sdlc/CONTINUITY.md",
     ])
 
@@ -254,6 +255,11 @@ def _init_runtime_state(target_dir: Path) -> None:
     )
     (sdlc / "memory" / "learnings" / "index.json").write_text("[]\n", encoding="utf-8")
 
+    # Agent trace log
+    (sdlc / "state" / "agent-trace.json").write_text(
+        json.dumps({"traces": []}, indent=2) + "\n", encoding="utf-8"
+    )
+
     # CONTINUITY.md
     continuity = """\
 # CONTINUITY — Working Memory
@@ -286,6 +292,11 @@ Phase 0: Bootstrap — Initialized, awaiting spec input.
 - None
 """
     (sdlc / "CONTINUITY.md").write_text(continuity, encoding="utf-8")
+
+    # Model routing config (committed — not gitignored)
+    from .models import write_config
+
+    write_config(sdlc)
 
 
 def _update_gitignore(target_dir: Path) -> None:

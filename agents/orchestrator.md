@@ -32,10 +32,11 @@ Execute the complete SDLC autonomously: from input spec (PRD, brief, issue, YAML
 1. `AGENTS.md` — Agent discovery and registry
 2. `.sdlc/CONTINUITY.md` — Current session state (if exists)
 3. `.sdlc/state/orchestrator.json` — Phase progress (if exists)
-4. `.sdlc/framework/references/core-workflow.md` — RARV cycle and autonomy rules
-5. `.sdlc/framework/references/sdlc-phases.md` — Phase definitions and transitions
-6. `.sdlc/framework/references/agent-types.md` — Available agents and capabilities
-7. `.sdlc/framework/references/quality-control.md` — Quality gate definitions
+4. `.sdlc/model-config.json` — Per-agent model routing (if exists)
+5. `.sdlc/framework/references/core-workflow.md` — RARV cycle and autonomy rules
+6. `.sdlc/framework/references/sdlc-phases.md` — Phase definitions and transitions
+7. `.sdlc/framework/references/agent-types.md` — Available agents and capabilities
+8. `.sdlc/framework/references/quality-control.md` — Quality gate definitions
 
 ### Input Spec Location
 - `.sdlc/specs/` — Normalized input spec (after bootstrap)
@@ -196,23 +197,29 @@ For each phase:
 
 ```
 1. READ CONTINUITY.md
-2. READ the stage agent prompt: .sdlc/framework/agents/stage/{phase}.md
-3. ADOPT the stage agent role
-4. EXECUTE the stage following RARV cycle:
+2. RESOLVE MODEL for this agent from .sdlc/model-config.json:
+   model = overrides[agent_id] || tiers[agent_tiers[agent_id]] || tiers[agent_tiers["sub-*"]]
+   If the IDE supports model switching, switch to the resolved model.
+   Otherwise, note the intended model in the dispatch context.
+3. READ the stage agent prompt: .sdlc/framework/agents/stage/{phase}.md
+4. ADOPT the stage agent role
+5. EXECUTE the stage following RARV cycle:
    a. REASON: Read spec, architecture, and relevant context
    b. ACT: Execute tasks, dispatch subagents as needed
    c. REFLECT: Check outputs against requirements
    d. VERIFY: Run quality gate for this phase
-5. If gate FAILS: fix issues, retry (max 3)
-6. If gate PASSES: proceed to Per-Phase Review
-7. PER-PHASE REVIEW (for all phases except Phase 8 which IS the full review):
+6. If gate FAILS: fix issues, retry (max 3)
+7. If gate PASSES: proceed to Per-Phase Review
+8. PER-PHASE REVIEW (for all phases except Phase 8 which IS the full review):
    a. Dispatch stage-review (3 blind reviewers) on this phase's artifacts
    b. Each reviewer produces VERDICT (PASS/FAIL) + FINDINGS
    c. If any Critical/High/Medium findings: fix and re-review (max 3 cycles)
    d. All 3 reviewers must PASS before advancing
-8. UPDATE orchestrator.json, advance phase
-9. UPDATE CONTINUITY.md with phase results
-10. APPEND to .sdlc/state/activity-log.md:
+9. UPDATE orchestrator.json, advance phase
+10. UPDATE CONTINUITY.md with phase results
+11. APPEND trace entry to .sdlc/state/agent-trace.json (see Trace Schema below)
+    Include "model": "<resolved model>" in the trace entry
+12. APPEND to .sdlc/state/activity-log.md:
     ## [timestamp] Phase N: <phase-name>
     - Agent: <stage-agent-id>
     - Subagents dispatched: <list of subagent IDs used>
@@ -221,7 +228,7 @@ For each phase:
     - Gate: PASS | FAIL
     - Per-Phase Review: PASS | FAIL (N cycles)
     - Next: <next phase>
-11. UPDATE .sdlc/STATUS.md:
+13. UPDATE .sdlc/STATUS.md:
     - Phase & Agent Status table: set row Status → complete, Gate → PASS, fill Subagents Used + Key Outcome
     - Subagent Detail table: set each subagent Status → complete/skipped, fill Outcome
     - Artifacts Produced table: append rows for new artifacts
@@ -234,8 +241,11 @@ For each phase:
 When a stage agent needs a subagent:
 
 ```
-1. READ the subagent prompt: .sdlc/framework/agents/sub/{stage}/{subagent}.md
-2. Prepare structured input:
+1. RESOLVE MODEL for this subagent from .sdlc/model-config.json:
+   model = overrides[subagent_id] || tiers[agent_tiers["sub-*"]]
+   If the IDE supports model switching, switch to the resolved model.
+2. READ the subagent prompt: .sdlc/framework/agents/sub/{stage}/{subagent}.md
+3. Prepare structured input:
    ## GOAL
    [Specific task for this subagent]
 
@@ -248,11 +258,13 @@ When a stage agent needs a subagent:
    ## OUTPUT
    [Expected artifacts with file paths]
 
-3. EXECUTE as subagent role
-4. VALIDATE output against expected deliverables
-5. If output insufficient: retry with refined prompt (max 3)
-6. STORE artifacts in .sdlc/artifacts/{phase}/
-7. HANDOFF results back to stage agent
+4. EXECUTE as subagent role
+5. VALIDATE output against expected deliverables
+6. If output insufficient: retry with refined prompt (max 3)
+7. STORE artifacts in .sdlc/artifacts/{phase}/
+8. APPEND trace entry to .sdlc/state/agent-trace.json with role="subagent" and parent_id=<stage trace id>
+   Include "model": "<resolved model>" in the trace entry
+9. HANDOFF results back to stage agent
 ```
 
 ### 4. Handoff Protocol
@@ -357,6 +369,75 @@ Update orchestrator.json: status = "complete"
   "last_updated": "2026-01-15T10:30:00Z"
 }
 ```
+
+### agent-trace.json Schema
+
+The trace file records every agent invocation for the `sdlc trace` interaction map.
+
+```json
+{
+  "traces": [
+    {
+      "id": "T001",
+      "agent": "orch-sdlc",
+      "role": "orchestrator",
+      "phase": 0,
+      "phase_name": "bootstrap",
+      "parent_id": null,
+      "action": "Initialized .sdlc/, normalized spec, detected complexity",
+      "input_artifacts": [],
+      "output_artifacts": [".sdlc/specs/normalized-spec.md"],
+      "dispatched": ["stage-product"],
+      "status": "complete",
+      "gate": "pass",
+      "model": "claude-sonnet-4",
+      "timestamp": "2026-01-15T10:00:00Z"
+    },
+    {
+      "id": "T002",
+      "agent": "stage-product",
+      "role": "stage",
+      "phase": 1,
+      "phase_name": "product",
+      "parent_id": "T001",
+      "action": "Product discovery — dispatched 4 subagents",
+      "input_artifacts": [".sdlc/specs/normalized-spec.md"],
+      "output_artifacts": [".sdlc/artifacts/product/product-discovery-summary.md"],
+      "dispatched": ["sub-requirement-parser", "sub-acceptance-criteria", "sub-risk-analyzer", "sub-assumption-extractor"],
+      "status": "complete",
+      "gate": "pass",
+      "model": "claude-sonnet-4",
+      "timestamp": "2026-01-15T10:15:00Z"
+    },
+    {
+      "id": "T003",
+      "agent": "sub-requirement-parser",
+      "role": "subagent",
+      "phase": 1,
+      "phase_name": "product",
+      "parent_id": "T002",
+      "action": "Parsed raw spec into structured requirements",
+      "input_artifacts": [".sdlc/specs/normalized-spec.md"],
+      "output_artifacts": [".sdlc/artifacts/product/requirements.md"],
+      "dispatched": [],
+      "status": "complete",
+      "gate": null,
+      "model": "gpt-4.1-mini",
+      "timestamp": "2026-01-15T10:05:00Z"
+    }
+  ]
+}
+```
+
+**Trace entry rules:**
+- `id`: Sequential `T001`, `T002`, ... (read current max from file, increment)
+- `role`: `"orchestrator"` | `"stage"` | `"subagent"`
+- `parent_id`: `null` for orchestrator, orchestrator trace ID for stages, stage trace ID for subagents
+- `input_artifacts`: Files this agent read as input
+- `output_artifacts`: Files this agent produced
+- `dispatched`: Agent IDs this agent called
+- `model`: Resolved model name from `.sdlc/model-config.json` (e.g. `"claude-sonnet-4"`)
+- To append: read the file, parse JSON, push to `traces` array, write back
 
 ### Queue Schemas
 

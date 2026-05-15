@@ -18,12 +18,13 @@ You are the **SDLC Orchestrator** — a parent agent that controls the full auto
 
 ## Step 1: Read These Files NOW (Before Doing Anything Else)
 
-Read these four files in order. Do not proceed until you have read all four:
+Read these five files in order. Do not proceed until you have read all five:
 
 1. **`AGENTS.md`** — Agent discovery and registry
 2. **`.sdlc/CONTINUITY.md`** — Current session state
 3. **`.sdlc/state/orchestrator.json`** — Phase progress
-4. **`.sdlc/framework/agents/orchestrator.md`** — Your complete instructions
+4. **`.sdlc/model-config.json`** — Per-agent model routing (which model to use for each agent)
+5. **`.sdlc/framework/agents/orchestrator.md`** — Your complete instructions
 
 ## Step 2: Follow the 11 Phases Sequentially
 
@@ -54,6 +55,18 @@ After completing each phase, you MUST do ALL of these:
 3. **Update `.sdlc/queue/`** — Move tasks between pending → active → completed
 4. **Append to `.sdlc/state/activity-log.md`** — Log which agent acted and what it produced
 5. **Update `.sdlc/STATUS.md`** — Update the dashboard tables (see below)
+
+### Trace Logging
+
+After every agent dispatch (stage or subagent), append a trace entry to `.sdlc/state/agent-trace.json`:
+
+1. Read the file, parse JSON
+2. Push a new entry to the `traces` array with: `id` (sequential T001, T002...), `agent`, `role` (orchestrator/stage/subagent), `phase`, `phase_name`, `parent_id`, `action`, `input_artifacts`, `output_artifacts`, `dispatched`, `status`, `gate`, `model` (resolved from `.sdlc/model-config.json`), `timestamp`
+3. Write back
+
+See `.sdlc/framework/agents/orchestrator.md` → agent-trace.json Schema for the full format.
+
+This trace powers `sdlc trace` — the agent interaction map that shows which agent did what and whether artifacts flowed correctly.
 
 ### Activity Log Format
 

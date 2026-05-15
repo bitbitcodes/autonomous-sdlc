@@ -146,6 +146,48 @@ CHECK: No Critical/High/Medium findings remaining
 CHECK: Anti-sycophancy check passed (if applicable)
 ```
 
+### Trace Logging
+
+After completing each subagent dispatch and at phase completion, append a trace entry to `.sdlc/state/agent-trace.json`. Read the file, parse JSON, push a new entry to the `traces` array, write back.
+
+**Stage-level entry** (after all subagents complete):
+```json
+{
+  "id": "T<next>",
+  "agent": "stage-review",
+  "role": "stage",
+  "phase": 8,
+  "phase_name": "review",
+  "parent_id": "<orchestrator trace id>",
+  "action": "<summary of work done>",
+  "input_artifacts": ["<source code>", ".sdlc/artifacts/development/implementation-log.md"],
+  "output_artifacts": [".sdlc/artifacts/review/code-review.md", ".sdlc/artifacts/review/maintainability-review.md", ".sdlc/artifacts/review/performance-review.md", ".sdlc/artifacts/review/review-summary.md"],
+  "dispatched": ["sub-code-review", "sub-maintainability", "sub-performance"],
+  "status": "complete",
+  "gate": "pass",
+  "timestamp": "<ISO timestamp>"
+}
+```
+
+**Subagent-level entry** (after each subagent completes):
+```json
+{
+  "id": "T<next>",
+  "agent": "<subagent-id>",
+  "role": "subagent",
+  "phase": 8,
+  "phase_name": "review",
+  "parent_id": "<this stage trace id>",
+  "action": "<what the subagent did>",
+  "input_artifacts": ["<files read>"],
+  "output_artifacts": ["<files produced>"],
+  "dispatched": [],
+  "status": "complete",
+  "gate": null,
+  "timestamp": "<ISO timestamp>"
+}
+```
+
 ### Handoff
 ```json
 {

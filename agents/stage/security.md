@@ -121,6 +121,48 @@ CHECK: OWASP review finds zero Critical/High issues
 CHECK: Security policies enforced (CORS, CSP, rate limiting)
 ```
 
+### Trace Logging
+
+After completing each subagent dispatch and at phase completion, append a trace entry to `.sdlc/state/agent-trace.json`. Read the file, parse JSON, push a new entry to the `traces` array, write back.
+
+**Stage-level entry** (after all subagents complete):
+```json
+{
+  "id": "T<next>",
+  "agent": "stage-security",
+  "role": "stage",
+  "phase": 7,
+  "phase_name": "security",
+  "parent_id": "<orchestrator trace id>",
+  "action": "<summary of work done>",
+  "input_artifacts": ["<source code>", ".sdlc/artifacts/design/interface-contracts.*"],
+  "output_artifacts": [".sdlc/artifacts/security/secret-scan.md", ".sdlc/artifacts/security/dependency-audit.md", ".sdlc/artifacts/security/owasp-review.md", ".sdlc/artifacts/security/policy-compliance.md", ".sdlc/artifacts/security/security-summary.md"],
+  "dispatched": ["sub-secret-scanner", "sub-dependency-scanner", "sub-owasp-reviewer", "sub-policy-validator"],
+  "status": "complete",
+  "gate": "pass",
+  "timestamp": "<ISO timestamp>"
+}
+```
+
+**Subagent-level entry** (after each subagent completes):
+```json
+{
+  "id": "T<next>",
+  "agent": "<subagent-id>",
+  "role": "subagent",
+  "phase": 7,
+  "phase_name": "security",
+  "parent_id": "<this stage trace id>",
+  "action": "<what the subagent did>",
+  "input_artifacts": ["<files read>"],
+  "output_artifacts": ["<files produced>"],
+  "dispatched": [],
+  "status": "complete",
+  "gate": null,
+  "timestamp": "<ISO timestamp>"
+}
+```
+
 ### Handoff
 ```json
 {

@@ -125,6 +125,29 @@ CHECK: Deployment runbook is complete (all sections filled)
 CHECK: Environment configs exist for dev, staging, production
 ```
 
+### Trace Logging
+
+At phase completion, append a trace entry to `.sdlc/state/agent-trace.json`. Read the file, parse JSON, push a new entry to the `traces` array, write back.
+
+**Stage-level entry:**
+```json
+{
+  "id": "T<next>",
+  "agent": "stage-devops",
+  "role": "stage",
+  "phase": 9,
+  "phase_name": "devops",
+  "parent_id": "<orchestrator trace id>",
+  "action": "<summary of work done>",
+  "input_artifacts": ["<source code>", ".sdlc/artifacts/architecture/system-design.md"],
+  "output_artifacts": [".github/workflows/ci.yml", ".sdlc/artifacts/devops/deployment-runbook.md"],
+  "dispatched": [],
+  "status": "complete",
+  "gate": "pass",
+  "timestamp": "<ISO timestamp>"
+}
+```
+
 ### Handoff
 ```json
 {

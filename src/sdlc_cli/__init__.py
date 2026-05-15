@@ -284,6 +284,297 @@ def status(
 
 
 @app.command()
+def trace(
+    target: str | None = typer.Argument(None, help="Project directory (default: current)"),
+    phase: int | None = typer.Option(None, "--phase", "-p", help="Filter to a specific phase number"),
+    verify: bool = typer.Option(False, "--verify", "-v", help="Cross-check traced artifacts against files on disk"),
+) -> None:
+    """Show the agent interaction map — which agent did what, dispatched whom, and artifact flow."""
+    import json as _json
+
+    from rich.tree import Tree
+
+    target_dir = Path(target).resolve() if target else Path.cwd()
+    sdlc_dir = target_dir / ".sdlc"
+
+    if not sdlc_dir.is_dir():
+        console.print("[red]Error:[/] .sdlc/ directory not found. Run [cyan]sdlc init[/] first.")
+        raise typer.Exit(1)
+
+    trace_file = sdlc_dir / "state" / "agent-trace.json"
+    if not trace_file.exists():
+        console.print("[red]Error:[/] No trace file found. Run the orchestrator first.")
+        raise typer.Exit(1)
+
+    try:
+        data = _json.loads(trace_file.read_text(encoding="utf-8"))
+    except (ValueError, OSError) as exc:
+        console.print(f"[red]Error reading trace file:[/] {exc}")
+        raise typer.Exit(1)
+
+    traces = data.get("traces", [])
+    if not traces:
+        console.print("[dim]No agent interactions recorded yet.[/]")
+        console.print("Run the orchestrator to generate trace data.")
+        raise typer.Exit(0)
+
+    print_banner(console)
+
+    status_icons = {
+        "complete": "[green]✅[/]",
+        "in_progress": "[yellow]🔄[/]",
+        "pending": "[dim]⬜[/]",
+        "failed": "[red]❌[/]",
+        "skipped": "[dim]⏭️[/]",
+    }
+
+    # Group traces by phase
+    by_phase: dict[int, list[dict]] = {}
+    for t in traces:
+        p = t.get("phase", 0)
+        by_phase.setdefault(p, [])
+        by_phase[p].append(t)
+
+    # Artifact verification counters
+    verified_count = 0
+    missing_count = 0
+    missing_list: list[str] = []
+
+    tree = Tree("[bold cyan]Agent Interaction Map[/]")
+
+    for phase_num in sorted(by_phase.keys()):
+        if phase is not None and phase_num != phase:
+            continue
+
+        entries = by_phase[phase_num]
+
+        # Find the stage-level or orchestrator entry
+        stage_entry = next(
+            (e for e in entries if e.get("role") in ("orchestrator", "stage")),
+            entries[0],
+        )
+        icon = status_icons.get(stage_entry.get("status", "pending"), "❓")
+        phase_name = stage_entry.get("phase_name", "?").title()
+        phase_branch = tree.add(
+            f"[bold]Phase {phase_num}: {phase_name}[/] {icon}"
+        )
+
+        # Stage agent node
+        agent_node = phase_branch.add(f"[cyan]{stage_entry['agent']}[/]")
+
+        # Show stage action
+        action = stage_entry.get("action", "")
+        if action:
+            agent_node.add(f"[dim]{action}[/]")
+
+        # Show stage-level inputs
+        for inp in stage_entry.get("input_artifacts", []):
+            inp_name = Path(inp).name
+            if verify:
+                exists = (target_dir / inp).is_file()
+                mark = "[green]✅[/]" if exists else "[red]⚠️  MISSING[/]"
+                agent_node.add(f"[dim]In:[/]  {inp_name} {mark}")
+            else:
+                agent_node.add(f"[dim]In:[/]  {inp_name}")
+
+        # Subagent entries
+        subs = [e for e in entries if e.get("role") == "subagent"]
+        for sub in subs:
+            sub_icon = status_icons.get(sub.get("status", "pending"), "❓")
+            sub_node = agent_node.add(f"[magenta]{sub['agent']}[/] {sub_icon}")
+
+            sub_action = sub.get("action", "")
+            if sub_action:
+                sub_node.add(f"[dim]{sub_action}[/]")
+
+            for inp in sub.get("input_artifacts", []):
+                inp_name = Path(inp).name
+                if verify:
+                    exists = (target_dir / inp).is_file()
+                    mark = "[green]✅[/]" if exists else "[red]⚠️  MISSING[/]"
+                    sub_node.add(f"[dim]In:[/]  {inp_name} {mark}")
+                else:
+                    sub_node.add(f"[dim]In:[/]  {inp_name}")
+
+            for out in sub.get("output_artifacts", []):
+                out_name = Path(out).name
+                if verify:
+                    exists = (target_dir / out).is_file()
+                    if exists:
+                        verified_count += 1
+                        mark = "[green]✅[/]"
+                    else:
+                        missing_count += 1
+                        missing_list.append(out)
+                        mark = "[red]⚠️  MISSING[/]"
+                    sub_node.add(f"[bold]Out:[/] {out_name} {mark}")
+                else:
+                    sub_node.add(f"[bold]Out:[/] {out_name}")
+
+        # Stage-level outputs (if no subs, or stage has its own outputs)
+        if not subs:
+            for out in stage_entry.get("output_artifacts", []):
+                out_name = Path(out).name
+                if verify:
+                    exists = (target_dir / out).is_file()
+                    if exists:
+                        verified_count += 1
+                        mark = "[green]✅[/]"
+                    else:
+                        missing_count += 1
+                        missing_list.append(out)
+                        mark = "[red]⚠️  MISSING[/]"
+                    agent_node.add(f"[bold]Out:[/] {out_name} {mark}")
+                else:
+                    agent_node.add(f"[bold]Out:[/] {out_name}")
+
+        # Gate info
+        gate = stage_entry.get("gate")
+        if gate:
+            gate_str = gate.upper()
+            gate_style = "[green]" if gate_str == "PASS" else "[red]"
+            phase_branch.add(f"Gate: {gate_style}{gate_str}[/]")
+
+    console.print(tree)
+    console.print()
+
+    # Verification summary
+    if verify:
+        console.print("[bold]─── Artifact Verification ───[/]")
+        console.print(f"[green]✅ {verified_count}[/] artifacts traced and verified on disk")
+        if missing_count:
+            console.print(f"[red]⚠️  {missing_count}[/] artifacts traced but MISSING on disk:")
+            for m in missing_list:
+                console.print(f"   [red]{m}[/]")
+        else:
+            console.print("[green]✅ 0[/] artifacts traced but missing on disk")
+        console.print()
+
+
+@app.command()
+def dashboard(
+    target: str | None = typer.Argument(None, help="Project directory (default: current)"),
+    port: int = typer.Option(8420, "--port", "-p", help="HTTP server port (WebSocket = port+1)"),
+) -> None:
+    """Launch a real-time web dashboard for the SDLC workflow."""
+    target_dir = Path(target).resolve() if target else Path.cwd()
+    sdlc_dir = target_dir / ".sdlc"
+
+    if not sdlc_dir.is_dir():
+        console.print("[red]Error:[/] .sdlc/ directory not found. Run [cyan]sdlc init[/] first.")
+        raise typer.Exit(1)
+
+    try:
+        import websockets  # noqa: F401
+    except ImportError:
+        console.print(
+            "[red]Error:[/] The [cyan]websockets[/] package is required for the dashboard.\n"
+            "Install it with: [cyan]pip install autonomous-sdlc\\[dashboard][/]\n"
+            "  or: [cyan]pip install websockets[/]"
+        )
+        raise typer.Exit(1)
+
+    from .dashboard import serve
+
+    console.print(f"[bold cyan]SDLC Dashboard[/] starting on [link=http://127.0.0.1:{port}]http://127.0.0.1:{port}[/link]")
+    console.print(f"WebSocket on port {port + 1}")
+    console.print("[dim]Press Ctrl+C to stop.[/]\n")
+
+    serve(sdlc_dir, port=port)
+
+
+@app.command()
+def models(
+    target: str | None = typer.Argument(None, help="Project directory (default: current)"),
+    edit: bool = typer.Option(False, "--edit", "-e", help="Open model-config.json in $EDITOR"),
+    reset: bool = typer.Option(False, "--reset", help="Reset model config to defaults"),
+) -> None:
+    """Show or manage per-agent model routing configuration."""
+    target_dir = Path(target).resolve() if target else Path.cwd()
+    sdlc_dir = target_dir / ".sdlc"
+
+    if not sdlc_dir.is_dir():
+        console.print("[red]Error:[/] .sdlc/ directory not found. Run [cyan]sdlc init[/] first.")
+        raise typer.Exit(1)
+
+    from .models import (
+        TIER_DESCRIPTIONS,
+        default_config,
+        load_config,
+        resolve_all,
+        write_config,
+    )
+
+    # ── Reset ──
+    if reset:
+        write_config(sdlc_dir)
+        console.print("[green]✅ Model config reset to defaults.[/]")
+        console.print(f"[dim]  → {sdlc_dir / 'model-config.json'}[/]")
+        return
+
+    # ── Edit ──
+    if edit:
+        import os
+        import subprocess
+
+        config_path = sdlc_dir / "model-config.json"
+        if not config_path.exists():
+            write_config(sdlc_dir)
+        editor = os.environ.get("EDITOR", "vi")
+        subprocess.run([editor, str(config_path)])
+        return
+
+    # ── Display ──
+    config = load_config(sdlc_dir)
+    if config is None:
+        console.print("[yellow]No model-config.json found.[/] Creating defaults...")
+        config = default_config()
+        write_config(sdlc_dir, config)
+
+    print_banner()
+
+    tiers = config.get("tiers", {})
+    overrides = config.get("overrides", {})
+
+    # Tier summary
+    tier_table = Table(title="Model Tiers", show_lines=True)
+    tier_table.add_column("Tier", style="bold cyan", min_width=12)
+    tier_table.add_column("Model", min_width=20)
+    tier_table.add_column("Purpose", min_width=40)
+    for tier_name, model in tiers.items():
+        desc = TIER_DESCRIPTIONS.get(tier_name, "")
+        tier_table.add_row(tier_name, model, desc)
+    console.print(tier_table)
+    console.print()
+
+    # Agent assignments
+    resolved = resolve_all(config)
+    agent_table = Table(title="Agent → Model Assignments", show_lines=True)
+    agent_table.add_column("Agent", style="bold", min_width=22)
+    agent_table.add_column("Tier", min_width=10)
+    agent_table.add_column("Model", min_width=20)
+
+    tier_colors = {"reasoning": "cyan", "coding": "green", "fast": "yellow", "override": "magenta"}
+
+    for agent_id in sorted(resolved.keys()):
+        info = resolved[agent_id]
+        tier = info["tier"]
+        model = info["model"]
+        color = tier_colors.get(tier, "white")
+        is_override = agent_id in overrides
+        tier_display = f"[{color}]{tier}[/{color}]"
+        model_display = f"[bold]{model}[/bold]" if is_override else model
+        agent_table.add_row(agent_id, tier_display, model_display)
+
+    console.print(agent_table)
+
+    if overrides:
+        console.print(f"\n[dim]({len(overrides)} override(s) active)[/]")
+    console.print(f"\n[dim]Config: {sdlc_dir / 'model-config.json'}[/]")
+    console.print("[dim]Edit with: sdlc models --edit  |  Reset with: sdlc models --reset[/]")
+
+
+@app.command()
 def version() -> None:
     """Show the autonomous-sdlc version."""
     console.print(f"autonomous-sdlc {__version__}")

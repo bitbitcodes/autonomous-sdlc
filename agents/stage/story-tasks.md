@@ -141,6 +141,48 @@ CHECK: Dependency graph has no cycles
 CHECK: All tasks have an estimate (S/M/L)
 ```
 
+### Trace Logging
+
+After completing each subagent dispatch and at phase completion, append a trace entry to `.sdlc/state/agent-trace.json`. Read the file, parse JSON, push a new entry to the `traces` array, write back.
+
+**Stage-level entry** (after all subagents complete):
+```json
+{
+  "id": "T<next>",
+  "agent": "stage-story-tasks",
+  "role": "stage",
+  "phase": 2,
+  "phase_name": "story-tasks",
+  "parent_id": "<orchestrator trace id>",
+  "action": "<summary of work done>",
+  "input_artifacts": [".sdlc/artifacts/product/requirements.md", ".sdlc/artifacts/product/acceptance-criteria.md"],
+  "output_artifacts": [".sdlc/artifacts/story-tasks/epics.md", ".sdlc/artifacts/story-tasks/stories.md", ".sdlc/artifacts/story-tasks/tasks.json", ".sdlc/artifacts/story-tasks/dependency-graph.md"],
+  "dispatched": ["sub-story-writer", "sub-task-decomposer", "sub-dependency-mapper"],
+  "status": "complete",
+  "gate": "pass",
+  "timestamp": "<ISO timestamp>"
+}
+```
+
+**Subagent-level entry** (after each subagent completes):
+```json
+{
+  "id": "T<next>",
+  "agent": "<subagent-id>",
+  "role": "subagent",
+  "phase": 2,
+  "phase_name": "story-tasks",
+  "parent_id": "<this stage trace id>",
+  "action": "<what the subagent did>",
+  "input_artifacts": ["<files read>"],
+  "output_artifacts": ["<files produced>"],
+  "dispatched": [],
+  "status": "complete",
+  "gate": null,
+  "timestamp": "<ISO timestamp>"
+}
+```
+
 ### Handoff
 ```json
 {
