@@ -229,7 +229,7 @@ def status(
         phase_table.add_column("Gate", justify="center", width=6)
 
         phases = state.get("phases", {})
-        for key in sorted(phases.keys()):
+        for key in sorted(phases.keys(), key=lambda k: int(k.split("-")[0])):
             phase = phases[key]
             num = key.split("-")[0]
             name = phase_names.get(key, key)

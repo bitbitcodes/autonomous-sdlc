@@ -262,8 +262,8 @@ function connect() {
 function render(data) {
   renderPhases(data.orchestrator);
   renderStats(data.orchestrator, data.queue, data.model_config);
-  renderQueue(data.queue);
-  renderTrace(data.trace);
+  renderQueue(data.queue, data.orchestrator);
+  renderTrace(data.trace, data.orchestrator, data.activity_log, data.model_config);
   renderActivity(data.activity_log);
   renderMemory(data.continuity);
   document.getElementById('lastUpdated').textContent = 'Updated: ' + new Date().toLocaleTimeString();
@@ -283,7 +283,7 @@ function resolveModel(agentId, mc) {
 function renderPhases(orch) {
   if (!orch || !orch.phases) return;
   const el = document.getElementById('phases');
-  const keys = Object.keys(orch.phases).sort();
+  const keys = Object.keys(orch.phases).sort((a,b) => parseInt(a) - parseInt(b));
   el.innerHTML = keys.map(k => {
     const p = orch.phases[k];
     const num = k.split('-')[0];
@@ -307,16 +307,30 @@ function renderStats(orch, queue, mc) {
     agentHtml += '</span> ';
   });
   document.getElementById('statAgent').innerHTML = agentHtml;
-  document.getElementById('statTasks').textContent =
-    (orch.completed_tasks || 0) + ' / ' + (orch.total_tasks || 0);
+  let done = orch.completed_tasks || 0;
+  let total = orch.total_tasks || 0;
+  if (total === 0 && orch.phases) {
+    const vals = Object.values(orch.phases);
+    total = vals.length;
+    done = vals.filter(p => p.status === 'complete').length;
+  }
+  document.getElementById('statTasks').textContent = done + ' / ' + total;
 }
 
-function renderQueue(q) {
-  if (!q) return;
-  const total = Math.max((q.pending||0) + (q.active||0) + (q.completed||0), 1);
+function renderQueue(q, orch) {
   const el = document.getElementById('queue');
+  let counts = { pending: (q && q.pending) || 0, active: (q && q.active) || 0, completed: (q && q.completed) || 0 };
+  // Fallback: derive from phase statuses when queue files are empty
+  if (counts.pending + counts.active + counts.completed === 0 && orch && orch.phases) {
+    Object.values(orch.phases).forEach(p => {
+      if (p.status === 'complete') counts.completed++;
+      else if (p.status === 'in_progress') counts.active++;
+      else counts.pending++;
+    });
+  }
+  const total = Math.max(counts.pending + counts.active + counts.completed, 1);
   el.innerHTML = ['pending','active','completed'].map(k => {
-    const v = q[k] || 0;
+    const v = counts[k] || 0;
     const pct = (v / total * 100).toFixed(1);
     return '<div class="queue-row">' +
       '<span class="queue-label">' + k.charAt(0).toUpperCase() + k.slice(1) + '</span>' +
@@ -325,23 +339,81 @@ function renderQueue(q) {
   }).join('');
 }
 
-function renderTrace(trace) {
+// Map phase key (e.g. '5-development') to stage agent ID
+const PHASE_AGENTS = {
+  '0-bootstrap':'orch-sdlc','1-product':'stage-product','2-story-tasks':'stage-story-tasks',
+  '3-architecture':'stage-architecture','4-design':'stage-design','5-development':'stage-development',
+  '6-testing':'stage-testing','7-security':'stage-security','8-review':'stage-review',
+  '9-devops':'stage-devops','10-observability':'stage-observability'
+};
+
+function parseActivityForPhase(lines, phaseName) {
+  if (!lines || !lines.length) return { action: null, subs: [] };
+  let action = null, subs = [];
+  let inPhase = false;
+  for (const l of lines) {
+    if (l.includes('Phase') && l.toLowerCase().includes(phaseName.toLowerCase())) inPhase = true;
+    else if (l.startsWith('[') || (l.startsWith('## ') && inPhase)) inPhase = false;
+    if (!inPhase) continue;
+    const am = l.match(/Action:\\s*(.+)/i);
+    if (am) action = am[1];
+    const sm = l.match(/Subagents? dispatched:\\s*(.+)/i);
+    if (sm) subs = sm[1].split(',').map(s => s.trim()).filter(Boolean);
+  }
+  return { action, subs };
+}
+
+function renderTrace(trace, orch, activityLines, mc) {
   const el = document.getElementById('traceTree');
-  if (!trace || !trace.traces || trace.traces.length === 0) {
+
+  // Build trace entries from file
+  const byPhase = {};
+  if (trace && trace.traces) {
+    trace.traces.forEach(t => {
+      const p = t.phase ?? 0;
+      if (!byPhase[p]) byPhase[p] = [];
+      byPhase[p].push(t);
+    });
+  }
+
+  // Fallback: synthesize entries from orchestrator.phases for phases missing from trace
+  if (orch && orch.phases) {
+    const phaseKeys = Object.keys(orch.phases).sort((a,b) => parseInt(a) - parseInt(b));
+    phaseKeys.forEach(k => {
+      const num = parseInt(k);
+      const p = orch.phases[k];
+      if (p.status !== 'pending' && !byPhase[num]) {
+        const phaseName = PHASE_NAMES[k] || k.replace(/^\d+-/, '');
+        const agentId = PHASE_AGENTS[k] || 'unknown';
+        const parsed = parseActivityForPhase(activityLines, phaseName);
+        const model = resolveModel(agentId, mc);
+        const entry = {
+          agent: agentId, role: num === 0 ? 'orchestrator' : 'stage',
+          phase: num, phase_name: phaseName, status: p.status,
+          gate: p.gate, model: model, action: parsed.action,
+          input_artifacts: [], output_artifacts: [], _synthSubs: parsed.subs
+        };
+        byPhase[num] = [entry];
+        // Add synthetic subagent entries
+        parsed.subs.forEach(sub => {
+          byPhase[num].push({
+            agent: sub, role: 'subagent', phase: num, phase_name: phaseName,
+            status: p.status, model: resolveModel(sub, mc),
+            input_artifacts: [], output_artifacts: []
+          });
+        });
+      }
+    });
+  }
+
+  const phaseNums = Object.keys(byPhase).sort((a,b) => a - b);
+  if (phaseNums.length === 0) {
     el.innerHTML = '<div class="no-data">No agent interactions recorded yet.</div>';
     return;
   }
 
-  // Group by phase
-  const byPhase = {};
-  trace.traces.forEach(t => {
-    const p = t.phase ?? 0;
-    if (!byPhase[p]) byPhase[p] = [];
-    byPhase[p].push(t);
-  });
-
   let html = '';
-  Object.keys(byPhase).sort((a,b) => a-b).forEach(phaseNum => {
+  phaseNums.forEach(phaseNum => {
     const entries = byPhase[phaseNum];
     const stage = entries.find(e => e.role === 'orchestrator' || e.role === 'stage') || entries[0];
     const subs = entries.filter(e => e.role === 'subagent');

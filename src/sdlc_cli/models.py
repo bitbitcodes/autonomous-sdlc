@@ -15,9 +15,9 @@ CONFIG_FILENAME = "model-config.json"
 # ── Tier definitions ──────────────────────────────────────────────────────
 
 TIERS = {
-    "reasoning": "claude-sonnet-4",
-    "coding": "claude-sonnet-4",
-    "fast": "gpt-4.1-mini",
+    "reasoning": "claude-opus-4.7",
+    "coding": "claude-sonnet-4.6",
+    "fast": "claude-haiku-4.5",
 }
 
 # ── Default agent → tier mapping ──────────────────────────────────────────
