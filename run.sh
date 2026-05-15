@@ -393,7 +393,12 @@ cmd_status() {
     python3 -c "
 import json
 with open('${SDLC_DIR}/state/orchestrator.json', 'r') as f:
-    state = json.load(f)
+    content = f.read()
+try:
+    state = json.loads(content)
+except json.JSONDecodeError:
+    state, _ = json.JSONDecoder().raw_decode(content)
+    print('  ⚠ Warning: orchestrator.json has extra data — using first valid object.')
 
 phase_names = {
     '0-bootstrap': 'Bootstrap',
@@ -594,6 +599,78 @@ else:
 }
 
 # ─────────────────────────────────────────────
+# run — Multi-run management
+# ─────────────────────────────────────────────
+
+cmd_run() {
+  if [[ ! -d "$SDLC_DIR" ]]; then
+    log_error "Not initialized. Run: ./run.sh init"
+    exit 1
+  fi
+
+  local subcmd="${1:-help}"
+  shift || true
+
+  case "$subcmd" in
+    new)
+      python3 -c "
+import sys, os
+sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
+from sdlc_cli.__init__ import app
+sys.argv = ['sdlc', 'run', 'new'] + sys.argv[1:]
+app()
+" "$@"
+      ;;
+    list)
+      python3 -c "
+import sys, os
+sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
+from sdlc_cli.__init__ import app
+sys.argv = ['sdlc', 'run', 'list']
+app()
+"
+      ;;
+    switch)
+      python3 -c "
+import sys, os
+sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
+from sdlc_cli.__init__ import app
+sys.argv = ['sdlc', 'run', 'switch', '$1']
+app()
+"
+      ;;
+    active)
+      python3 -c "
+import sys, os
+sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
+from sdlc_cli.__init__ import app
+sys.argv = ['sdlc', 'run', 'active']
+app()
+"
+      ;;
+    archive)
+      python3 -c "
+import sys, os
+sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
+from sdlc_cli.__init__ import app
+sys.argv = ['sdlc', 'run', 'archive', '$1']
+app()
+"
+      ;;
+    help|*)
+      echo "Usage: ./run.sh run <subcommand>"
+      echo ""
+      echo "Subcommands:"
+      echo "  new [spec-file]     Create a new run (auto-names from spec)"
+      echo "  list                List all runs with status"
+      echo "  switch <slug>       Set the active run"
+      echo "  active              Show current active run"
+      echo "  archive <slug>      Archive a completed run"
+      ;;
+  esac
+}
+
+# ─────────────────────────────────────────────
 # dashboard — Launch real-time web dashboard
 # ─────────────────────────────────────────────
 
@@ -758,8 +835,10 @@ cmd_help() {
   echo "  start <spec>        Start SDLC with an input spec"
   echo "  status              Show current SDLC status"
   echo "  trace [phase]       Show agent interaction map"
+  echo "  run <subcommand>    Manage multiple runs (new/list/switch/archive)"
   echo "  dashboard [port]    Launch real-time web dashboard (default: 8420)"
   echo "  models [--edit|--reset]  Show/manage per-agent model routing"
+  echo "  upgrade [--dry-run]     Update framework files (keeps runtime state)"
   echo "  reset               Reset .sdlc/ state"
   echo "  prompt [agent]      Output an agent's prompt (default: orchestrator)"
   echo "  help                Show this help message"
@@ -782,6 +861,32 @@ cmd_help() {
 }
 
 # ─────────────────────────────────────────────
+# upgrade — Update framework files only
+# ─────────────────────────────────────────────
+
+cmd_upgrade() {
+  if [[ ! -d "$SDLC_DIR" ]]; then
+    log_error "Not initialized. Run: ./run.sh init"
+    exit 1
+  fi
+
+  local dry_flag=""
+  if [[ "${1:-}" == "--dry-run" ]]; then
+    dry_flag="--dry-run"
+  fi
+
+  python3 -c "
+import sys, os
+sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
+from sdlc_cli.__init__ import app
+sys.argv = ['sdlc', 'upgrade', '${PROJECT_ROOT}']
+if '${dry_flag}':
+    sys.argv.append('${dry_flag}')
+app()
+"
+}
+
+# ─────────────────────────────────────────────
 # Main dispatcher
 # ─────────────────────────────────────────────
 
@@ -794,8 +899,10 @@ main() {
     start)      cmd_start "$@" ;;
     status)     cmd_status "$@" ;;
     trace)      cmd_trace "$@" ;;
+    run)        cmd_run "$@" ;;
     dashboard)  cmd_dashboard "$@" ;;
     models)     cmd_models "$@" ;;
+    upgrade)    cmd_upgrade "$@" ;;
     reset)      cmd_reset "$@" ;;
     prompt)     cmd_prompt "$@" ;;
     help|-h|--help) cmd_help ;;

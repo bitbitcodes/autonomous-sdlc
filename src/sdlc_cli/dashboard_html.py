@@ -7,6 +7,7 @@ DASHBOARD_HTML = """\
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SDLC Agent Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 <style>
   :root {
     --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
@@ -212,6 +213,14 @@ DASHBOARD_HTML = """\
       <span class="no-data">No working memory yet.</span>
     </div>
   </div>
+
+  <!-- Full width: Mermaid agent interaction diagram -->
+  <div class="card" style="grid-column: 1 / -1;">
+    <div class="card-title">Agent Interaction Diagram</div>
+    <div id="mermaidDiagram" style="overflow-x:auto; padding:12px;">
+      <span class="no-data">Loading diagram...</span>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -259,13 +268,25 @@ function connect() {
   };
 }
 
+let lastGoodData = null;
+
 function render(data) {
+  // Guard: never overwrite good state with empty orchestrator data
+  const orch = data.orchestrator;
+  if (!orch || !orch.phases || Object.keys(orch.phases).length === 0) {
+    if (lastGoodData) {
+      data = lastGoodData;
+    }
+  } else {
+    lastGoodData = data;
+  }
   renderPhases(data.orchestrator);
   renderStats(data.orchestrator, data.queue, data.model_config);
   renderQueue(data.queue, data.orchestrator);
   renderTrace(data.trace, data.orchestrator, data.activity_log, data.model_config);
   renderActivity(data.activity_log);
   renderMemory(data.continuity);
+  if (data.mermaid_src) renderMermaid(data.mermaid_src);
   document.getElementById('lastUpdated').textContent = 'Updated: ' + new Date().toLocaleTimeString();
 }
 
@@ -493,6 +514,37 @@ function renderMemory(lines) {
     return;
   }
   el.textContent = lines.join('\\n');
+}
+
+let mermaidReady = false;
+try {
+  mermaid.initialize({ startOnLoad: false, theme: 'dark', themeVariables: {
+    primaryColor: '#161b22', primaryTextColor: '#e6edf3', primaryBorderColor: '#30363d',
+    lineColor: '#58a6ff', secondaryColor: '#21262d', tertiaryColor: '#0d1117'
+  }});
+  mermaidReady = true;
+} catch(e) { console.warn('Mermaid not loaded:', e); }
+
+let lastMermaidSrc = '';
+async function renderMermaid(src) {
+  const el = document.getElementById('mermaidDiagram');
+  if (!src) {
+    el.innerHTML = '<span class="no-data">No diagram data.</span>';
+    return;
+  }
+  if (src === lastMermaidSrc) return;
+  lastMermaidSrc = src;
+  if (!mermaidReady) {
+    el.innerHTML = '<span class="no-data">Mermaid library not loaded.</span>';
+    return;
+  }
+  try {
+    const { svg } = await mermaid.render('agentDiagram', src);
+    el.innerHTML = svg;
+  } catch(e) {
+    console.error('Mermaid render error:', e);
+    el.innerHTML = '<span class="no-data">Diagram render error. Check console.</span>';
+  }
 }
 
 function basename(path) { return path.split('/').pop(); }

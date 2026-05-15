@@ -18,25 +18,28 @@ from .integrations.base import IntegrationBase
 # Framework directories to copy into .sdlc/
 FRAMEWORK_COPY_DIRS = ["agents", "references", "skills"]
 
-# Runtime directories to create under .sdlc/
-RUNTIME_DIRS = [
-    ".sdlc/state",
-    ".sdlc/queue",
-    ".sdlc/memory/episodic",
-    ".sdlc/memory/semantic",
-    ".sdlc/memory/learnings",
-    ".sdlc/artifacts/product",
-    ".sdlc/artifacts/story-tasks",
-    ".sdlc/artifacts/architecture",
-    ".sdlc/artifacts/design",
-    ".sdlc/artifacts/development",
-    ".sdlc/artifacts/testing",
-    ".sdlc/artifacts/security",
-    ".sdlc/artifacts/review",
-    ".sdlc/artifacts/devops",
-    ".sdlc/artifacts/observability",
-    ".sdlc/specs",
+# Runtime sub-directories (relative to a run root — .sdlc/ or .sdlc/runs/<slug>/)
+RUNTIME_SUBDIRS = [
+    "state",
+    "queue",
+    "memory/episodic",
+    "memory/semantic",
+    "memory/learnings",
+    "artifacts/product",
+    "artifacts/story-tasks",
+    "artifacts/architecture",
+    "artifacts/design",
+    "artifacts/development",
+    "artifacts/testing",
+    "artifacts/security",
+    "artifacts/review",
+    "artifacts/devops",
+    "artifacts/observability",
+    "specs",
 ]
+
+# Legacy full-path list (used by scaffold for single-run init)
+RUNTIME_DIRS = [".sdlc/" + d for d in RUNTIME_SUBDIRS]
 
 GITIGNORE_ENTRIES = [
     "# Autonomous SDLC Framework — runtime state (gitignored)",
@@ -46,6 +49,8 @@ GITIGNORE_ENTRIES = [
     ".sdlc/artifacts/",
     ".sdlc/specs/",
     ".sdlc/CONTINUITY.md",
+    ".sdlc/runs/",
+    ".sdlc/archive/",
 ]
 
 
@@ -183,6 +188,79 @@ def scaffold(
     }
 
 
+def upgrade_framework(target_dir: Path, *, dry_run: bool = False) -> dict[str, int]:
+    """Upgrade .sdlc/framework/ files from the installed package.
+
+    Only touches framework files (agents, references, skills, templates,
+    examples, run.sh) and AGENTS.md.  Never touches runtime state, runs,
+    model-config, or IDE configs.
+
+    Returns a dict of {component: file_count} for items updated.
+    """
+    fw_dir = target_dir / ".sdlc" / "framework"
+    updated: dict[str, int] = {}
+
+    # Core framework dirs
+    for dirname in FRAMEWORK_COPY_DIRS:
+        src_dir = _find_source_dir(dirname)
+        if src_dir and src_dir.is_dir():
+            dst_dir = fw_dir / dirname
+            count = sum(1 for f in src_dir.rglob("*") if f.is_file())
+            if not dry_run:
+                if dst_dir.exists():
+                    shutil.rmtree(dst_dir)
+                shutil.copytree(src_dir, dst_dir)
+            updated[dirname] = count
+
+    # Examples
+    examples_dir = IntegrationBase.shared_examples_dir()
+    if examples_dir and examples_dir.is_dir():
+        dst = fw_dir / "examples"
+        count = sum(1 for f in examples_dir.rglob("*") if f.is_file())
+        if not dry_run:
+            if dst.exists():
+                shutil.rmtree(dst)
+            shutil.copytree(examples_dir, dst)
+        updated["examples"] = count
+
+    # Templates (agent-related only)
+    templates_src = _find_source_dir("templates")
+    if templates_src and templates_src.is_dir():
+        dst = fw_dir / "templates"
+        count = 0
+        for f in templates_src.iterdir():
+            if f.is_file() and f.suffix in (".md", ".mdc") and "template" in f.name:
+                count += 1
+                if not dry_run:
+                    dst.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(f, dst / f.name)
+        if count:
+            updated["templates"] = count
+
+    # run.sh
+    runner_src = IntegrationBase.shared_runner_script()
+    if runner_src:
+        dst = fw_dir / "run.sh"
+        if not dry_run:
+            shutil.copy2(runner_src, dst)
+            dst.chmod(0o755)
+        updated["run.sh"] = 1
+
+    # AGENTS.md at project root
+    templates_dir = IntegrationBase.shared_templates_dir()
+    if templates_dir:
+        agents_src = templates_dir / "agents-md-template.md"
+        if agents_src.exists():
+            if not dry_run:
+                agents_dst = target_dir / "AGENTS.md"
+                agents_dst.write_text(
+                    agents_src.read_text(encoding="utf-8"), encoding="utf-8"
+                )
+            updated["AGENTS.md"] = 1
+
+    return updated
+
+
 def _find_source_dir(dirname: str) -> Path | None:
     """Find a source directory by checking core_pack then repo root."""
     base_cls = IntegrationBase
@@ -207,9 +285,31 @@ def _find_source_dir(dirname: str) -> Path | None:
     return None
 
 
+def create_run(sdlc_dir: Path, slug: str, title: str, spec_file: str | None = None) -> Path:
+    """Create a new named run under .sdlc/runs/<slug>/ with fresh state."""
+    run_dir = sdlc_dir / "runs" / slug
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    for d in RUNTIME_SUBDIRS:
+        (run_dir / d).mkdir(parents=True, exist_ok=True)
+
+    _init_runtime_state_in(run_dir)
+
+    from .runs import write_run_info, set_active_run
+
+    write_run_info(run_dir, slug, title, spec_file)
+    set_active_run(sdlc_dir, slug)
+    return run_dir
+
+
 def _init_runtime_state(target_dir: Path) -> None:
-    """Initialize .sdlc/ runtime state files."""
+    """Initialize .sdlc/ runtime state files (legacy single-run)."""
     sdlc = target_dir / ".sdlc"
+    _init_runtime_state_in(sdlc)
+
+
+def _init_runtime_state_in(sdlc: Path) -> None:
+    """Initialize runtime state files inside a given directory."""
 
     # Orchestrator state
     state = {
@@ -293,10 +393,12 @@ Phase 0: Bootstrap — Initialized, awaiting spec input.
 """
     (sdlc / "CONTINUITY.md").write_text(continuity, encoding="utf-8")
 
-    # Model routing config (committed — not gitignored)
-    from .models import write_config
+    # Model routing config — only at .sdlc/ root level (shared, not per-run)
+    model_cfg = sdlc / "model-config.json"
+    if not model_cfg.exists():
+        from .models import write_config
 
-    write_config(sdlc)
+        write_config(sdlc)
 
 
 def _update_gitignore(target_dir: Path) -> None:

@@ -19,40 +19,62 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
-def read_state(sdlc_dir: Path) -> dict:
-    """Read all .sdlc/ state files into a single payload."""
-
-    def _read_json(rel: str) -> dict | list | None:
-        p = sdlc_dir / rel
-        if not p.exists():
-            return None
+def _read_json_file(p: Path) -> dict | list | None:
+    """Read a JSON file with resilient parsing for extra data."""
+    if not p.exists():
+        return None
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
         try:
-            return json.loads(p.read_text(encoding="utf-8"))
+            obj, _ = json.JSONDecoder().raw_decode(p.read_text(encoding="utf-8"))
+            return obj
         except (json.JSONDecodeError, OSError):
             return None
+    except OSError:
+        return None
 
-    def _read_lines(rel: str, head: int | None = None, tail: int | None = None) -> list[str]:
-        p = sdlc_dir / rel
-        if not p.exists():
-            return []
-        try:
-            lines = p.read_text(encoding="utf-8").strip().splitlines()
-        except OSError:
-            return []
-        if tail and len(lines) > tail:
-            lines = lines[-tail:]
-        if head and len(lines) > head:
-            lines = lines[:head]
-        return lines
 
-    orch = _read_json("state/orchestrator.json") or {}
-    trace = _read_json("state/agent-trace.json") or {"traces": []}
+def _read_lines_file(p: Path, head: int | None = None, tail: int | None = None) -> list[str]:
+    """Read lines from a text file."""
+    if not p.exists():
+        return []
+    try:
+        lines = p.read_text(encoding="utf-8").strip().splitlines()
+    except OSError:
+        return []
+    if tail and len(lines) > tail:
+        lines = lines[-tail:]
+    if head and len(lines) > head:
+        lines = lines[:head]
+    return lines
 
-    pending = _read_json("queue/pending.json")
-    active = _read_json("queue/active.json")
-    completed = _read_json("queue/completed.json")
 
-    model_config = _read_json("model-config.json") or {}
+def read_state(run_dir: Path, sdlc_dir: Path | None = None) -> dict:
+    """Read all state files into a single payload.
+
+    run_dir: the active run directory (e.g. .sdlc/ or .sdlc/runs/<slug>/)
+    sdlc_dir: the root .sdlc/ directory (for shared files like model-config.json)
+    """
+    if sdlc_dir is None:
+        sdlc_dir = run_dir
+
+    orch = _read_json_file(run_dir / "state" / "orchestrator.json") or {}
+    trace = _read_json_file(run_dir / "state" / "agent-trace.json") or {"traces": []}
+
+    pending = _read_json_file(run_dir / "queue" / "pending.json")
+    active = _read_json_file(run_dir / "queue" / "active.json")
+    completed = _read_json_file(run_dir / "queue" / "completed.json")
+
+    model_config = _read_json_file(sdlc_dir / "model-config.json") or {}
+
+    # Generate Mermaid diagram
+    try:
+        from .mermaid import generate_mermaid
+
+        mermaid_src = generate_mermaid(orch, trace, model_config)
+    except Exception:
+        mermaid_src = ""
 
     return {
         "orchestrator": orch,
@@ -62,9 +84,10 @@ def read_state(sdlc_dir: Path) -> dict:
             "active": len(active) if isinstance(active, list) else 0,
             "completed": len(completed) if isinstance(completed, list) else 0,
         },
-        "activity_log": _read_lines("state/activity-log.md", tail=30),
-        "continuity": _read_lines("CONTINUITY.md", head=20),
+        "activity_log": _read_lines_file(run_dir / "state" / "activity-log.md", tail=30),
+        "continuity": _read_lines_file(run_dir / "CONTINUITY.md", head=20),
         "model_config": model_config,
+        "mermaid_src": mermaid_src,
     }
 
 
@@ -84,11 +107,15 @@ WATCHED_FILES = [
 ]
 
 
-def get_mtimes(sdlc_dir: Path) -> dict[str, float]:
+def get_mtimes(run_dir: Path, sdlc_dir: Path | None = None) -> dict[str, float]:
     """Return a dict of file -> mtime for all watched files."""
+    if sdlc_dir is None:
+        sdlc_dir = run_dir
     mtimes: dict[str, float] = {}
     for rel in WATCHED_FILES:
-        p = sdlc_dir / rel
+        # model-config.json lives at sdlc root; everything else in run_dir
+        base = sdlc_dir if rel == "model-config.json" else run_dir
+        p = base / rel
         try:
             mtimes[rel] = p.stat().st_mtime if p.exists() else 0.0
         except OSError:
@@ -140,14 +167,15 @@ def start_http_server(port: int, ws_port: int) -> HTTPServer:
 
 async def ws_handler(
     websocket: object,
-    sdlc_dir: Path,
+    run_dir: Path,
+    sdlc_dir: Path | None,
     clients: set,
 ) -> None:
     """Handle a single WebSocket connection."""
     clients.add(websocket)
     try:
         # Send initial state immediately
-        state = read_state(sdlc_dir)
+        state = read_state(run_dir, sdlc_dir)
         await websocket.send(json.dumps(state))
         # Keep connection alive — listen for pings/close
         async for _ in websocket:
@@ -157,23 +185,24 @@ async def ws_handler(
 
 
 async def watch_and_broadcast(
-    sdlc_dir: Path,
+    run_dir: Path,
+    sdlc_dir: Path | None,
     clients: set,
     interval: float = 1.0,
 ) -> None:
-    """Poll .sdlc/ files and broadcast state to all clients on change."""
-    last_mtimes = get_mtimes(sdlc_dir)
+    """Poll state files and broadcast to all clients on change."""
+    last_mtimes = get_mtimes(run_dir, sdlc_dir)
     last_payload: str | None = None
 
     while True:
         await asyncio.sleep(interval)
 
-        current_mtimes = get_mtimes(sdlc_dir)
+        current_mtimes = get_mtimes(run_dir, sdlc_dir)
         if current_mtimes == last_mtimes:
             continue
         last_mtimes = current_mtimes
 
-        state = read_state(sdlc_dir)
+        state = read_state(run_dir, sdlc_dir)
         payload = json.dumps(state)
 
         # Only broadcast if the payload actually changed
@@ -189,7 +218,8 @@ async def watch_and_broadcast(
 
 
 async def run_dashboard(
-    sdlc_dir: Path,
+    run_dir: Path,
+    sdlc_dir: Path | None,
     http_port: int,
     ws_port: int,
     open_browser: bool = True,
@@ -205,7 +235,7 @@ async def run_dashboard(
 
     # Start WebSocket server
     async with websockets.serve(
-        lambda ws: ws_handler(ws, sdlc_dir, clients),
+        lambda ws: ws_handler(ws, run_dir, sdlc_dir, clients),
         "127.0.0.1",
         ws_port,
     ):
@@ -219,13 +249,18 @@ async def run_dashboard(
             ).start()
 
         # Run file watcher loop
-        await watch_and_broadcast(sdlc_dir, clients)
+        await watch_and_broadcast(run_dir, sdlc_dir, clients)
 
 
-def serve(sdlc_dir: Path, port: int = 8420, open_browser: bool = True) -> None:
+def serve(
+    run_dir: Path,
+    sdlc_dir: Path | None = None,
+    port: int = 8420,
+    open_browser: bool = True,
+) -> None:
     """Blocking entry point — run the dashboard servers."""
     ws_port = port + 1
     try:
-        asyncio.run(run_dashboard(sdlc_dir, port, ws_port, open_browser))
+        asyncio.run(run_dashboard(run_dir, sdlc_dir, port, ws_port, open_browser))
     except KeyboardInterrupt:
         pass

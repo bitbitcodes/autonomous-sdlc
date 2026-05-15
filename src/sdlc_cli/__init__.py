@@ -10,6 +10,7 @@ from rich.table import Table
 
 from .banner import print_banner
 from .integrations import list_integrations
+from .runs import resolve_run_dir
 from .scaffold import scaffold
 from .version import __version__
 
@@ -19,6 +20,9 @@ app = typer.Typer(
     add_completion=False,
     no_args_is_help=True,
 )
+
+run_app = typer.Typer(help="Manage multiple SDLC runs (specs/use-cases).")
+app.add_typer(run_app, name="run")
 
 console = Console()
 
@@ -151,6 +155,7 @@ def init(
 @app.command()
 def status(
     target: str | None = typer.Argument(None, help="Project directory (default: current)"),
+    run: str | None = typer.Option(None, "--run", "-r", help="Run name/slug (default: active run)"),
 ) -> None:
     """Show the current SDLC workflow status — phases, agents, and progress."""
     import json as _json
@@ -161,6 +166,8 @@ def status(
     if not sdlc_dir.is_dir():
         console.print("[red]Error:[/] .sdlc/ directory not found. Run [cyan]sdlc init[/] first.")
         raise typer.Exit(1)
+
+    run_dir = resolve_run_dir(sdlc_dir, run)
 
     print_banner(console)
 
@@ -173,9 +180,18 @@ def status(
         console.print()
 
     # ── orchestrator.json ──
-    orch_file = sdlc_dir / "state" / "orchestrator.json"
+    orch_file = run_dir / "state" / "orchestrator.json"
     if orch_file.exists():
-        state = _json.loads(orch_file.read_text())
+        try:
+            state = _json.loads(orch_file.read_text())
+        except _json.JSONDecodeError:
+            # Handle files with trailing extra data (agent appended instead of overwrote)
+            try:
+                state, _ = _json.JSONDecoder().raw_decode(orch_file.read_text())
+                console.print("[yellow]Warning:[/] orchestrator.json has extra data — using first valid object.\n")
+            except _json.JSONDecodeError as exc:
+                console.print(f"[red]Error parsing orchestrator.json:[/] {exc}")
+                raise typer.Exit(1)
 
         phase_names = {
             "0-bootstrap": "Bootstrap", "1-product": "Product",
@@ -242,7 +258,7 @@ def status(
         console.print()
 
     # ── Queue ──
-    queue_dir = sdlc_dir / "queue"
+    queue_dir = run_dir / "queue"
     if queue_dir.is_dir():
         counts = {}
         for name in ("pending", "active", "completed"):
@@ -262,7 +278,7 @@ def status(
         console.print()
 
     # ── Activity log (last 15 lines) ──
-    log_file = sdlc_dir / "state" / "activity-log.md"
+    log_file = run_dir / "state" / "activity-log.md"
     if log_file.exists():
         lines = log_file.read_text().strip().splitlines()
         if len(lines) > 5:
@@ -274,7 +290,7 @@ def status(
         console.print()
 
     # ── CONTINUITY.md summary ──
-    cont_file = sdlc_dir / "CONTINUITY.md"
+    cont_file = run_dir / "CONTINUITY.md"
     if cont_file.exists():
         lines = cont_file.read_text().strip().splitlines()
         console.print("[bold]Working Memory (CONTINUITY.md):[/]")
@@ -282,12 +298,31 @@ def status(
             console.print(f"  {line}")
         console.print()
 
+    # ── Generate agent-map.md ──
+    try:
+        from .mermaid import generate_agent_map_md
+
+        orch_file_2 = run_dir / "state" / "orchestrator.json"
+        trace_file_2 = run_dir / "state" / "agent-trace.json"
+        mc_file = sdlc_dir / "model-config.json"
+        orch_d = _json.loads(orch_file_2.read_text()) if orch_file_2.exists() else {}
+        trace_d = _json.loads(trace_file_2.read_text()) if trace_file_2.exists() else {"traces": []}
+        mc_d = _json.loads(mc_file.read_text()) if mc_file.exists() else {}
+        md = generate_agent_map_md(orch_d, trace_d, mc_d)
+        map_path = run_dir / "state" / "agent-map.md"
+        map_path.write_text(md, encoding="utf-8")
+        console.print(f"[dim]Agent diagram written to {map_path.relative_to(sdlc_dir.parent)}[/]")
+    except Exception:
+        pass
+
 
 @app.command()
 def trace(
     target: str | None = typer.Argument(None, help="Project directory (default: current)"),
     phase: int | None = typer.Option(None, "--phase", "-p", help="Filter to a specific phase number"),
     verify: bool = typer.Option(False, "--verify", "-v", help="Cross-check traced artifacts against files on disk"),
+    run: str | None = typer.Option(None, "--run", "-r", help="Run name/slug (default: active run)"),
+    diagram: bool = typer.Option(False, "--diagram", "-d", help="Write Mermaid agent-map.md alongside trace output"),
 ) -> None:
     """Show the agent interaction map — which agent did what, dispatched whom, and artifact flow."""
     import json as _json
@@ -301,14 +336,22 @@ def trace(
         console.print("[red]Error:[/] .sdlc/ directory not found. Run [cyan]sdlc init[/] first.")
         raise typer.Exit(1)
 
-    trace_file = sdlc_dir / "state" / "agent-trace.json"
+    run_dir = resolve_run_dir(sdlc_dir, run)
+    trace_file = run_dir / "state" / "agent-trace.json"
     if not trace_file.exists():
         console.print("[red]Error:[/] No trace file found. Run the orchestrator first.")
         raise typer.Exit(1)
 
     try:
         data = _json.loads(trace_file.read_text(encoding="utf-8"))
-    except (ValueError, OSError) as exc:
+    except _json.JSONDecodeError:
+        try:
+            data, _ = _json.JSONDecoder().raw_decode(trace_file.read_text(encoding="utf-8"))
+            console.print("[yellow]Warning:[/] agent-trace.json has extra data — using first valid object.\n")
+        except (ValueError, OSError) as exc:
+            console.print(f"[red]Error reading trace file:[/] {exc}")
+            raise typer.Exit(1)
+    except OSError as exc:
         console.print(f"[red]Error reading trace file:[/] {exc}")
         raise typer.Exit(1)
 
@@ -316,6 +359,21 @@ def trace(
     if not traces:
         console.print("[dim]No agent interactions recorded yet.[/]")
         console.print("Run the orchestrator to generate trace data.")
+        # Still generate diagram if requested (shows static agent registry)
+        if diagram:
+            try:
+                from .mermaid import generate_agent_map_md
+
+                orch_file_d = run_dir / "state" / "orchestrator.json"
+                mc_file_d = sdlc_dir / "model-config.json"
+                orch_d = _json.loads(orch_file_d.read_text()) if orch_file_d.exists() else {}
+                mc_d = _json.loads(mc_file_d.read_text()) if mc_file_d.exists() else {}
+                md_content = generate_agent_map_md(orch_d, data, mc_d)
+                map_path = run_dir / "state" / "agent-map.md"
+                map_path.write_text(md_content, encoding="utf-8")
+                console.print(f"[green]✅ Agent diagram written to {map_path}[/]")
+            except Exception as exc:
+                console.print(f"[yellow]Warning:[/] Could not generate diagram: {exc}")
         raise typer.Exit(0)
 
     print_banner(console)
@@ -450,11 +508,28 @@ def trace(
             console.print("[green]✅ 0[/] artifacts traced but missing on disk")
         console.print()
 
+    # Write Mermaid diagram if requested
+    if diagram:
+        try:
+            from .mermaid import generate_agent_map_md
+
+            orch_file_d = run_dir / "state" / "orchestrator.json"
+            mc_file_d = sdlc_dir / "model-config.json"
+            orch_d = _json.loads(orch_file_d.read_text()) if orch_file_d.exists() else {}
+            mc_d = _json.loads(mc_file_d.read_text()) if mc_file_d.exists() else {}
+            md_content = generate_agent_map_md(orch_d, data, mc_d)
+            map_path = run_dir / "state" / "agent-map.md"
+            map_path.write_text(md_content, encoding="utf-8")
+            console.print(f"[green]✅ Agent diagram written to {map_path}[/]")
+        except Exception as exc:
+            console.print(f"[yellow]Warning:[/] Could not generate diagram: {exc}")
+
 
 @app.command()
 def dashboard(
     target: str | None = typer.Argument(None, help="Project directory (default: current)"),
     port: int = typer.Option(8420, "--port", "-p", help="HTTP server port (WebSocket = port+1)"),
+    run: str | None = typer.Option(None, "--run", "-r", help="Run name/slug (default: active run)"),
 ) -> None:
     """Launch a real-time web dashboard for the SDLC workflow."""
     target_dir = Path(target).resolve() if target else Path.cwd()
@@ -476,11 +551,14 @@ def dashboard(
 
     from .dashboard import serve
 
+    run_dir = resolve_run_dir(sdlc_dir, run)
     console.print(f"[bold cyan]SDLC Dashboard[/] starting on [link=http://127.0.0.1:{port}]http://127.0.0.1:{port}[/link]")
     console.print(f"WebSocket on port {port + 1}")
+    if run_dir != sdlc_dir:
+        console.print(f"[dim]Run: {run_dir.name}[/]")
     console.print("[dim]Press Ctrl+C to stop.[/]\n")
 
-    serve(sdlc_dir, port=port)
+    serve(run_dir, sdlc_dir, port=port)
 
 
 @app.command()
@@ -578,6 +656,249 @@ def models(
 def version() -> None:
     """Show the autonomous-sdlc version."""
     console.print(f"autonomous-sdlc {__version__}")
+
+
+@app.command()
+def upgrade(
+    target: str | None = typer.Argument(None, help="Project directory (default: current)"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would change without writing"),
+) -> None:
+    """Upgrade .sdlc/framework/ files from the installed package — keeps runtime state intact."""
+    from .scaffold import upgrade_framework
+
+    target_dir = Path(target).resolve() if target else Path.cwd()
+    sdlc_dir = target_dir / ".sdlc"
+
+    if not sdlc_dir.is_dir():
+        console.print("[red]Error:[/] .sdlc/ directory not found. Run [cyan]sdlc init[/] first.")
+        raise typer.Exit(1)
+
+    mode = "[yellow]DRY RUN[/] — " if dry_run else ""
+    console.print(f"\n{mode}[bold cyan]Upgrading framework[/] from autonomous-sdlc {__version__}\n")
+
+    updated = upgrade_framework(target_dir, dry_run=dry_run)
+
+    if not updated:
+        console.print("[yellow]No framework sources found in the installed package.[/]")
+        raise typer.Exit(1)
+
+    for component, count in updated.items():
+        label = f"{count} file{'s' if count != 1 else ''}"
+        console.print(f"  [green]✅[/] {component} — {label} updated")
+
+    console.print()
+    if dry_run:
+        console.print("[yellow]No files were modified (dry run).[/]")
+    else:
+        console.print("[green]Framework upgraded.[/] Runtime state untouched.")
+    console.print()
+
+
+# ---------------------------------------------------------------------------
+# Run management subcommands
+# ---------------------------------------------------------------------------
+
+
+@run_app.command("new")
+def run_new(
+    spec_file: str | None = typer.Argument(None, help="Path to a spec/requirements file"),
+    name: str | None = typer.Option(None, "--name", "-n", help="Override auto-generated folder name"),
+    target: str | None = typer.Option(None, "--target", "-t", help="Project directory (default: current)"),
+) -> None:
+    """Create a new SDLC run from a spec — auto-names the folder from content."""
+    import json as _json
+
+    target_dir = Path(target).resolve() if target else Path.cwd()
+    sdlc_dir = target_dir / ".sdlc"
+
+    if not sdlc_dir.is_dir():
+        console.print("[red]Error:[/] .sdlc/ directory not found. Run [cyan]sdlc init[/] first.")
+        raise typer.Exit(1)
+
+    from .runs import generate_run_slug, list_runs, set_active_run
+    from .scaffold import create_run
+
+    # Read spec content for slug generation
+    spec_text = ""
+    spec_path = None
+    if spec_file:
+        spec_path = Path(spec_file).resolve()
+        if not spec_path.exists():
+            console.print(f"[red]Error:[/] Spec file not found: {spec_file}")
+            raise typer.Exit(1)
+        spec_text = spec_path.read_text(encoding="utf-8")
+    else:
+        console.print("[dim]No spec file provided. Enter a title/description for this run:[/]")
+        spec_text = typer.prompt("Title")
+
+    # Generate or use provided name
+    existing_slugs = [r["slug"] for r in list_runs(sdlc_dir)]
+    if name:
+        slug = name
+        if slug in existing_slugs:
+            console.print(f"[red]Error:[/] Run '{slug}' already exists.")
+            raise typer.Exit(1)
+    else:
+        slug = generate_run_slug(spec_text, existing_slugs)
+
+    # Extract title for run-info
+    title = ""
+    for line in spec_text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            title = stripped.lstrip("#").strip()
+            break
+        if stripped:
+            title = stripped
+            break
+    title = title or slug
+
+    # Create the run
+    run_dir = create_run(sdlc_dir, slug, title, str(spec_path) if spec_path else None)
+
+    # Copy spec into the run
+    if spec_path:
+        import shutil
+
+        dst = run_dir / "specs" / spec_path.name
+        shutil.copy2(spec_path, dst)
+        # Also write normalized-spec.md
+        (run_dir / "specs" / "normalized-spec.md").write_text(spec_text, encoding="utf-8")
+
+    console.print(f"\n[bold green]✅ Run created:[/] [cyan]{slug}[/]")
+    console.print(f"   [dim]Title:[/] {title}")
+    console.print(f"   [dim]Path:[/]  .sdlc/runs/{slug}/")
+    console.print(f"   [dim]Set as active run.[/]")
+    console.print(f"\n[dim]Next: Start the orchestrator in your AI IDE.[/]")
+
+
+@run_app.command("list")
+def run_list(
+    target: str | None = typer.Option(None, "--target", "-t", help="Project directory (default: current)"),
+) -> None:
+    """List all SDLC runs with status."""
+    target_dir = Path(target).resolve() if target else Path.cwd()
+    sdlc_dir = target_dir / ".sdlc"
+
+    if not sdlc_dir.is_dir():
+        console.print("[red]Error:[/] .sdlc/ directory not found. Run [cyan]sdlc init[/] first.")
+        raise typer.Exit(1)
+
+    from .runs import list_runs
+
+    runs = list_runs(sdlc_dir)
+    if not runs:
+        console.print("[dim]No runs found. Create one with:[/] sdlc run new <spec-file>")
+        return
+
+    table = Table(title="SDLC Runs", show_lines=True)
+    table.add_column("", width=2)
+    table.add_column("Slug", style="cyan", min_width=25)
+    table.add_column("Status", min_width=12)
+    table.add_column("Phase", min_width=6)
+    table.add_column("Last Updated", min_width=20)
+
+    status_icons = {
+        "initialized": "⬜", "in_progress": "🔄", "complete": "✅", "failed": "❌",
+    }
+
+    for r in runs:
+        marker = "[bold green]▸[/]" if r.get("active") else " "
+        st = r.get("status", "unknown")
+        icon = status_icons.get(st, "❓")
+        phase = str(r.get("current_phase", "—"))
+        updated = r.get("last_updated", "—")
+        if updated and len(updated) > 19:
+            updated = updated[:19]
+        table.add_row(marker, r["slug"], f"{icon} {st}", phase, updated)
+
+    console.print(table)
+    console.print("[dim]▸ = active run[/]")
+
+
+@run_app.command("switch")
+def run_switch(
+    slug: str = typer.Argument(..., help="Run slug to switch to"),
+    target: str | None = typer.Option(None, "--target", "-t", help="Project directory (default: current)"),
+) -> None:
+    """Set the active SDLC run."""
+    target_dir = Path(target).resolve() if target else Path.cwd()
+    sdlc_dir = target_dir / ".sdlc"
+
+    if not sdlc_dir.is_dir():
+        console.print("[red]Error:[/] .sdlc/ directory not found.")
+        raise typer.Exit(1)
+
+    run_path = sdlc_dir / "runs" / slug
+    if not run_path.is_dir():
+        console.print(f"[red]Error:[/] Run '{slug}' not found.")
+        raise typer.Exit(1)
+
+    from .runs import set_active_run
+
+    set_active_run(sdlc_dir, slug)
+    console.print(f"[green]✅ Active run set to:[/] [cyan]{slug}[/]")
+
+
+@run_app.command("active")
+def run_active(
+    target: str | None = typer.Option(None, "--target", "-t", help="Project directory (default: current)"),
+) -> None:
+    """Show the currently active run."""
+    target_dir = Path(target).resolve() if target else Path.cwd()
+    sdlc_dir = target_dir / ".sdlc"
+
+    if not sdlc_dir.is_dir():
+        console.print("[red]Error:[/] .sdlc/ directory not found.")
+        raise typer.Exit(1)
+
+    from .runs import get_active_run
+
+    active = get_active_run(sdlc_dir)
+    if active:
+        console.print(f"Active run: [cyan]{active}[/]")
+    else:
+        console.print("[dim]No active run. Using legacy single-run mode.[/]")
+
+
+@run_app.command("archive")
+def run_archive(
+    slug: str = typer.Argument(..., help="Run slug to archive"),
+    target: str | None = typer.Option(None, "--target", "-t", help="Project directory (default: current)"),
+) -> None:
+    """Archive a completed run to .sdlc/archive/."""
+    import shutil
+
+    target_dir = Path(target).resolve() if target else Path.cwd()
+    sdlc_dir = target_dir / ".sdlc"
+
+    if not sdlc_dir.is_dir():
+        console.print("[red]Error:[/] .sdlc/ directory not found.")
+        raise typer.Exit(1)
+
+    run_path = sdlc_dir / "runs" / slug
+    if not run_path.is_dir():
+        console.print(f"[red]Error:[/] Run '{slug}' not found.")
+        raise typer.Exit(1)
+
+    archive_dir = sdlc_dir / "archive"
+    archive_dir.mkdir(exist_ok=True)
+    dest = archive_dir / slug
+
+    if dest.exists():
+        console.print(f"[red]Error:[/] Archive '{slug}' already exists.")
+        raise typer.Exit(1)
+
+    shutil.move(str(run_path), str(dest))
+
+    from .runs import get_active_run
+
+    if get_active_run(sdlc_dir) == slug:
+        # Clear active run
+        (sdlc_dir / "active-run.json").unlink(missing_ok=True)
+        console.print("[dim]Cleared active run (archived was active).[/]")
+
+    console.print(f"[green]✅ Run archived:[/] .sdlc/archive/{slug}/")
 
 
 def _fallback_integration_prompt() -> str:

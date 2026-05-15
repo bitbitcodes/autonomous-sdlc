@@ -107,12 +107,21 @@ sdlc status [TARGET]
 
 **Examples:**
 
+**Options:**
+
+| Flag | Short | Description | Default |
+|------|-------|-------------|--------|
+| `--run` | `-r` | Run name/slug (default: active run) | (active) |
+
 ```bash
 # From inside the project
 sdlc status
 
 # Pointing to a specific project
 sdlc status /path/to/my-project
+
+# Status for a specific run
+sdlc status --run user-auth-jwt-tokens
 ```
 
 ### `sdlc trace`
@@ -135,6 +144,8 @@ sdlc trace [TARGET] [OPTIONS]
 |------|-------|-------------|---------|
 | `--phase` | `-p` | Filter to a specific phase number | (all) |
 | `--verify` | `-v` | Cross-check traced artifacts against files on disk | `false` |
+| `--run` | `-r` | Run name/slug (default: active run) | (active) |
+| `--diagram` | `-d` | Write Mermaid agent-map.md alongside trace output | `false` |
 
 **Output includes:**
 
@@ -159,9 +170,137 @@ sdlc trace --verify
 
 # Combine: check Phase 5 artifacts
 sdlc trace --phase 5 --verify
+
+# Generate Mermaid diagram file
+sdlc trace --diagram
 ```
 
 **Data source:** `.sdlc/state/agent-trace.json` — populated by the orchestrator and stage agents during execution. Each entry records the agent ID, role (orchestrator/stage/subagent), parent-child relationship, input/output artifacts, and dispatched agents.
+
+### `sdlc run`
+
+Manage multiple SDLC runs (specs/use-cases) within the same repository. Each run gets isolated state, queue, memory, artifacts, and specs under `.sdlc/runs/<auto-slug>/`. The framework files in `.sdlc/framework/` are shared.
+
+#### `sdlc run new`
+
+Create a new named run from a spec file. The folder name is **auto-generated** from the spec content (3-4 descriptive keywords).
+
+```bash
+sdlc run new [SPEC_FILE] [OPTIONS]
+```
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--name` | `-n` | Override the auto-generated folder name |
+| `--target` | `-t` | Project directory (default: current) |
+
+**Examples:**
+
+```bash
+# Auto-name from spec content
+sdlc run new ./specs/auth-api.md
+# → creates .sdlc/runs/user-auth-jwt-tokens/
+
+# Override the name
+sdlc run new ./specs/auth-api.md --name my-auth-run
+
+# No spec file — prompts for a title
+sdlc run new
+```
+
+**Auto-naming:** Extracts the first heading or first line from the spec, strips stopwords, and joins 3-4 keywords with hyphens. If a slug already exists, appends `-2`, `-3`, etc.
+
+#### `sdlc run list`
+
+List all runs with status, current phase, and last updated time.
+
+```bash
+sdlc run list
+```
+
+#### `sdlc run switch`
+
+Set the active run. All commands (`status`, `trace`, `dashboard`) will operate on the active run by default.
+
+```bash
+sdlc run switch <SLUG>
+```
+
+#### `sdlc run active`
+
+Show the currently active run.
+
+```bash
+sdlc run active
+```
+
+#### `sdlc run archive`
+
+Move a completed run to `.sdlc/archive/<slug>/`.
+
+```bash
+sdlc run archive <SLUG>
+```
+
+**Folder structure with runs:**
+
+```
+project/
+  .sdlc/
+    framework/                    # shared (committed)
+    model-config.json             # shared (committed)
+    active-run.json               # tracks current run slug
+    runs/
+      user-auth-jwt-tokens/       # auto-generated
+        state/ queue/ memory/ artifacts/ specs/
+        CONTINUITY.md
+        run-info.json
+      stripe-payment-webhook/
+        state/ queue/ memory/ artifacts/ specs/
+        CONTINUITY.md
+        run-info.json
+```
+
+### `sdlc upgrade`
+
+Upgrade `.sdlc/framework/` files from the installed package without touching runtime state, runs, or config.
+
+```bash
+sdlc upgrade [TARGET] [OPTIONS]
+```
+
+**Arguments:**
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `TARGET` | Project directory path | Current directory |
+
+**Options:**
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--dry-run` | Show what would change without writing | `false` |
+
+**What gets updated:**
+- `.sdlc/framework/agents/`, `references/`, `skills/`, `templates/`, `examples/`
+- `.sdlc/framework/run.sh`
+- `AGENTS.md` (project root)
+
+**What is NOT touched:**
+- Runtime state (`state/`, `queue/`, `memory/`, `artifacts/`, `specs/`)
+- Runs (`.sdlc/runs/`, `.sdlc/archive/`)
+- Config (`model-config.json`, `init-options.json`, `active-run.json`)
+- `CONTINUITY.md`, IDE config files
+
+**Examples:**
+
+```bash
+# Upgrade after pip install --upgrade autonomous-sdlc
+sdlc upgrade
+
+# Preview changes first
+sdlc upgrade --dry-run
+```
 
 ### `sdlc dashboard`
 
@@ -439,6 +578,8 @@ src/sdlc_cli/
 ├── __init__.py        # Typer app, init/status/trace/dashboard/models commands
 ├── scaffold.py        # Core scaffold logic
 ├── models.py          # Per-agent model routing config
+├── runs.py            # Multi-run management (slug generation, resolution)
+├── mermaid.py         # Mermaid diagram generator for agent interaction map
 ├── dashboard.py       # WebSocket server + file watcher
 ├── dashboard_html.py  # Single-page dashboard HTML template
 ├── banner.py          # ASCII art banner

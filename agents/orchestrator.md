@@ -340,6 +340,20 @@ Update orchestrator.json: status = "complete"
 
 ## STATE MANAGEMENT
 
+### JSON File Safety
+
+**CRITICAL — JSON writes MUST overwrite, never append:**
+
+When updating `orchestrator.json`, any queue file, or `agent-trace.json`:
+1. Read the ENTIRE current file contents
+2. Parse it as JSON into an in-memory object
+3. Modify the in-memory object as needed
+4. **OVERWRITE the file with the complete updated JSON** (do NOT append to the file)
+
+For `agent-trace.json` specifically: read → parse → push new entry to `traces` array → write the **entire object** back.
+
+Failure to follow this protocol causes JSON corruption (`Extra data` errors) that breaks the dashboard and CLI.
+
 ### orchestrator.json Schema
 
 ```json

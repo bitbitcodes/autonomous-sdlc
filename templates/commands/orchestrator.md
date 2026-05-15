@@ -56,6 +56,18 @@ After completing each phase, you MUST do ALL of these:
 4. **Append to `.sdlc/state/activity-log.md`** — Log which agent acted and what it produced
 5. **Update `.sdlc/STATUS.md`** — Update the dashboard tables (see below)
 
+### JSON File Safety
+
+**CRITICAL — JSON writes MUST overwrite, never append:**
+
+When updating `orchestrator.json`, any queue file, or `agent-trace.json`:
+1. Read the ENTIRE current file
+2. Parse as JSON
+3. Modify the in-memory object
+4. **OVERWRITE the file with the complete updated JSON** (do NOT append)
+
+For `agent-trace.json`: read → parse → push to `traces` array → write **entire object** back.
+
 ### Trace Logging
 
 After every agent dispatch (stage or subagent), append a trace entry to `.sdlc/state/agent-trace.json`:
