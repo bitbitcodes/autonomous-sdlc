@@ -280,9 +280,9 @@ function render(data) {
   } else {
     lastGoodData = data;
   }
-  renderPhases(data.orchestrator);
-  renderStats(data.orchestrator, data.queue, data.model_config);
-  renderQueue(data.queue, data.orchestrator);
+  renderPhases(data.orchestrator, data.activity_log);
+  renderStats(data.orchestrator, data.queue, data.model_config, data.activity_log);
+  renderQueue(data.queue, data.orchestrator, data.activity_log);
   renderTrace(data.trace, data.orchestrator, data.activity_log, data.model_config);
   renderActivity(data.activity_log);
   renderMemory(data.continuity);
@@ -301,23 +301,30 @@ function resolveModel(agentId, mc) {
   return null;
 }
 
-function renderPhases(orch) {
+function renderPhases(orch, activityLines) {
   if (!orch || !orch.phases) return;
   const el = document.getElementById('phases');
+  const inferred = inferPhasesFromActivity(activityLines);
   const keys = Object.keys(orch.phases).sort((a,b) => parseInt(a) - parseInt(b));
   el.innerHTML = keys.map(k => {
     const p = orch.phases[k];
-    const num = k.split('-')[0];
+    const num = parseInt(k.split('-')[0]);
     const name = PHASE_NAMES[k] || k;
-    const st = p.status || 'pending';
+    let st = p.status || 'pending';
+    if (st === 'pending' && inferred[num]) st = inferred[num];
     const icon = STATUS_ICONS[st] || '';
     return '<span class="phase-pill ' + st + '">' + icon + ' ' + num + '. ' + name + '</span>';
   }).join('');
 }
 
-function renderStats(orch, queue, mc) {
+function renderStats(orch, queue, mc, activityLines) {
   if (!orch) return;
-  document.getElementById('statStatus').textContent = orch.status || '--';
+  const inferred = inferPhasesFromActivity(activityLines);
+  // Infer status from activity log if orchestrator is stale
+  let displayStatus = orch.status || '--';
+  const inferredVals = Object.values(inferred);
+  if (displayStatus === 'initialized' && inferredVals.length > 0) displayStatus = 'in_progress';
+  document.getElementById('statStatus').textContent = displayStatus;
   document.getElementById('statComplexity').textContent = orch.complexity || '--';
   const agents = orch.active_agents || [];
   let agentHtml = agents.length ? '' : 'none';
@@ -331,21 +338,37 @@ function renderStats(orch, queue, mc) {
   let done = orch.completed_tasks || 0;
   let total = orch.total_tasks || 0;
   if (total === 0 && orch.phases) {
-    const vals = Object.values(orch.phases);
-    total = vals.length;
-    done = vals.filter(p => p.status === 'complete').length;
+    const keys = Object.keys(orch.phases);
+    total = keys.length;
+    done = 0;
+    keys.forEach(k => {
+      const num = parseInt(k);
+      let st = orch.phases[k].status || 'pending';
+      if (st === 'pending' && inferred[num]) st = inferred[num];
+      if (st === 'complete') done++;
+    });
   }
   document.getElementById('statTasks').textContent = done + ' / ' + total;
 }
 
-function renderQueue(q, orch) {
+function renderQueue(q, orch, activityLines) {
   const el = document.getElementById('queue');
-  let counts = { pending: (q && q.pending) || 0, active: (q && q.active) || 0, completed: (q && q.completed) || 0 };
-  // Fallback: derive from phase statuses when queue files are empty
-  if (counts.pending + counts.active + counts.completed === 0 && orch && orch.phases) {
-    Object.values(orch.phases).forEach(p => {
-      if (p.status === 'complete') counts.completed++;
-      else if (p.status === 'in_progress') counts.active++;
+  let counts = { pending: 0, active: 0, completed: 0 };
+  // Use queue files only if tasks are actually moving (active or completed > 0)
+  const qMoving = q && (q.active > 0 || q.completed > 0);
+  if (qMoving) {
+    counts.pending = q.pending || 0;
+    counts.active = q.active || 0;
+    counts.completed = q.completed || 0;
+  } else if (orch && orch.phases) {
+    // Derive from orchestrator phases + activity log inference
+    const inferred = inferPhasesFromActivity(activityLines);
+    Object.entries(orch.phases).forEach(([k, p]) => {
+      const num = parseInt(k);
+      let st = p.status || 'pending';
+      if (st === 'pending' && inferred[num]) st = inferred[num];
+      if (st === 'complete') counts.completed++;
+      else if (st === 'in_progress') counts.active++;
       else counts.pending++;
     });
   }
@@ -367,6 +390,36 @@ const PHASE_AGENTS = {
   '6-testing':'stage-testing','7-security':'stage-security','8-review':'stage-review',
   '9-devops':'stage-devops','10-observability':'stage-observability'
 };
+
+const PHASE_SUBAGENTS = {
+  0: [],
+  1: ['sub-requirement-parser','sub-acceptance-criteria','sub-risk-analyzer','sub-assumption-extractor'],
+  2: ['sub-story-writer','sub-task-decomposer','sub-dependency-mapper'],
+  3: ['sub-tech-stack-advisor','sub-solution-evaluator','sub-adr-writer'],
+  4: ['sub-interface-designer','sub-data-model-designer','sub-integration-planner','sub-nfr-evaluator'],
+  5: ['sub-repo-analyzer','sub-code-generator','sub-refactoring-agent','sub-documentation-agent'],
+  6: ['sub-unit-test','sub-integration-test','sub-regression-test','sub-test-data'],
+  7: ['sub-secret-scanner','sub-dependency-scanner','sub-owasp-reviewer','sub-policy-validator'],
+  8: ['sub-code-review','sub-maintainability','sub-performance'],
+  9: [], 10: []
+};
+
+function inferPhasesFromActivity(lines) {
+  if (!lines || !lines.length) return {};
+  const result = {};
+  let curPhase = null;
+  for (const l of lines) {
+    const pm = l.match(/Phase\\s+(\\d+)\\s*[:\\-]/i);
+    if (pm) {
+      const n = parseInt(pm[1]);
+      if (curPhase !== null && curPhase !== n) result[curPhase] = 'complete';
+      curPhase = n;
+      result[n] = 'in_progress';
+    }
+    if (/Gate:\\s*PASS/i.test(l) && curPhase !== null) result[curPhase] = 'complete';
+  }
+  return result;
+}
 
 function parseActivityForPhase(lines, phaseName) {
   if (!lines || !lines.length) return { action: null, subs: [] };
@@ -397,33 +450,47 @@ function renderTrace(trace, orch, activityLines, mc) {
     });
   }
 
-  // Fallback: synthesize entries from orchestrator.phases for phases missing from trace
+  // Synthesize / augment entries using known agent registry + activity log inference
   if (orch && orch.phases) {
+    const inferred = inferPhasesFromActivity(activityLines);
     const phaseKeys = Object.keys(orch.phases).sort((a,b) => parseInt(a) - parseInt(b));
     phaseKeys.forEach(k => {
       const num = parseInt(k);
       const p = orch.phases[k];
-      if (p.status !== 'pending' && !byPhase[num]) {
-        const phaseName = PHASE_NAMES[k] || k.replace(/^\d+-/, '');
-        const agentId = PHASE_AGENTS[k] || 'unknown';
+      let st = p.status || 'pending';
+      if (st === 'pending' && inferred[num]) st = inferred[num];
+      if (st === 'pending') return;
+
+      const phaseName = PHASE_NAMES[k] || k.replace(/^\d+-/, '');
+      const agentId = PHASE_AGENTS[k] || 'unknown';
+      const knownSubs = PHASE_SUBAGENTS[num] || [];
+
+      if (!byPhase[num]) {
+        // No trace data — synthesize stage entry
         const parsed = parseActivityForPhase(activityLines, phaseName);
-        const model = resolveModel(agentId, mc);
-        const entry = {
+        byPhase[num] = [{
           agent: agentId, role: num === 0 ? 'orchestrator' : 'stage',
-          phase: num, phase_name: phaseName, status: p.status,
-          gate: p.gate, model: model, action: parsed.action,
-          input_artifacts: [], output_artifacts: [], _synthSubs: parsed.subs
-        };
-        byPhase[num] = [entry];
-        // Add synthetic subagent entries
-        parsed.subs.forEach(sub => {
+          phase: num, phase_name: phaseName, status: st,
+          gate: p.gate, model: resolveModel(agentId, mc), action: parsed.action,
+          input_artifacts: [], output_artifacts: []
+        }];
+      } else {
+        // Update status of existing stage entry from inferred data
+        const stageEntry = byPhase[num].find(e => e.role === 'stage' || e.role === 'orchestrator');
+        if (stageEntry && stageEntry.status === 'pending') stageEntry.status = st;
+      }
+
+      // Always ensure known subagents are present (even if trace exists but lacks them)
+      const existingSubs = new Set(byPhase[num].filter(e => e.role === 'subagent').map(e => e.agent));
+      knownSubs.forEach(sub => {
+        if (!existingSubs.has(sub)) {
           byPhase[num].push({
             agent: sub, role: 'subagent', phase: num, phase_name: phaseName,
-            status: p.status, model: resolveModel(sub, mc),
+            status: st, model: resolveModel(sub, mc),
             input_artifacts: [], output_artifacts: []
           });
-        });
-      }
+        }
+      });
     });
   }
 

@@ -103,6 +103,7 @@ WATCHED_FILES = [
     "queue/active.json",
     "queue/completed.json",
     "CONTINUITY.md",
+    "STATUS.md",
     "model-config.json",
 ]
 
@@ -120,6 +121,18 @@ def get_mtimes(run_dir: Path, sdlc_dir: Path | None = None) -> dict[str, float]:
             mtimes[rel] = p.stat().st_mtime if p.exists() else 0.0
         except OSError:
             mtimes[rel] = 0.0
+    # Scan state/ and queue/ dirs for any additional modified files
+    for subdir in ("state", "queue"):
+        dp = run_dir / subdir
+        if dp.is_dir():
+            try:
+                for f in dp.iterdir():
+                    if f.is_file():
+                        rp = f"{subdir}/{f.name}"
+                        if rp not in mtimes:
+                            mtimes[rp] = f.stat().st_mtime
+            except OSError:
+                pass
     return mtimes
 
 
@@ -188,7 +201,7 @@ async def watch_and_broadcast(
     run_dir: Path,
     sdlc_dir: Path | None,
     clients: set,
-    interval: float = 1.0,
+    interval: float = 0.5,
 ) -> None:
     """Poll state files and broadcast to all clients on change."""
     last_mtimes = get_mtimes(run_dir, sdlc_dir)
