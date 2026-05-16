@@ -61,9 +61,9 @@ flowchart TD
 ```
 
 MCP tools are also useful in later phases:
-- **Phase 2 (Architecture)** — Database MCP to inspect existing schemas
-- **Phase 8 (DevOps)** — GitHub MCP to create repos, configure CI
-- **Phase 9 (Observability)** — Monitoring MCP servers if available
+- **Phase 3 (Architecture)** — Database MCP to inspect existing schemas
+- **Phase 9 (DevOps)** — GitHub MCP to create repos, configure CI
+- **Phase 10 (Observability)** — Monitoring MCP servers if available
 
 ---
 
@@ -249,15 +249,15 @@ The orchestrator fetches the issue body, labels, and linked issues as the spec.
 | Phase | GitHub MCP Use |
 |-------|---------------|
 | Phase 0 | Fetch issues as specs |
-| Phase 4 | Create branches, check existing code |
-| Phase 7 | Create pull requests |
-| Phase 8 | Configure GitHub Actions CI/CD |
+| Phase 5 | Create branches, check existing code |
+| Phase 8 | Create pull requests |
+| Phase 9 | Configure GitHub Actions CI/CD |
 
 ---
 
 ## Database MCP Server
 
-Useful in **Phase 2 (Architecture)** to inspect existing database schemas.
+Useful in **Phase 3 (Architecture)** to inspect existing database schemas.
 
 ### Setup
 
@@ -277,7 +277,7 @@ Useful in **Phase 2 (Architecture)** to inspect existing database schemas.
 
 ### Usage
 
-The orchestrator can use database MCP tools during Phase 2 to:
+The orchestrator can use database MCP tools during Phase 3 to:
 - Inspect existing table schemas
 - Understand current data model before designing extensions
 - Check for naming conventions and patterns

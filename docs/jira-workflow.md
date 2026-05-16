@@ -188,7 +188,7 @@ See [`examples/sample-jira-epic.md`](../examples/sample-jira-epic.md) for a comp
 | Epic Description | `## Epic Description` | Main requirements source |
 | Story Summary | `### Story Title` | Becomes a feature/requirement |
 | Story Description | `**Description:**` | Detailed requirement |
-| Acceptance Criteria | `**Acceptance Criteria:**` | Maps directly to test generation in Phase 5 |
+| Acceptance Criteria | `**Acceptance Criteria:**` | Maps directly to test generation in Phase 6 |
 | Story Points | `**Story Points:**` | Helps complexity detection |
 | Priority | `**Priority:**` | Influences task ordering in story-tasks phase |
 | Labels | `**Labels:**` | Used for tech stack detection |
@@ -267,8 +267,8 @@ flowchart TD
 
 This is the **single most impactful thing** you can do. When your JIRA stories have clear Given/When/Then acceptance criteria, the framework:
 - Uses them directly in Phase 1 (no guessing)
-- Maps them to test cases in Phase 5
-- Validates implementation against them in Phase 7
+- Maps them to test cases in Phase 6
+- Validates implementation against them in Phase 8
 
 ### Add Technical Context
 

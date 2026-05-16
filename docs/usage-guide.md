@@ -194,7 +194,7 @@ Open your IDE and start a new conversation. The orchestrator activates automatic
 
 When you start the conversation, the AI:
 
-1. **Reads `AGENTS.md`** — discovers the 35 available agents
+1. **Reads `AGENTS.md`** — discovers the 40 available agents
 2. **Reads `.sdlc/CONTINUITY.md`** — picks up current state (Phase 1: Product Discovery)
 3. **Reads `.sdlc/state/orchestrator.json`** — confirms phase progress
 4. **Reads `.sdlc/framework/agents/orchestrator.md`** — adopts the orchestrator role
@@ -351,7 +351,7 @@ cat .sdlc/STATUS.md
 Includes four tables:
 - **Overall Progress** — Status, complexity, current phase, tasks done, gates passed
 - **Phase & Agent Status** — Each phase with its responsible agent, subagents used, status, gate result, and key outcome
-- **Subagent Detail** — All 23 subagents with individual status and outcome
+- **Subagent Detail** — All 29 subagents with individual status and outcome
 - **Artifacts Produced** — Every file generated, by phase
 
 ### Activity Log

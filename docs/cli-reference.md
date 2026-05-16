@@ -375,9 +375,9 @@ The framework uses 3 capability tiers to assign models to agents:
 
 | Tier | Default Model | Purpose |
 |------|---------------|---------|
-| `reasoning` | `claude-sonnet-4` | Complex analysis, planning, architecture decisions |
-| `coding` | `claude-sonnet-4` | Code generation, test writing, infrastructure |
-| `fast` | `gpt-4.1-mini` | Focused subtasks, parsing, data extraction |
+| `reasoning` | `claude-opus-4.7` | Complex analysis, planning, architecture decisions |
+| `coding` | `claude-sonnet-4.6` | Code generation, test writing, infrastructure |
+| `fast` | `claude-haiku-4.5` | Focused subtasks, parsing, data extraction |
 
 **Default Assignments:**
 
@@ -392,9 +392,9 @@ The framework uses 3 capability tiers to assign models to agents:
 ```json
 {
   "tiers": {
-    "reasoning": "claude-sonnet-4",
-    "coding": "claude-sonnet-4",
-    "fast": "gpt-4.1-mini"
+    "reasoning": "claude-opus-4.7",
+    "coding": "claude-sonnet-4.6",
+    "fast": "claude-haiku-4.5"
   },
   "agent_tiers": {
     "orch-sdlc": "reasoning",
@@ -438,7 +438,7 @@ Print the installed version.
 
 ```bash
 sdlc version
-# autonomous-sdlc 1.1.0
+# autonomous-sdlc 3.0.0
 ```
 
 ## Scaffold Behavior

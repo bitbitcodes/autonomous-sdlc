@@ -156,6 +156,8 @@ See [`examples/`](examples/) for sample specs including a [JIRA epic example](ex
 
 ```bash
 sdlc status                       # Rich dashboard — phases, agents, queue, activity log
+sdlc trace                        # Agent interaction map (orchestrator → stage → subagent)
+sdlc dashboard                    # Real-time web dashboard (http://localhost:8420)
 .sdlc/framework/run.sh status     # Shell alternative (no Python install needed)
 cat .sdlc/STATUS.md               # Agent dashboard with subagent-level detail
 cat .sdlc/CONTINUITY.md           # Current state in plain English
@@ -170,6 +172,35 @@ IDE sessions have token limits. When one ends, just start a new conversation —
 Each phase produces artifacts in `.sdlc/artifacts/<phase>/` — requirements, interface contracts, data models, implementation, test suites, security reports, CI/CD configs, and more. The actual codebase is written directly into your project directory.
 
 > **Full walkthrough:** [Usage Guide](docs/usage-guide.md) · **JIRA users:** [JIRA Workflow](docs/jira-workflow.md)
+
+## CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `sdlc init [TARGET]` | Scaffold `.sdlc/` framework into a project directory |
+| `sdlc status [TARGET]` | Rich console dashboard — phases, agents, queue, activity log |
+| `sdlc trace [TARGET]` | Agent interaction map — tree view of orchestrator → stage → subagent calls |
+| `sdlc dashboard [TARGET]` | Real-time web dashboard with live updates (port 8420) |
+| `sdlc models [TARGET]` | View/edit per-agent model routing (3 tiers: reasoning, coding, fast) |
+| `sdlc run <subcommand>` | Multi-run management — isolate separate specs/use-cases |
+| `sdlc upgrade [TARGET]` | Update framework files to the latest version |
+| `sdlc version` | Show installed version |
+
+### Multi-Run
+
+Isolate multiple SDLC executions within the same project:
+
+```bash
+sdlc run new ./feature-spec.md    # Create a new isolated run
+sdlc run list                     # List all runs
+sdlc run switch <slug>            # Switch active run
+sdlc run active                   # Show current active run
+sdlc run archive <slug>           # Archive a completed run
+```
+
+Commands that read state (`status`, `trace`, `dashboard`) accept `--run <slug>` to target a specific run.
+
+> **Full reference:** [CLI Reference](docs/cli-reference.md)
 
 ## Agents
 
@@ -273,7 +304,8 @@ Full documentation lives in [`docs/`](docs/):
 | [SDLC Phases](docs/phases.md) | 11 phases from spec to observability |
 | [Quality Gates](docs/quality-gates.md) | 11 gates, per-phase blind review, severity model |
 | [Memory System](docs/memory-system.md) | 3-tier memory + CONTINUITY.md protocol |
-| [CLI Reference](docs/cli-reference.md) | `sdlc init` options, scaffold behavior |
+| [CLI Reference](docs/cli-reference.md) | All 8 commands — init, status, trace, dashboard, models, run, upgrade, version |
+| [Agent Graph](docs/agent-graph.md) | Full agent hierarchy Mermaid diagram, dispatch patterns, data flow |
 | [IDE Integrations](docs/ide-integrations.md) | 9 supported IDEs, adding your own |
 | [MCP Integrations](docs/mcp-integrations.md) | JIRA, GitHub, Database MCP setup |
 

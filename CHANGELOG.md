@@ -2,6 +2,27 @@
 
 All notable changes to the Autonomous SDLC Framework.
 
+## [3.0.0] - 2026-05-15
+
+### Added
+- **`sdlc trace`** — Agent interaction map CLI. Renders a rich tree showing orchestrator → stage → subagent dispatch hierarchy with input/output artifacts. Options: `--phase N` to filter, `--verify` to cross-check artifacts on disk, `--diagram` to generate Mermaid agent map
+- **`sdlc dashboard`** — Real-time web dashboard with live updates via WebSocket. HTTP on port 8420, WebSocket on 8421. Watches orchestrator.json, agent-trace.json, queue files, activity log, and CONTINUITY.md. Dark theme with phase progress pills, agent interaction map, task queue bars, and activity feed
+- **`sdlc models`** — Per-agent model routing with 3 capability tiers (reasoning, coding, fast). Default models: claude-opus-4.7, claude-sonnet-4.6, claude-haiku-4.5. Config stored in `.sdlc/model-config.json`. Options: `--edit` to open in $EDITOR, `--reset` to restore defaults
+- **`sdlc run`** — Multi-run management for isolating separate specs/use-cases within a single project. Subcommands: `new` (auto-generates slug from spec content), `list`, `switch`, `active`, `archive`. Shared framework at `.sdlc/framework/`; per-run isolated state, queue, memory, artifacts, specs, and CONTINUITY.md
+- **`sdlc upgrade`** — Update installed framework files (agents, references, skills, templates, examples, run.sh) to the latest version. Option: `--dry-run` to preview changes
+- **Mermaid agent diagram** — Auto-generated flowchart TD with subgraphs per phase for all 40 agents. Status colors (green/yellow/gray) and model badges from model-config.json. Written to `state/agent-map.md` by `sdlc status` and `sdlc trace --diagram`. Rendered in dashboard via mermaid.js CDN
+- **`--run <slug>` flag** added to `status`, `trace`, and `dashboard` commands to target a specific run
+- **`agent-trace.json`** schema and trace logging added to orchestrator and all 10 stage agents
+- **`model-config.json`** committed configuration file for per-agent model routing
+- New modules: `runs.py`, `mermaid.py`, `dashboard.py`, `dashboard_html.py`
+
+### Fixed
+- JSON corruption recovery via `raw_decode` fallback in state file parsing
+- Stale phase numbers in `docs/mcp-integrations.md` and `docs/jira-workflow.md` (not updated during 2.0.0 renumbering)
+- Agent count references: "35 agents" → "40 agents" in `pyproject.toml` and `docs/usage-guide.md`
+- Model tier defaults in `docs/cli-reference.md` now match actual code in `models.py`
+- Version bumped from 1.1.0 to 3.0.0 across `version.py`, `pyproject.toml`, and `run.sh`
+
 ## [2.1.0] - 2026-05-13
 
 ### Changed

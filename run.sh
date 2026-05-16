@@ -15,7 +15,7 @@ else
   PROJECT_ROOT="$SCRIPT_DIR"
 fi
 SDLC_DIR="${PROJECT_ROOT}/.sdlc"
-VERSION="1.1.0"
+VERSION="3.0.0"
 
 # Colors
 RED='\033[0;31m'
