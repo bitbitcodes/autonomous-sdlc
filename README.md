@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/bitbitcodes-autonomous-sdlc-badge.png)](https://mseep.ai/app/bitbitcodes-autonomous-sdlc)
+
 # autonomous-sdlc
 
 Bootstrap multi-agent SDLC workflows into any repository.
