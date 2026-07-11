@@ -225,10 +225,11 @@ DASHBOARD_HTML = """\
 
 <script>
 const PHASE_NAMES = {
-  '0-bootstrap':'Bootstrap','1-product':'Product','2-story-tasks':'Story-Tasks',
-  '3-architecture':'Architecture','4-design':'Design','5-development':'Development',
-  '6-testing':'Testing','7-security':'Security','8-review':'Review',
-  '9-devops':'DevOps','10-observability':'Observability'
+  '0-problem-discovery':'Problem Discovery','1-bootstrap':'Bootstrap','2-product':'Product',
+  '3-story-tasks':'Story-Tasks','4-architecture':'Architecture','5-design':'Design',
+  '6-development':'Development','7-testing':'Testing','8-security':'Security',
+  '9-review':'Review','10-devops':'DevOps','11-observability':'Observability',
+  '12-retirement':'Retirement'
 };
 
 const STATUS_ICONS = {
@@ -238,6 +239,9 @@ const STATUS_ICONS = {
 
 let ws;
 let reconnectTimer;
+// {phaseKey: bool} from phase-config.json. Disabled phases are hidden.
+let PHASE_ENABLED = {};
+function phaseDisabled(key) { return PHASE_ENABLED[key] === false; }
 
 function connect() {
   const wsPort = /*WS_PORT*/8421;
@@ -280,6 +284,7 @@ function render(data) {
   } else {
     lastGoodData = data;
   }
+  PHASE_ENABLED = data.phase_enabled || {};
   renderPhases(data.orchestrator, data.activity_log);
   renderStats(data.orchestrator, data.queue, data.model_config, data.activity_log);
   renderQueue(data.queue, data.orchestrator, data.activity_log);
@@ -305,7 +310,9 @@ function renderPhases(orch, activityLines) {
   if (!orch || !orch.phases) return;
   const el = document.getElementById('phases');
   const inferred = inferPhasesFromActivity(activityLines);
-  const keys = Object.keys(orch.phases).sort((a,b) => parseInt(a) - parseInt(b));
+  const keys = Object.keys(orch.phases)
+    .filter(k => !phaseDisabled(k))
+    .sort((a,b) => parseInt(a) - parseInt(b));
   el.innerHTML = keys.map(k => {
     const p = orch.phases[k];
     const num = parseInt(k.split('-')[0]);
@@ -338,7 +345,7 @@ function renderStats(orch, queue, mc, activityLines) {
   let done = orch.completed_tasks || 0;
   let total = orch.total_tasks || 0;
   if (total === 0 && orch.phases) {
-    const keys = Object.keys(orch.phases);
+    const keys = Object.keys(orch.phases).filter(k => !phaseDisabled(k));
     total = keys.length;
     done = 0;
     keys.forEach(k => {
@@ -364,6 +371,7 @@ function renderQueue(q, orch, activityLines) {
     // Derive from orchestrator phases + activity log inference
     const inferred = inferPhasesFromActivity(activityLines);
     Object.entries(orch.phases).forEach(([k, p]) => {
+      if (phaseDisabled(k)) return;
       const num = parseInt(k);
       let st = p.status || 'pending';
       if (st === 'pending' && inferred[num]) st = inferred[num];
@@ -385,23 +393,26 @@ function renderQueue(q, orch, activityLines) {
 
 // Map phase key (e.g. '5-development') to stage agent ID
 const PHASE_AGENTS = {
-  '0-bootstrap':'orch-sdlc','1-product':'stage-product','2-story-tasks':'stage-story-tasks',
-  '3-architecture':'stage-architecture','4-design':'stage-design','5-development':'stage-development',
-  '6-testing':'stage-testing','7-security':'stage-security','8-review':'stage-review',
-  '9-devops':'stage-devops','10-observability':'stage-observability'
+  '0-problem-discovery':'stage-problem-discovery','1-bootstrap':'orch-sdlc','2-product':'stage-product',
+  '3-story-tasks':'stage-story-tasks','4-architecture':'stage-architecture','5-design':'stage-design',
+  '6-development':'stage-development','7-testing':'stage-testing','8-security':'stage-security',
+  '9-review':'stage-review','10-devops':'stage-devops','11-observability':'stage-observability',
+  '12-retirement':'stage-retirement'
 };
 
 const PHASE_SUBAGENTS = {
-  0: [],
-  1: ['sub-requirement-parser','sub-acceptance-criteria','sub-risk-analyzer','sub-assumption-extractor'],
-  2: ['sub-story-writer','sub-task-decomposer','sub-dependency-mapper'],
-  3: ['sub-tech-stack-advisor','sub-solution-evaluator','sub-adr-writer'],
-  4: ['sub-interface-designer','sub-data-model-designer','sub-integration-planner','sub-nfr-evaluator'],
-  5: ['sub-repo-analyzer','sub-code-generator','sub-refactoring-agent','sub-documentation-agent'],
-  6: ['sub-unit-test','sub-integration-test','sub-regression-test','sub-test-data'],
-  7: ['sub-secret-scanner','sub-dependency-scanner','sub-owasp-reviewer','sub-policy-validator'],
-  8: ['sub-code-review','sub-maintainability','sub-performance'],
-  9: [], 10: []
+  0: ['sub-problem-statement-extractor','sub-user-research-synthesizer','sub-opportunity-analyzer','sub-solution-space-explorer'],
+  1: [],
+  2: ['sub-requirement-parser','sub-acceptance-criteria','sub-risk-analyzer','sub-assumption-extractor'],
+  3: ['sub-story-writer','sub-task-decomposer','sub-dependency-mapper'],
+  4: ['sub-tech-stack-advisor','sub-solution-evaluator','sub-adr-writer'],
+  5: ['sub-interface-designer','sub-data-model-designer','sub-integration-planner','sub-nfr-evaluator'],
+  6: ['sub-repo-analyzer','sub-code-generator','sub-refactoring-agent','sub-documentation-agent'],
+  7: ['sub-unit-test','sub-integration-test','sub-regression-test','sub-test-data'],
+  8: ['sub-secret-scanner','sub-dependency-scanner','sub-owasp-reviewer','sub-policy-validator'],
+  9: ['sub-code-review','sub-maintainability','sub-performance'],
+  10: [], 11: [],
+  12: ['sub-deprecation-planner','sub-migration-strategist','sub-data-retention-auditor','sub-decommission-executor']
 };
 
 function inferPhasesFromActivity(lines) {
@@ -409,14 +420,14 @@ function inferPhasesFromActivity(lines) {
   const result = {};
   let curPhase = null;
   for (const l of lines) {
-    const pm = l.match(/Phase\\s+(\\d+)\\s*[:\\-]/i);
+    const pm = l.match(/Phase\\\\s+(\\\\d+)\\\\s*[:\\\\-]/i);
     if (pm) {
       const n = parseInt(pm[1]);
       if (curPhase !== null && curPhase !== n) result[curPhase] = 'complete';
       curPhase = n;
       result[n] = 'in_progress';
     }
-    if (/Gate:\\s*PASS/i.test(l) && curPhase !== null) result[curPhase] = 'complete';
+    if (/Gate:\\\\s*PASS/i.test(l) && curPhase !== null) result[curPhase] = 'complete';
   }
   return result;
 }
@@ -429,9 +440,9 @@ function parseActivityForPhase(lines, phaseName) {
     if (l.includes('Phase') && l.toLowerCase().includes(phaseName.toLowerCase())) inPhase = true;
     else if (l.startsWith('[') || (l.startsWith('## ') && inPhase)) inPhase = false;
     if (!inPhase) continue;
-    const am = l.match(/Action:\\s*(.+)/i);
+    const am = l.match(/Action:\\\\s*(.+)/i);
     if (am) action = am[1];
-    const sm = l.match(/Subagents? dispatched:\\s*(.+)/i);
+    const sm = l.match(/Subagents? dispatched:\\\\s*(.+)/i);
     if (sm) subs = sm[1].split(',').map(s => s.trim()).filter(Boolean);
   }
   return { action, subs };
@@ -455,13 +466,17 @@ function renderTrace(trace, orch, activityLines, mc) {
     const inferred = inferPhasesFromActivity(activityLines);
     const phaseKeys = Object.keys(orch.phases).sort((a,b) => parseInt(a) - parseInt(b));
     phaseKeys.forEach(k => {
+      if (phaseDisabled(k)) return;
       const num = parseInt(k);
       const p = orch.phases[k];
       let st = p.status || 'pending';
       if (st === 'pending' && inferred[num]) st = inferred[num];
-      if (st === 'pending') return;
+      // Skip phases that haven't run: 'pending' and the triggered-only
+      // Retirement phase's default 'not_triggered' status. Without this,
+      // Phase 12 (Retirement) renders alone at the top on a fresh run.
+      if (st === 'pending' || st === 'not_triggered') return;
 
-      const phaseName = PHASE_NAMES[k] || k.replace(/^\d+-/, '');
+      const phaseName = PHASE_NAMES[k] || k.replace(/^\\d+-/, '');
       const agentId = PHASE_AGENTS[k] || 'unknown';
       const knownSubs = PHASE_SUBAGENTS[num] || [];
 

@@ -18,25 +18,39 @@ flowchart TD
     style ESCALATE fill:#d63031,color:#fff
 ```
 
-## The 11 Gates
+## The 13 Gates
 
 | # | Gate | Phase | Pass Criteria |
 |---|------|-------|---------------|
-| 1 | **Input Validation** | 0 (Bootstrap) | Spec is parseable, non-empty, has actionable requirements |
-| 2 | **Requirements Completeness** | 1 (Product) | All requirements structured with acceptance criteria, risks identified |
-| 3 | **Story-Task Traceability** | 2 (Story-Tasks) | Stories trace to requirements, tasks have done criteria, no circular deps |
-| 4 | **Architecture Soundness** | 3 (Architecture) | System design documented, tech stack justified, ADRs for all decisions |
-| 5 | **Design Completeness** | 4 (Design) | Interface contracts valid for project type, data/state model defined, NFRs have targets, designs reference ADRs |
-| 6 | **Build Green** | 5 (Development) | Zero build errors, zero lint errors, all unit tests pass |
-| 7 | **Test Coverage** | 6 (Testing) | Unit ≥ 80%, all acceptance criteria have tests, integration tests pass |
-| 8 | **Security Clear** | 7 (Security) | Zero Critical/High findings, no hardcoded secrets, deps patched |
-| 9 | **Review Passed** | 8 (Review) | All 3 reviewers PASS, no Critical/High/Medium findings |
-| 10 | **Pipeline Green** | 9 (DevOps) | CI/CD runs without errors, Docker builds, runbook complete |
-| 11 | **Observability Ready** | 10 (Observability) | SLOs defined, health checks implemented, alerts configured |
+| 0 | **Problem Validated** | 0 (Problem Discovery) | Problem clear/measurable, ≥3 pain points, positive business case, ≥3 alternatives, go/no-go recorded |
+| 1 | **Input Validation** | 1 (Bootstrap) | Spec is parseable, non-empty, has actionable requirements |
+| 2 | **Requirements Completeness** | 2 (Product) | All requirements structured with acceptance criteria, risks identified |
+| 3 | **Story-Task Traceability** | 3 (Story-Tasks) | Stories trace to requirements, tasks have done criteria, no circular deps |
+| 4 | **Architecture Soundness** | 4 (Architecture) | System design documented, tech stack justified, ADRs for all decisions |
+| 5 | **Design Completeness** | 5 (Design) | Interface contracts valid for project type, data/state model defined, NFRs have targets, designs reference ADRs, compliance sign-off if enabled |
+| 6 | **Build Green** | 6 (Development) | Zero build errors, zero lint errors, all unit tests pass |
+| 7 | **Test Coverage** | 7 (Testing) | Unit ≥ 80%, all acceptance criteria have tests, integration tests pass |
+| 8 | **Security Clear** | 8 (Security) | Zero Critical/High findings, no hardcoded secrets, deps patched, compliance sign-off if enabled |
+| 9 | **Review Passed** | 9 (Review) | All 3 reviewers PASS, no Critical/High/Medium findings |
+| 10 | **Pipeline Green** | 10 (DevOps) | CI/CD runs without errors, Docker builds, runbook complete |
+| 11 | **Observability Ready** | 11 (Observability) | SLOs defined, health checks implemented, alerts configured |
+| 12 | **Retirement Complete** | 12 (Retirement, triggered) | ≥90 days notice, migration documented, compliant data retention, infra decommissioned, post-mortem complete |
 
-**Per-Phase Review:** After every phase (except Phase 0 and Phase 8), the orchestrator dispatches 3 blind reviewers on that phase’s artifacts. Both the quality gate AND per-phase review must PASS before advancing.
+**Per-Phase Review:** After every phase (except Phase 1 and Phase 9), the orchestrator dispatches 3 blind reviewers on that phase’s artifacts. Both the quality gate AND per-phase review must PASS before advancing.
+
+**Governance Gate (opt-in):** If `.sdlc/governance/` is present, every gate additionally checks risk-policy.yaml approvals, budget-policy.yaml limits, and token-policy.yaml limits — see [AI Governance Overview](governance/ai-governance-overview.md).
 
 ## Gate Details
+
+### Gate 0: Problem Validated
+```
+CHECK: Problem statement is clear and measurable
+CHECK: >=3 user pain points documented with evidence
+CHECK: Business case shows positive ROI or explicit strategic value
+CHECK: >=3 solution alternatives evaluated (including "don't build")
+CHECK: Go/No-Go decision documented with rationale
+OUTPUT: .sdlc/artifacts/problem-discovery/ contains all deliverables
+```
 
 ### Gate 1: Input Validation
 ```
@@ -135,6 +149,17 @@ CHECK: Logging configuration is structured (JSON)
 OUTPUT: .sdlc/artifacts/observability/ contains specs
 ```
 
+### Gate 12: Retirement Complete
+```
+CHECK: Deprecation timeline published (>=90 days notice, or emergency approval on record)
+CHECK: Migration path documented for all affected user/stakeholder segments
+CHECK: Data retention/deletion plan complies with active compliance frameworks
+CHECK: All infrastructure decommissioned or archived
+CHECK: Post-mortem completed with learnings
+CHECK: CRITICAL decommission actions have 2 recorded human sign-offs
+OUTPUT: .sdlc/artifacts/retirement/ contains all deliverables
+```
+
 ## Severity Model
 
 Findings from quality gates are classified by severity:
@@ -164,7 +189,7 @@ graph LR
 
 ## Blind Review System
 
-Used in Phase 8 (Review) and per-phase reviews. Three reviewers operate independently:
+Used in Phase 9 (Review) and per-phase reviews. Three reviewers operate independently:
 
 ```mermaid
 flowchart TD

@@ -1,0 +1,48 @@
+# Risk classification policy for the Autonomous SDLC Framework.
+# The orchestrator classifies decisions before execution and pauses
+# for human approval on HIGH/CRITICAL risk items.
+#
+# Edit freely — this file is copied once at `sdlc init` and never
+# overwritten by `sdlc upgrade`.
+
+risk_levels:
+  low:
+    description: "Cosmetic changes, documentation, tests"
+    approval_required: false
+    auto_execute: true
+
+  medium:
+    description: "Feature additions, refactoring, config changes"
+    approval_required: false
+    human_review_after: true
+
+  high:
+    description: "Architecture changes, security policies, data models"
+    approval_required: true
+    auto_execute: false
+
+  critical:
+    description: "Auth changes, payment logic, PII handling, production deploys, decommissioning"
+    approval_required: true
+    requires_sign_off: 2
+    compliance_check: true
+
+decision_classification:
+  - pattern: "change authentication"
+    risk: critical
+  - pattern: "payment|billing|pricing logic"
+    risk: critical
+  - pattern: "decommission|delete production data|permanently remove"
+    risk: critical
+  - pattern: "modify database schema"
+    risk: high
+  - pattern: "architecture decision|technology choice|adr"
+    risk: high
+  - pattern: "add api endpoint"
+    risk: medium
+  - pattern: "refactor|config change"
+    risk: medium
+  - pattern: "update documentation"
+    risk: low
+  - pattern: "add tests|write docs"
+    risk: low

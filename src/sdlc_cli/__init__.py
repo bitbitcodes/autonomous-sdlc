@@ -24,7 +24,31 @@ app = typer.Typer(
 run_app = typer.Typer(help="Manage multiple SDLC runs (specs/use-cases).")
 app.add_typer(run_app, name="run")
 
+approvals_app = typer.Typer(help="Manage governance approval requests (risk-policy.yaml gates).")
+app.add_typer(approvals_app, name="approvals")
+
+agents_app = typer.Typer(help="Add custom stage agents/subagents when the built-in 52 don't cover a need.")
+app.add_typer(agents_app, name="agents")
+
 console = Console()
+
+
+def _enabled_map_for(sdlc_dir: Path) -> dict[str, bool]:
+    """Return {phase_key: enabled} from phase-config.json, for the Mermaid map.
+
+    Disabled phases are hidden from the generated agent-map.md. Returns an
+    empty map (all enabled) if anything goes wrong.
+    """
+    try:
+        from .phases import (
+            load_config as _load_phase_config,
+            load_custom_agents as _load_custom_agents,
+            phase_enabled_map as _phase_enabled_map,
+        )
+
+        return _phase_enabled_map(_load_phase_config(sdlc_dir), _load_custom_agents(sdlc_dir))
+    except Exception:
+        return {}
 
 
 @app.command()
@@ -34,7 +58,7 @@ def init(
     integration: str | None = typer.Option(
         None,
         "--integration", "-i",
-        help="AI IDE integration (e.g. copilot, windsurf, cursor-agent, claude)",
+        help="AI IDE integration (e.g. copilot, devin, cursor-agent, claude)",
     ),
     project_name: str | None = typer.Option(
         None,
@@ -193,32 +217,25 @@ def status(
                 console.print(f"[red]Error parsing orchestrator.json:[/] {exc}")
                 raise typer.Exit(1)
 
-        phase_names = {
-            "0-bootstrap": "Bootstrap", "1-product": "Product",
-            "2-story-tasks": "Story-Tasks", "3-architecture": "Architecture",
-            "4-design": "Design", "5-development": "Development",
-            "6-testing": "Testing", "7-security": "Security",
-            "8-review": "Review", "9-devops": "DevOps",
-            "10-observability": "Observability",
-        }
-        agent_map = {
-            "0-bootstrap": "orch-sdlc",
-            "1-product": "stage-product (4 sub)",
-            "2-story-tasks": "stage-story-tasks (3 sub)",
-            "3-architecture": "stage-architecture (3 sub)",
-            "4-design": "stage-design (4 sub)",
-            "5-development": "stage-development (4 sub)",
-            "6-testing": "stage-testing (4 sub)",
-            "7-security": "stage-security (4 sub)",
-            "8-review": "stage-review (3 sub)",
-            "9-devops": "stage-devops",
-            "10-observability": "stage-observability",
-        }
+        # Derive phase names + agent labels from the single-source-of-truth
+        # registry in phases.py so this display can never drift from the
+        # actual pipeline.
+        from .phases import agent_registry
+
+        phase_names: dict[str, str] = {}
+        agent_map: dict[str, str] = {}
+        for _row in agent_registry():
+            phase_names[_row["key"]] = _row["name"]
+            n_sub = len(_row["subagents"])
+            agent_map[_row["key"]] = (
+                f"{_row['agent']} ({n_sub} sub)" if n_sub else _row["agent"]
+            )
         status_icons = {
             "complete": "[green]✅ complete[/]",
             "in_progress": "[yellow]🔄 active[/]",
             "pending": "[dim]⬜ pending[/]",
             "failed": "[red]❌ failed[/]",
+            "not_triggered": "[dim]⏸️  not triggered[/]",
         }
 
         # Summary
@@ -245,7 +262,13 @@ def status(
         phase_table.add_column("Gate", justify="center", width=6)
 
         phases = state.get("phases", {})
+        enabled_map = _enabled_map_for(sdlc_dir)
+        hidden = 0
         for key in sorted(phases.keys(), key=lambda k: int(k.split("-")[0])):
+            # Hide disabled phases (consistent with `sdlc phases`/dashboard).
+            if enabled_map.get(key, True) is False:
+                hidden += 1
+                continue
             phase = phases[key]
             num = key.split("-")[0]
             name = phase_names.get(key, key)
@@ -255,6 +278,11 @@ def status(
             phase_table.add_row(num, name, agent, st, gate)
 
         console.print(phase_table)
+        if hidden:
+            console.print(
+                f"[dim]{hidden} phase(s) hidden (disabled in phase-config.json). "
+                "Run [cyan]sdlc phases[/] to view/enable them.[/]"
+            )
         console.print()
 
     # ── Queue ──
@@ -308,7 +336,7 @@ def status(
         orch_d = _json.loads(orch_file_2.read_text()) if orch_file_2.exists() else {}
         trace_d = _json.loads(trace_file_2.read_text()) if trace_file_2.exists() else {"traces": []}
         mc_d = _json.loads(mc_file.read_text()) if mc_file.exists() else {}
-        md = generate_agent_map_md(orch_d, trace_d, mc_d)
+        md = generate_agent_map_md(orch_d, trace_d, mc_d, _enabled_map_for(sdlc_dir))
         map_path = run_dir / "state" / "agent-map.md"
         map_path.write_text(md, encoding="utf-8")
         console.print(f"[dim]Agent diagram written to {map_path.relative_to(sdlc_dir.parent)}[/]")
@@ -368,7 +396,7 @@ def trace(
                 mc_file_d = sdlc_dir / "model-config.json"
                 orch_d = _json.loads(orch_file_d.read_text()) if orch_file_d.exists() else {}
                 mc_d = _json.loads(mc_file_d.read_text()) if mc_file_d.exists() else {}
-                md_content = generate_agent_map_md(orch_d, data, mc_d)
+                md_content = generate_agent_map_md(orch_d, data, mc_d, _enabled_map_for(sdlc_dir))
                 map_path = run_dir / "state" / "agent-map.md"
                 map_path.write_text(md_content, encoding="utf-8")
                 console.print(f"[green]✅ Agent diagram written to {map_path}[/]")
@@ -517,7 +545,7 @@ def trace(
             mc_file_d = sdlc_dir / "model-config.json"
             orch_d = _json.loads(orch_file_d.read_text()) if orch_file_d.exists() else {}
             mc_d = _json.loads(mc_file_d.read_text()) if mc_file_d.exists() else {}
-            md_content = generate_agent_map_md(orch_d, data, mc_d)
+            md_content = generate_agent_map_md(orch_d, data, mc_d, _enabled_map_for(sdlc_dir))
             map_path = run_dir / "state" / "agent-map.md"
             map_path.write_text(md_content, encoding="utf-8")
             console.print(f"[green]✅ Agent diagram written to {map_path}[/]")
@@ -653,6 +681,190 @@ def models(
 
 
 @app.command()
+def phases(
+    target: str | None = typer.Argument(None, help="Project directory (default: current)"),
+    disable: str | None = typer.Option(None, "--disable", help="Disable a stage, e.g. stage-security"),
+    enable: str | None = typer.Option(None, "--enable", help="Enable a stage, e.g. stage-security"),
+    disable_sub: str | None = typer.Option(
+        None, "--disable-sub", help="Disable a subagent, format stage-id:sub-id"
+    ),
+    enable_sub: str | None = typer.Option(
+        None, "--enable-sub", help="Enable a subagent, format stage-id:sub-id"
+    ),
+    preset: str | None = typer.Option(
+        None, "--preset", help="Apply a preset profile: full | lean"
+    ),
+    edit: bool = typer.Option(False, "--edit", "-e", help="Open phase-config.json in $EDITOR"),
+    reset: bool = typer.Option(False, "--reset", help="Reset phase config to defaults (all enabled)"),
+) -> None:
+    """Show or manage which stages/subagents are enabled for this project."""
+    target_dir = Path(target).resolve() if target else Path.cwd()
+    sdlc_dir = target_dir / ".sdlc"
+
+    if not sdlc_dir.is_dir():
+        console.print("[red]Error:[/] .sdlc/ directory not found. Run [cyan]sdlc init[/] first.")
+        raise typer.Exit(1)
+
+    from .phases import (
+        BOOTSTRAP_ID,
+        PHASE_REGISTRY,
+        default_config,
+        known_stage_ids,
+        known_subagent_ids,
+        load_config,
+        load_custom_agents,
+        preset_config,
+        set_stage_enabled,
+        set_subagent_enabled,
+        summary,
+        write_config,
+    )
+
+    # ── Reset ──
+    if reset:
+        write_config(sdlc_dir)
+        console.print("[green]✅ Phase config reset to defaults (all enabled).[/]")
+        console.print(f"[dim]  → {sdlc_dir / 'phase-config.json'}[/]")
+        return
+
+    # ── Preset ──
+    if preset:
+        try:
+            new_config = preset_config(preset)
+        except ValueError as exc:
+            console.print(f"[red]Error:[/] {exc}")
+            raise typer.Exit(1)
+        write_config(sdlc_dir, new_config)
+        disabled = [
+            f"{PHASE_REGISTRY[s]['name']} ({PHASE_REGISTRY[s]['phase']})"
+            for s in PHASE_REGISTRY
+            if not new_config["stages"][s]["enabled"]
+        ]
+        console.print(f"[green]✅ Applied '[bold]{preset}[/]' preset.[/]")
+        if disabled:
+            console.print(f"[dim]  Disabled: {', '.join(disabled)}[/]")
+        else:
+            console.print("[dim]  All stages enabled.[/]")
+        console.print(f"[dim]  → {sdlc_dir / 'phase-config.json'}[/]\n")
+        # Fall through to render the resulting table so the user sees the effect.
+        config = new_config
+
+    # ── Edit ──
+    if edit:
+        import os
+        import subprocess
+
+        config_path = sdlc_dir / "phase-config.json"
+        if not config_path.exists():
+            write_config(sdlc_dir)
+        editor = os.environ.get("EDITOR", "vi")
+        subprocess.run([editor, str(config_path)])
+        return
+
+    if not preset:
+        config = load_config(sdlc_dir)
+        if config is None:
+            config = default_config()
+            write_config(sdlc_dir, config)
+
+    # ── Mutations ──
+    valid_stages = known_stage_ids(load_custom_agents(sdlc_dir))
+
+    def _check_stage(stage_id: str) -> None:
+        # Bootstrap is a known id but not disableable; let set_stage_enabled
+        # raise its specific "cannot be disabled" message rather than "unknown".
+        if stage_id == BOOTSTRAP_ID:
+            return
+        if stage_id not in valid_stages:
+            console.print(
+                f"[red]Error:[/] Unknown stage-id '[bold]{stage_id}[/]'. "
+                "Use the stage-id (e.g. [cyan]stage-devops[/]), not the phase number or name."
+            )
+            console.print(f"[dim]Valid stage-ids: {', '.join(valid_stages)}[/]")
+            raise typer.Exit(1)
+
+    def _check_sub(stage_id: str, sub_id: str) -> None:
+        _check_stage(stage_id)
+        valid_subs = known_subagent_ids(stage_id, load_custom_agents(sdlc_dir))
+        if sub_id not in valid_subs:
+            console.print(
+                f"[red]Error:[/] Unknown subagent '[bold]{sub_id}[/]' for stage '{stage_id}'."
+            )
+            console.print(
+                f"[dim]Valid subagents: {', '.join(valid_subs) if valid_subs else '(none)'}[/]"
+            )
+            raise typer.Exit(1)
+
+    mutated = False
+    try:
+        if disable:
+            _check_stage(disable)
+            set_stage_enabled(config, disable, False)
+            mutated = True
+        if enable:
+            _check_stage(enable)
+            set_stage_enabled(config, enable, True)
+            mutated = True
+        if disable_sub:
+            stage_id, _, sub_id = disable_sub.partition(":")
+            _check_sub(stage_id, sub_id)
+            set_subagent_enabled(config, stage_id, sub_id, False)
+            mutated = True
+        if enable_sub:
+            stage_id, _, sub_id = enable_sub.partition(":")
+            _check_sub(stage_id, sub_id)
+            set_subagent_enabled(config, stage_id, sub_id, True)
+            mutated = True
+    except ValueError as exc:
+        console.print(f"[red]Error:[/] {exc}")
+        raise typer.Exit(1)
+
+    if mutated:
+        write_config(sdlc_dir, config)
+        console.print("[green]✅ Phase config updated.[/]")
+        console.print(f"[dim]  → {sdlc_dir / 'phase-config.json'}[/]\n")
+
+    # ── Display ──
+    print_banner()
+
+    custom_agents = load_custom_agents(sdlc_dir)
+
+    table = Table(title="Phase / Stage / Subagent Configuration", show_lines=True)
+    table.add_column("Phase", justify="right", min_width=5)
+    table.add_column("Stage", style="bold", min_width=26)
+    table.add_column("Status", min_width=10)
+    table.add_column("Subagents", min_width=40)
+
+    for row in summary(config, custom_agents):
+        status = "[green]✓ enabled[/]" if row["enabled"] else "[red]✗ disabled[/]"
+        stage_name = f"{row['name']} [magenta](custom)[/]" if row["is_custom"] else row["name"]
+        if row["subagents"]:
+            sub_parts = []
+            for sub in row["subagents"]:
+                mark = "[green]✓[/]" if sub["enabled"] else "[red]✗[/]"
+                tag = " [magenta](custom)[/]" if sub["is_custom"] else ""
+                sub_parts.append(f"{mark} {sub['id']}{tag}")
+            subs_display = "\n".join(sub_parts)
+        else:
+            subs_display = "[dim]—[/]"
+        table.add_row(str(row["phase"]), stage_name, status, subs_display)
+
+    console.print(table)
+    console.print(
+        "\n[dim]Phase 1 (Bootstrap) is orchestrator-direct and always runs — not configurable.[/]"
+    )
+    console.print(f"[dim]Config: {sdlc_dir / 'phase-config.json'}[/]")
+    console.print(
+        "[dim]Disable: sdlc phases --disable stage-security  |  "
+        "Disable subagent: sdlc phases --disable-sub stage-testing:sub-regression-test[/]"
+    )
+    console.print(
+        "[dim]Presets: sdlc phases --preset lean (common core) | --preset full (all enabled)[/]"
+    )
+    console.print("[dim]Edit with: sdlc phases --edit  |  Reset with: sdlc phases --reset[/]")
+
+
+@app.command()
 def version() -> None:
     """Show the autonomous-sdlc version."""
     console.print(f"autonomous-sdlc {__version__}")
@@ -692,6 +904,419 @@ def upgrade(
     else:
         console.print("[green]Framework upgraded.[/] Runtime state untouched.")
     console.print()
+
+
+@app.command("cost-report")
+def cost_report(
+    target: str | None = typer.Argument(None, help="Project directory (default: current)"),
+    run: str | None = typer.Option(None, "--run", "-r", help="Run name/slug (default: active run)"),
+) -> None:
+    """Show token usage, cost breakdown, retry stats, and budget status."""
+    target_dir = Path(target).resolve() if target else Path.cwd()
+    sdlc_dir = target_dir / ".sdlc"
+
+    if not sdlc_dir.is_dir():
+        console.print("[red]Error:[/] .sdlc/ directory not found. Run [cyan]sdlc init[/] first.")
+        raise typer.Exit(1)
+
+    from .cost import build_report, load_budget_limit, load_usage
+
+    run_dir = resolve_run_dir(sdlc_dir, run)
+    usage = load_usage(run_dir)
+    budget_limit = load_budget_limit(sdlc_dir)
+    report = build_report(usage, budget_limit)
+
+    print_banner(console)
+
+    summary = Table(title="Token & Cost Summary", show_lines=False, box=None, padding=(0, 2))
+    summary.add_column(style="bold")
+    summary.add_column()
+    summary.add_row("Total Tokens", f"{report['total_tokens']:,}")
+    summary.add_row("Total Cost", f"${report['total_cost_usd']:.2f}")
+    summary.add_row(
+        "Budget",
+        f"${report['budget_limit_usd']:.2f} ({report['budget_pct_used']:.0f}% utilized)",
+    )
+    console.print(summary)
+    console.print()
+
+    breakdown_table = Table(title="Cost Breakdown", show_lines=True)
+    breakdown_table.add_column("Component", min_width=22)
+    breakdown_table.add_column("Tokens", justify="right", min_width=12)
+    breakdown_table.add_column("% of Total", justify="right", min_width=10)
+    for component, tokens in report["breakdown"].items():
+        pct = report["breakdown_pct"].get(component, 0.0)
+        breakdown_table.add_row(component.replace("_", " ").title(), f"{tokens:,}", f"{pct:.1f}%")
+    console.print(breakdown_table)
+    console.print()
+
+    retry_stats = report["retry_stats"]
+    gate_stats = report["gate_stats"]
+    stats_table = Table(title="Retry & Gate Stats", show_lines=False, box=None, padding=(0, 2))
+    stats_table.add_column(style="bold")
+    stats_table.add_column()
+    stats_table.add_row("Total Retries", str(retry_stats.get("total_retries", 0)))
+    stats_table.add_row("Tasks Failed First Attempt", str(retry_stats.get("tasks_failed_first_attempt", 0)))
+    stats_table.add_row("Avg Retries / Task", f"{retry_stats.get('average_retries_per_task', 0.0):.2f}")
+    stats_table.add_row("Gates Passed First Attempt", str(gate_stats.get("gates_passed_first_attempt", 0)))
+    stats_table.add_row("Gates Failed", str(gate_stats.get("gates_failed", 0)))
+    console.print(stats_table)
+
+    if report["budget_pct_used"] >= 100:
+        console.print("\n[red]⚠️  Budget exceeded.[/] Review .sdlc/governance/budget-policy.yaml")
+    elif report["budget_pct_used"] >= 80:
+        console.print("\n[yellow]⚠️  Budget >80% utilized.[/]")
+
+
+@app.command()
+def explain(
+    decision_id: str = typer.Argument(..., help="Decision ID, e.g. DEC-001"),
+    target: str | None = typer.Option(None, "--target", "-t", help="Project directory (default: current)"),
+) -> None:
+    """Explain a logged decision — alternatives considered, rationale, approver, impact."""
+    target_dir = Path(target).resolve() if target else Path.cwd()
+    sdlc_dir = target_dir / ".sdlc"
+
+    if not sdlc_dir.is_dir():
+        console.print("[red]Error:[/] .sdlc/ directory not found. Run [cyan]sdlc init[/] first.")
+        raise typer.Exit(1)
+
+    from .explain import find_decision
+
+    decision = find_decision(sdlc_dir, decision_id)
+    if decision is None:
+        console.print(f"[red]Error:[/] Decision '{decision_id}' not found in decision-log.json.")
+        raise typer.Exit(1)
+
+    print_banner(console)
+    console.print(f"[bold cyan]{decision.get('id')}[/] — {decision.get('decision', '')}")
+    console.print(f"[dim]Phase:[/] {decision.get('phase', '—')}   [dim]Agent:[/] {decision.get('agent', '—')}")
+    console.print(f"[dim]Timestamp:[/] {decision.get('timestamp', '—')}\n")
+
+    if decision.get("rationale"):
+        console.print(f"[bold]Rationale:[/] {decision['rationale']}\n")
+
+    alternatives = decision.get("alternatives_considered", [])
+    if alternatives:
+        alt_table = Table(title="Alternatives Considered", show_lines=True)
+        alt_table.add_column("Option", min_width=16)
+        alt_table.add_column("Pros", min_width=25)
+        alt_table.add_column("Cons", min_width=25)
+        alt_table.add_column("Score", justify="right", width=8)
+        for alt in alternatives:
+            alt_table.add_row(
+                str(alt.get("option", "")),
+                ", ".join(alt.get("pros", [])),
+                ", ".join(alt.get("cons", [])),
+                str(alt.get("score", "—")),
+            )
+        console.print(alt_table)
+        console.print()
+
+    console.print(f"[bold]Risk assessment:[/] {decision.get('risk_assessment', '—')}")
+    console.print(f"[bold]Approval status:[/] {decision.get('approval_status', '—')}")
+    if decision.get("approved_by"):
+        console.print(f"[bold]Approved by:[/] {decision['approved_by']}")
+
+    impact = decision.get("impact_analysis")
+    if impact:
+        console.print("\n[bold]Impact analysis:[/]")
+        for k, v in impact.items():
+            console.print(f"  {k.replace('_', ' ').title()}: {v}")
+
+
+# ---------------------------------------------------------------------------
+# Governance approval subcommands
+# ---------------------------------------------------------------------------
+
+
+@approvals_app.command("list")
+def approvals_list(
+    target: str | None = typer.Option(None, "--target", "-t", help="Project directory (default: current)"),
+    all_: bool = typer.Option(False, "--all", help="Show resolved approvals too (default: pending only)"),
+) -> None:
+    """Show pending (and optionally resolved) approval requests."""
+    target_dir = Path(target).resolve() if target else Path.cwd()
+    sdlc_dir = target_dir / ".sdlc"
+
+    if not sdlc_dir.is_dir():
+        console.print("[red]Error:[/] .sdlc/ directory not found. Run [cyan]sdlc init[/] first.")
+        raise typer.Exit(1)
+
+    from .approvals import load_pending
+
+    approvals = load_pending(sdlc_dir)
+    if not all_:
+        approvals = [a for a in approvals if a.get("status") == "pending"]
+
+    if not approvals:
+        console.print("[dim]No approval requests found.[/]")
+        return
+
+    table = Table(title="Governance Approvals", show_lines=True)
+    table.add_column("ID", style="cyan", min_width=10)
+    table.add_column("Phase", min_width=14)
+    table.add_column("Agent", min_width=16)
+    table.add_column("Decision", min_width=30)
+    table.add_column("Risk", min_width=10)
+    table.add_column("Status", min_width=10)
+
+    for a in approvals:
+        status = a.get("status", "pending")
+        style = {"pending": "yellow", "approved": "green", "rejected": "red"}.get(status, "white")
+        table.add_row(
+            a.get("id", "—"),
+            a.get("phase", "—"),
+            a.get("agent", "—"),
+            a.get("decision", "—"),
+            a.get("risk_level", "—"),
+            f"[{style}]{status}[/{style}]",
+        )
+    console.print(table)
+
+
+@approvals_app.command("approve")
+def approvals_approve(
+    approval_id: str = typer.Argument(..., help="Approval ID, e.g. APPR-001"),
+    target: str | None = typer.Option(None, "--target", "-t", help="Project directory (default: current)"),
+) -> None:
+    """Approve a pending governance decision."""
+    target_dir = Path(target).resolve() if target else Path.cwd()
+    sdlc_dir = target_dir / ".sdlc"
+
+    if not sdlc_dir.is_dir():
+        console.print("[red]Error:[/] .sdlc/ directory not found.")
+        raise typer.Exit(1)
+
+    from .approvals import resolve_approval
+
+    result = resolve_approval(sdlc_dir, approval_id, approve=True)
+    if result is None:
+        console.print(f"[red]Error:[/] Approval '{approval_id}' not found.")
+        raise typer.Exit(1)
+
+    console.print(f"[green]✅ Approved:[/] {approval_id} — {result.get('decision', '')}")
+    console.print("[dim]Logged to .sdlc/governance/decision-log.json[/]")
+
+
+@approvals_app.command("reject")
+def approvals_reject(
+    approval_id: str = typer.Argument(..., help="Approval ID, e.g. APPR-001"),
+    reason: str = typer.Option(..., "--reason", help="Reason for rejection"),
+    target: str | None = typer.Option(None, "--target", "-t", help="Project directory (default: current)"),
+) -> None:
+    """Reject a pending governance decision with a reason."""
+    target_dir = Path(target).resolve() if target else Path.cwd()
+    sdlc_dir = target_dir / ".sdlc"
+
+    if not sdlc_dir.is_dir():
+        console.print("[red]Error:[/] .sdlc/ directory not found.")
+        raise typer.Exit(1)
+
+    from .approvals import resolve_approval
+
+    result = resolve_approval(sdlc_dir, approval_id, approve=False, reason=reason)
+    if result is None:
+        console.print(f"[red]Error:[/] Approval '{approval_id}' not found.")
+        raise typer.Exit(1)
+
+    console.print(f"[red]❌ Rejected:[/] {approval_id} — {reason}")
+    console.print("[dim]Logged to .sdlc/governance/decision-log.json[/]")
+
+
+@approvals_app.command("configure")
+def approvals_configure(
+    target: str | None = typer.Option(None, "--target", "-t", help="Project directory (default: current)"),
+) -> None:
+    """Configure notification channels for approval requests (Slack, email)."""
+    target_dir = Path(target).resolve() if target else Path.cwd()
+    sdlc_dir = target_dir / ".sdlc"
+    gov_dir = sdlc_dir / "governance"
+    gov_dir.mkdir(parents=True, exist_ok=True)
+    config_path = gov_dir / "notification-config.yaml"
+
+    console.print("[bold cyan]Configure approval notifications[/]\n")
+    slack_enabled = typer.confirm("Enable Slack notifications?", default=False)
+    slack_webhook = typer.prompt("Slack webhook URL", default="") if slack_enabled else ""
+    email_enabled = typer.confirm("Enable email notifications?", default=False)
+    email_to = typer.prompt("Notify email address(es), comma-separated", default="") if email_enabled else ""
+
+    config = {
+        "channels": {
+            "slack": {"enabled": slack_enabled, "webhook_url": slack_webhook},
+            "email": {
+                "enabled": email_enabled,
+                "smtp_host": "",
+                "smtp_port": 587,
+                "from_address": "",
+                "to_addresses": [e.strip() for e in email_to.split(",") if e.strip()],
+            },
+            "desktop": {"enabled": False},
+        },
+        "default_channel": "slack" if slack_enabled else ("email" if email_enabled else "cli"),
+    }
+    try:
+        import yaml  # type: ignore
+
+        config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+    except ImportError:
+        import json as _json
+
+        config_path.write_text(_json.dumps(config, indent=2), encoding="utf-8")
+
+    console.print(f"\n[green]✅ Notification config saved:[/] {config_path}")
+
+
+# ---------------------------------------------------------------------------
+# Custom agent subcommands (sdlc agents ...)
+# ---------------------------------------------------------------------------
+
+
+def _require_sdlc_dir(target: str | None) -> Path:
+    target_dir = Path(target).resolve() if target else Path.cwd()
+    sdlc_dir = target_dir / ".sdlc"
+    if not sdlc_dir.is_dir():
+        console.print("[red]Error:[/] .sdlc/ directory not found. Run [cyan]sdlc init[/] first.")
+        raise typer.Exit(1)
+    return sdlc_dir
+
+
+@agents_app.command("list")
+def agents_list(
+    target: str | None = typer.Option(None, "--target", "-t", help="Project directory (default: current)"),
+) -> None:
+    """List registered custom stage agents and subagents."""
+    sdlc_dir = _require_sdlc_dir(target)
+
+    from .phases import load_custom_agents
+
+    custom = load_custom_agents(sdlc_dir)
+    stages = custom.get("custom_stages", {})
+    subs = custom.get("custom_subagents", {})
+
+    if not stages and not subs:
+        console.print("[dim]No custom agents registered. Add one with `sdlc agents add-stage` or `sdlc agents add-subagent`.[/]")
+        return
+
+    if stages:
+        table = Table(title="Custom Stage Agents")
+        table.add_column("Stage ID", style="bold")
+        table.add_column("Name")
+        table.add_column("Anchor")
+        table.add_column("Prompt")
+        for sid, entry in stages.items():
+            anchor = entry.get("anchor", {})
+            table.add_row(sid, entry.get("name", ""), f"{anchor.get('position')} {anchor.get('stage_id')}", entry.get("prompt", ""))
+        console.print(table)
+
+    if subs:
+        table = Table(title="Custom Subagents")
+        table.add_column("Subagent ID", style="bold")
+        table.add_column("Name")
+        table.add_column("Attached To Stage")
+        table.add_column("Prompt")
+        for sid, entry in subs.items():
+            table.add_row(sid, entry.get("name", ""), entry.get("attach_to_stage", ""), entry.get("prompt", ""))
+        console.print(table)
+
+    console.print("\n[dim]Run `sdlc phases` to see them in the full pipeline order alongside built-ins.[/]")
+
+
+@agents_app.command("add-subagent")
+def agents_add_subagent(
+    sub_id: str = typer.Argument(..., help="New subagent id, e.g. sub-terraform-validator"),
+    stage: str = typer.Option(..., "--stage", help="Stage id to attach to, e.g. stage-devops"),
+    name: str = typer.Option(..., "--name", help="Human-readable name, e.g. 'Terraform Validator'"),
+    description: str = typer.Option(..., "--description", help="What this subagent's focused task/goal is"),
+    target: str | None = typer.Option(None, "--target", "-t", help="Project directory (default: current)"),
+) -> None:
+    """Scaffold and register a custom subagent attached to an existing stage."""
+    sdlc_dir = _require_sdlc_dir(target)
+
+    from .custom_agents import CustomAgentError, add_subagent
+
+    try:
+        prompt_path = add_subagent(sdlc_dir, sub_id=sub_id, stage_id=stage, name=name, description=description)
+    except CustomAgentError as exc:
+        console.print(f"[red]Error:[/] {exc}")
+        raise typer.Exit(1)
+
+    console.print(f"[green]✅ Custom subagent '{sub_id}' created and enabled on '{stage}'.[/]")
+    console.print(f"[dim]  → Prompt:  {prompt_path}[/]")
+    console.print(f"[dim]  → Registry: {sdlc_dir / 'custom-agents.json'}[/]")
+    console.print(f"[dim]  → Fill in the {{...}} placeholders in the prompt file, then edit it further as needed.[/]")
+    console.print("[dim]Disable/enable later with: sdlc phases --disable-sub / --enable-sub[/]")
+
+
+@agents_app.command("add-stage")
+def agents_add_stage(
+    stage_id: str = typer.Argument(..., help="New stage id, e.g. stage-localization"),
+    name: str = typer.Option(..., "--name", help="Human-readable name, e.g. 'Localization'"),
+    description: str = typer.Option(..., "--description", help="What success looks like for this new phase"),
+    after: str | None = typer.Option(None, "--after", help="Anchor stage id to insert this stage after"),
+    before: str | None = typer.Option(None, "--before", help="Anchor stage id to insert this stage before"),
+    target: str | None = typer.Option(None, "--target", "-t", help="Project directory (default: current)"),
+) -> None:
+    """Scaffold and register a custom stage agent (new phase) at a specific point in the pipeline.
+
+    Renumbers built-in phase numbers after the insertion point, including any
+    in-progress .sdlc/state/orchestrator.json.
+    """
+    sdlc_dir = _require_sdlc_dir(target)
+
+    if bool(after) == bool(before):
+        console.print("[red]Error:[/] Specify exactly one of --after or --before.")
+        raise typer.Exit(1)
+    anchor_position = "after" if after else "before"
+    anchor_stage_id = after or before
+
+    from .custom_agents import CustomAgentError, add_stage
+
+    try:
+        prompt_path, new_numbers = add_stage(
+            sdlc_dir,
+            stage_id=stage_id,
+            name=name,
+            description=description,
+            anchor_position=anchor_position,
+            anchor_stage_id=anchor_stage_id,
+        )
+    except CustomAgentError as exc:
+        console.print(f"[red]Error:[/] {exc}")
+        raise typer.Exit(1)
+
+    console.print(f"[green]✅ Custom stage '{stage_id}' created as Phase {new_numbers[stage_id]}.[/]")
+    console.print(f"[dim]  → Prompt:   {prompt_path}[/]")
+    console.print(f"[dim]  → Registry: {sdlc_dir / 'custom-agents.json'}[/]")
+    console.print("[dim]  → Built-in phase numbers after the insertion point have shifted — run `sdlc phases` to see the new order.[/]")
+    if (sdlc_dir / "state" / "orchestrator.json").exists():
+        console.print("[dim]  → .sdlc/state/orchestrator.json was renumbered to match (existing phase status/gate/review preserved).[/]")
+    console.print(f"[dim]  → Fill in the {{...}} placeholders in the prompt file, then add subagents with `sdlc agents add-subagent --stage {stage_id}`.[/]")
+
+
+@agents_app.command("remove")
+def agents_remove(
+    agent_id: str = typer.Argument(..., help="Custom stage id (stage-*) or subagent id (sub-*) to remove"),
+    target: str | None = typer.Option(None, "--target", "-t", help="Project directory (default: current)"),
+) -> None:
+    """Remove a registered custom stage agent or subagent (and its prompt file)."""
+    sdlc_dir = _require_sdlc_dir(target)
+
+    from .custom_agents import CustomAgentError, remove_stage, remove_subagent
+
+    try:
+        if agent_id.startswith("sub-"):
+            remove_subagent(sdlc_dir, agent_id)
+        elif agent_id.startswith("stage-"):
+            remove_stage(sdlc_dir, agent_id)
+        else:
+            console.print("[red]Error:[/] agent_id must start with 'stage-' or 'sub-'.")
+            raise typer.Exit(1)
+    except CustomAgentError as exc:
+        console.print(f"[red]Error:[/] {exc}")
+        raise typer.Exit(1)
+
+    console.print(f"[green]✅ Removed custom agent '{agent_id}'.[/]")
 
 
 # ---------------------------------------------------------------------------

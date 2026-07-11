@@ -32,11 +32,21 @@ def get_integration(key: str) -> type[IntegrationBase]:
 
 
 def list_integrations() -> list[tuple[str, str]]:
-    """Return sorted list of (key, display_name) tuples for all registered integrations."""
+    """Return sorted list of (key, display_name) tuples for all registered integrations.
+
+    Integrations may be registered under more than one dict key (e.g. legacy
+    aliases like "windsurf" -> DevinDesktopIntegration). Each distinct
+    integration class is only listed once, under its canonical ``key``.
+    """
     _register_builtins()
-    return sorted(
-        (cls.key, cls.display_name) for cls in INTEGRATION_REGISTRY.values()
-    )
+    seen: set[type] = set()
+    result: list[tuple[str, str]] = []
+    for cls in INTEGRATION_REGISTRY.values():
+        if cls in seen:
+            continue
+        seen.add(cls)
+        result.append((cls.key, cls.display_name))
+    return sorted(result)
 
 
 _builtins_registered = False
@@ -55,8 +65,8 @@ def _register_builtins() -> None:
         codex,
         copilot,
         cursor,
+        devin,
         gemini,
         kilocode,
         opencode,
-        windsurf,
     )

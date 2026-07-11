@@ -17,6 +17,10 @@ pip install -e ".[test,dev]"
 
 **Requirements:** Python 3.11+
 
+## Conventions
+
+Most commands accept an optional `[TARGET]` — the **project directory** containing `.sdlc/`. Omit it to use the current working directory, or pass a path to operate on another project (e.g. `sdlc status ./my-app`). In usage lines, `[...]` marks optional arguments and `<...>` marks required ones.
+
 ## Commands
 
 ### `sdlc init`
@@ -50,7 +54,7 @@ sdlc init [TARGET] [OPTIONS]
 | Key | IDE |
 |-----|-----|
 | `copilot` | GitHub Copilot |
-| `windsurf` | Windsurf |
+| `devin` | Devin Desktop (`windsurf` kept as a back-compat alias) |
 | `claude` | Claude Code |
 | `cursor-agent` | Cursor |
 | `opencode` | opencode |
@@ -67,7 +71,7 @@ sdlc init .
 
 # Non-interactive with all options
 sdlc init . \
-  --integration windsurf \
+  --integration devin \
   --project-name "Task API" \
   --tech-stack "Python, FastAPI, PostgreSQL" \
   --team-size "3 developers" \
@@ -432,13 +436,184 @@ sdlc models --reset
 sdlc models /path/to/project
 ```
 
+### `sdlc phases`
+
+Show or manage which stages and subagents are enabled for this project. Disabled stages are skipped entirely by the orchestrator (no dispatch, no quality gate, no per-phase review); disabled subagents are skipped within an otherwise-enabled stage.
+
+```bash
+sdlc phases [TARGET] [OPTIONS]
+```
+
+**Arguments:**
+
+| Argument | Description |
+|----------|-------------|
+| `TARGET` | Project directory (default: current directory) |
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--disable <stage-id>` | Disable an entire stage, e.g. `stage-security` |
+| `--enable <stage-id>` | Re-enable a stage |
+| `--disable-sub <stage-id>:<sub-id>` | Disable one subagent within a stage, e.g. `stage-testing:sub-regression-test` |
+| `--enable-sub <stage-id>:<sub-id>` | Re-enable a subagent |
+| `--preset <name>` | Apply a preset profile: `full` or `lean` (see below) |
+| `--edit, -e` | Open `phase-config.json` in `$EDITOR` |
+| `--reset` | Reset phase config to defaults (everything enabled) |
+
+**Presets:**
+
+| Preset | Enabled stages | Disabled stages |
+|--------|----------------|-----------------|
+| `full` | All (same as `--reset`) | None |
+| `lean` | Product, Story-Tasks, Architecture, Design, Development, Testing, Review, DevOps (+ Bootstrap, always on) | Problem Discovery (0), Security (8), Observability (11), Retirement (12) |
+
+The `lean` preset is a non-breaking, opt-in "common core" for typical/prototype builds. `sdlc init` and `--reset` still ship every stage enabled. Applying a preset rewrites `phase-config.json` (subagent selections are preserved, so re-enabling a stage restores its subagents).
+
+**Valid stage-ids** (use these with `--disable` / `--enable`, *not* the phase number or display name):
+
+| Phase | Stage-id |
+|-------|----------|
+| 0 | `stage-problem-discovery` |
+| 2 | `stage-product` |
+| 3 | `stage-story-tasks` |
+| 4 | `stage-architecture` |
+| 5 | `stage-design` |
+| 6 | `stage-development` |
+| 7 | `stage-testing` |
+| 8 | `stage-security` |
+| 9 | `stage-review` |
+| 10 | `stage-devops` |
+| 11 | `stage-observability` |
+| 12 | `stage-retirement` |
+
+Phase 1 (Bootstrap) has no stage-id and cannot be disabled. Run `sdlc phases` with no flags to see the current list at any time.
+
+**Config File:** `.sdlc/phase-config.json` (committed, not gitignored)
+
+```json
+{
+  "stages": {
+    "stage-security": {
+      "enabled": false,
+      "subagents": {
+        "sub-secret-scanner": true,
+        "sub-dependency-scanner": true,
+        "sub-owasp-reviewer": true,
+        "sub-policy-validator": true
+      }
+    },
+    "stage-testing": {
+      "enabled": true,
+      "subagents": {
+        "sub-unit-test": true,
+        "sub-integration-test": true,
+        "sub-regression-test": false,
+        "sub-test-data": true
+      }
+    }
+  }
+}
+```
+
+**Rules:**
+- Absent file, absent stage entry, or `enabled: true`/missing → treated as enabled (default, v3.0/v4.0-compatible)
+- Disabling a stage implicitly disables all of its subagents regardless of their individual flags
+- Phase 1 (Bootstrap) has no stage agent and is never configurable — it always runs
+- A disabled phase's status in `orchestrator.json` becomes `"skipped"` (gate: `"skipped"`) rather than `"pass"`/`"fail"` — see `references/sdlc-phases.md`
+- No dependency validation is performed — disabling, e.g., Architecture does not block Design from running; it's the user's responsibility to disable sensibly
+
+**Examples:**
+
+```bash
+# View current phase/subagent enablement
+sdlc phases
+
+# Apply the lean common-core preset (skips Problem Discovery, Security,
+# Observability, Retirement)
+sdlc phases --preset lean
+
+# Go back to all stages enabled
+sdlc phases --preset full
+
+# Skip Security and DevOps entirely for an internal prototype
+sdlc phases --disable stage-security
+sdlc phases --disable stage-devops
+
+# Keep Testing but skip regression tests specifically
+sdlc phases --disable-sub stage-testing:sub-regression-test
+
+# Re-enable a previously disabled stage
+sdlc phases --enable stage-security
+
+# Edit phase config in $EDITOR
+sdlc phases --edit
+
+# Reset to all-enabled defaults
+sdlc phases --reset
+```
+
+### `sdlc cost-report`
+
+Show token usage, cost breakdown, retry/gate statistics, and budget status for a run.
+
+```bash
+sdlc cost-report [TARGET] [OPTIONS]
+```
+
+| Flag | Short | Description |
+|------|-------|--------------|
+| `--run` | `-r` | Run name/slug (default: active run) |
+
+Reads `.sdlc/state/token-usage.json` and, if present, `.sdlc/governance/budget-policy.yaml` for the budget ceiling.
+
+```bash
+sdlc cost-report
+sdlc cost-report --run user-auth-jwt-tokens
+```
+
+### `sdlc explain`
+
+Explain a logged governance decision — alternatives considered, rationale, approver, and impact.
+
+```bash
+sdlc explain <DECISION_ID> [--target TARGET]
+```
+
+```bash
+sdlc explain DEC-001
+```
+
+Reads `.sdlc/governance/decision-log.json`.
+
+### `sdlc approvals`
+
+Manage governance approval requests raised by HIGH/CRITICAL risk decisions (per `.sdlc/governance/risk-policy.yaml`).
+
+```bash
+sdlc approvals list [--all] [--target TARGET]
+sdlc approvals approve <APPROVAL_ID> [--target TARGET]
+sdlc approvals reject <APPROVAL_ID> --reason "..." [--target TARGET]
+sdlc approvals configure [--target TARGET]
+```
+
+```bash
+sdlc approvals list
+sdlc approvals approve APPR-001
+sdlc approvals reject APPR-002 --reason "Use MySQL instead"
+sdlc approvals configure   # interactive Slack/email setup
+```
+
+Approve/reject actions append an entry to `.sdlc/governance/decision-log.json`, retrievable via `sdlc explain`.
+
 ### `sdlc version`
 
 Print the installed version.
 
 ```bash
 sdlc version
-# autonomous-sdlc 3.0.0
+# autonomous-sdlc 4.0.0
 ```
 
 ## Scaffold Behavior
@@ -482,7 +657,7 @@ These are copied from the installed package into `.sdlc/framework/`:
 
 | Directory | Contents |
 |-----------|----------|
-| `agents/` | 40 agent prompt files (orchestrator + 10 stage + 29 sub) |
+| `agents/` | 52 agent prompt files (orchestrator + 12 stage + 39 sub) |
 | `references/` | 5 reference docs (workflow, phases, agents, memory, quality) |
 | `skills/` | 5 skill modules (prompting, dispatch, gates, testing, memory) |
 | `templates/` | 3 agent templates (stage, subagent, handoff) |
@@ -513,7 +688,7 @@ Placed at each IDE's native location:
 
 | IDE | Files Created |
 |-----|--------------|
-| Windsurf | `.windsurf/rules/sdlc.md`, `.windsurf/workflows/sdlc.orchestrator.md` |
+| Devin Desktop | `.devin/rules/sdlc.md`, `.devin/workflows/sdlc.orchestrator.md` |
 | Copilot | `.github/copilot-instructions.md`, `.github/agents/sdlc.orchestrator.md` |
 | Claude Code | `CLAUDE.md`, `.claude/commands/sdlc-orchestrator.md` |
 | Cursor | `.cursor/rules/sdlc.mdc` |
@@ -557,7 +732,7 @@ Saved in `.sdlc/init-options.json`:
 ```json
 {
   "projectName": "My API",
-  "integration": "windsurf",
+  "integration": "devin",
   "techStack": "Python, FastAPI, PostgreSQL",
   "teamSize": "3 developers",
   "complexity": "auto"

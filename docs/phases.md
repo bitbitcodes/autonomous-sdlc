@@ -2,24 +2,28 @@
 
 ## Phase Pipeline
 
-The framework executes 11 sequential phases, each with a quality gate. After every phase (except Phase 0 and Phase 8), 3 blind reviewers assess that phase’s artifacts.
+The framework executes 13 sequential phases (0-12), each with a quality gate. Phase 12 (Retirement) is triggered, not run by default. After every phase (except Phase 1 and Phase 9), 3 blind reviewers assess that phase’s artifacts.
 
 ```mermaid
 flowchart TD
-    P0["Phase 0: Bootstrap<br/>Initialize, normalize spec"] -->|"Gate 1: Spec Valid"| P1
-    P1["Phase 1: Product<br/>Requirements, risks, criteria"] -->|"Gate 2: Requirements Complete"| P2
-    P2["Phase 2: Story-Tasks<br/>Epics, stories, tasks, deps"] -->|"Gate 3: Story-Task Traceable"| P3
-    P3["Phase 3: Architecture<br/>System design, ADRs"] -->|"Gate 4: Architecture Sound"| P4
-    P4["Phase 4: Design<br/>APIs, data model, NFRs"] -->|"Gate 5: Design Complete"| P5
-    P5["Phase 5: Development<br/>Implement codebase"] -->|"Gate 6: Build Green"| P6
-    P6["Phase 6: Testing<br/>Unit, integration, regression"] -->|"Gate 7: Coverage Met"| P7
-    P7["Phase 7: Security<br/>Scan, audit, remediate"] -->|"Gate 8: Security Clear"| P8
-    P8["Phase 8: Review<br/>Blind 3-reviewer system"] -->|"Gate 9: Review Passed"| P9
-    P9["Phase 9: DevOps<br/>CI/CD, Docker, deploy"] -->|"Gate 10: Pipeline Green"| P10
-    P10["Phase 10: Observability<br/>SLOs, alerts, monitoring"] -->|"Gate 11: Observability Ready"| DONE
+    PN1["Phase 0: Problem Discovery<br/>Validate problem, go/no-go"] -->|"Gate 0: Problem Validated"| P0
+    P0["Phase 1: Bootstrap<br/>Initialize, normalize spec"] -->|"Gate 1: Spec Valid"| P1
+    P1["Phase 2: Product<br/>Requirements, risks, criteria"] -->|"Gate 2: Requirements Complete"| P2
+    P2["Phase 3: Story-Tasks<br/>Epics, stories, tasks, deps"] -->|"Gate 3: Story-Task Traceable"| P3
+    P3["Phase 4: Architecture<br/>System design, ADRs"] -->|"Gate 4: Architecture Sound"| P4
+    P4["Phase 5: Design<br/>APIs, data model, NFRs"] -->|"Gate 5: Design Complete"| P5
+    P5["Phase 6: Development<br/>Implement codebase"] -->|"Gate 6: Build Green"| P6
+    P6["Phase 7: Testing<br/>Unit, integration, regression"] -->|"Gate 7: Coverage Met"| P7
+    P7["Phase 8: Security<br/>Scan, audit, remediate"] -->|"Gate 8: Security Clear"| P8
+    P8["Phase 9: Review<br/>Blind 3-reviewer system"] -->|"Gate 9: Review Passed"| P9
+    P9["Phase 10: DevOps<br/>CI/CD, Docker, deploy"] -->|"Gate 10: Pipeline Green"| P10
+    P10["Phase 11: Observability<br/>SLOs, alerts, monitoring"] -->|"Gate 11: Observability Ready"| DONE
+    DONE -.->|"triggered"| P12["Phase 12: Retirement<br/>Deprecate, migrate, decommission"]
+    P12 -->|"Gate 12: Retirement Complete"| RETIRED["RETIRED"]
 
     DONE["PROJECT COMPLETE"]
 
+    style PN1 fill:#00b894,color:#fff
     style P0 fill:#6c5ce7,color:#fff
     style P1 fill:#a29bfe,color:#fff
     style P2 fill:#74b9ff,color:#fff
@@ -31,10 +35,16 @@ flowchart TD
     style P8 fill:#ff7675,color:#fff
     style P9 fill:#fd79a8,color:#fff
     style P10 fill:#e17055,color:#fff
+    style P12 fill:#636e72,color:#fff
     style DONE fill:#00b894,color:#fff,font-weight:bold
+    style RETIRED fill:#2d3436,color:#fff,font-weight:bold
 ```
 
-## Phase 0: Bootstrap
+**Phase 0 (Problem Discovery)** and **Phase 12 (Retirement)** are detailed in [`docs/lifecycle/`](lifecycle/complete-lifecycle-overview.md); a NO-GO decision in Phase 0 stops the pipeline before Bootstrap runs.
+
+**Configurability:** Don't need every stage? Any phase (except Phase 1 Bootstrap) and any individual subagent can be disabled via `sdlc phases` / `.sdlc/phase-config.json` — see [`cli-reference.md#sdlc-phases`](cli-reference.md#sdlc-phases). Disabled phases are marked `"skipped"` in `orchestrator.json` and the pipeline advances past them without running their gate or per-phase review.
+
+## Phase 1: Bootstrap
 
 **Purpose:** Initialize the framework and normalize the input spec.
 
@@ -50,7 +60,7 @@ flowchart TD
 
 **Gate 1 — Spec Valid:** Input spec is parseable, non-empty, contains actionable requirements.
 
-## Phase 1: Product Discovery
+## Phase 2: Product Discovery
 
 **Purpose:** Analyze requirements, identify risks, generate acceptance criteria.
 
@@ -75,7 +85,7 @@ flowchart LR
 
 **Gate 2 — Requirements Complete:** All requirements have IDs, acceptance criteria, and risk assessment.
 
-## Phase 2: Story-Tasks
+## Phase 3: Story-Tasks
 
 **Purpose:** Decompose requirements into implementable epics, stories, and tasks.
 
@@ -100,7 +110,7 @@ flowchart LR
 
 **Gate 3 — Story-Task Traceable:** Every story traces to a requirement. No circular dependencies.
 
-## Phase 3: Architecture
+## Phase 4: Architecture
 
 **Purpose:** Define high-level system architecture, select tech stack, document decisions as ADRs.
 
@@ -124,7 +134,7 @@ flowchart LR
 
 **Gate 4 — Architecture Sound:** System design documented, tech stack justified, ADRs for all major decisions.
 
-## Phase 4: Design
+## Phase 5: Design
 
 **Purpose:** Create detailed technical design: interface contracts, data/state models, integrations, NFRs. All design decisions reference ADRs.
 
@@ -148,9 +158,9 @@ flowchart LR
 | `artifacts/design/integrations.md` | External system integration plan |
 | `artifacts/design/nfr-assessment.md` | NFR evaluation with target metrics |
 
-**Gate 5 — Design Complete:** Interface contracts valid for the project type, data/state model defined, NFRs have targets, designs reference ADRs.
+**Gate 5 — Design Complete:** Interface contracts valid for the project type, data/state model defined, NFRs have targets, designs reference ADRs. `sub-compliance-validator` runs here if `.sdlc/governance/compliance-policy.yaml` has enabled frameworks.
 
-## Phase 5: Development
+## Phase 6: Development
 
 **Purpose:** Implement the codebase task by task.
 
@@ -180,7 +190,7 @@ flowchart TD
 
 **Gate 6 — Build Green:** Zero build errors, zero lint errors, all unit tests pass.
 
-## Phase 6: Testing
+## Phase 7: Testing
 
 **Purpose:** Comprehensive testing beyond unit tests.
 
@@ -194,7 +204,7 @@ flowchart TD
 
 **Gate 7 — Coverage Met:** Unit ≥80%, all acceptance criteria have tests, integration tests pass.
 
-## Phase 7: Security
+## Phase 8: Security
 
 **Purpose:** Security audit — scan, review, remediate.
 
@@ -211,9 +221,9 @@ flowchart LR
     FIX --> REPORT[Security Summary]
 ```
 
-**Gate 8 — Security Clear:** Zero Critical/High findings, no hardcoded secrets, dependencies patched.
+**Gate 8 — Security Clear:** Zero Critical/High findings, no hardcoded secrets, dependencies patched. `sub-compliance-validator` runs here if compliance frameworks are enabled.
 
-## Phase 8: Review
+## Phase 9: Review
 
 **Purpose:** Multi-perspective code review with anti-sycophancy.
 
@@ -247,7 +257,7 @@ flowchart TD
 
 **Gate 9 — Review Passed:** All reviewers PASS, no Critical/High/Medium findings.
 
-## Phase 9: DevOps
+## Phase 10: DevOps
 
 **Purpose:** CI/CD pipeline, containerization, deployment.
 
@@ -257,7 +267,7 @@ flowchart TD
 
 **Gate 10 — Pipeline Green:** CI runs without errors, Docker builds, runbook complete.
 
-## Phase 10: Observability
+## Phase 11: Observability
 
 **Purpose:** Monitoring, alerting, operational readiness.
 
@@ -267,12 +277,22 @@ flowchart TD
 
 **Gate 11 — Observability Ready:** SLOs defined, health checks implemented, alerts configured.
 
+## Phase 12: Retirement (Triggered)
+
+**Purpose:** Safely deprecate and decommission a system — migration, compliant data retention, infrastructure removal.
+
+**Agent:** `stage-retirement` with 4 subagents
+
+**Triggers:** Explicit deprecation request, replacement system deployed, end-of-support reached.
+
+**Gate 12 — Retirement Complete:** ≥90 days notice, migration documented, compliant data retention, infra decommissioned, post-mortem complete. See [Phase 12: Retirement](lifecycle/phase-12-retirement.md).
+
 ## Per-Phase Review
 
-After every phase (except Phase 0 and Phase 8), the orchestrator dispatches the full Review agent (3 blind reviewers) to assess that phase’s artifacts:
+After every phase (except Phase 1 and Phase 9), the orchestrator dispatches the full Review agent (3 blind reviewers) to assess that phase’s artifacts:
 
 ```
 Phase N completes → Quality Gate N → PASS → Per-Phase Review (3 blind reviewers) → PASS → Phase N+1
 ```
 
-Phase 8 (Review) is the final full-codebase review and does NOT get a secondary per-phase review.
+Phase 9 (Review) is the final full-codebase review and does NOT get a secondary per-phase review.

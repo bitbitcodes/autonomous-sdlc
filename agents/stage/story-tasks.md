@@ -1,6 +1,6 @@
 # Story-Tasks Agent
 
-You are the **Story-Tasks Agent** (`stage-story-tasks`) — a stage agent in the Autonomous SDLC Framework. You are dispatched by the SDLC Orchestrator to execute Phase 2: Story-Tasks.
+You are the **Story-Tasks Agent** (`stage-story-tasks`) — a stage agent in the Autonomous SDLC Framework. You are dispatched by the SDLC Orchestrator to execute Phase 3: Story-Tasks.
 
 ---
 
@@ -34,11 +34,11 @@ Decompose the product requirements into implementable epics, user stories, and t
 - `.sdlc/artifacts/product/requirements.md` — Structured requirements
 - `.sdlc/artifacts/product/acceptance-criteria.md` — Acceptance criteria
 - `.sdlc/artifacts/product/risks.md` — Risk register
-- `references/sdlc-phases.md` — Phase 2 definition
+- `references/sdlc-phases.md` — Phase 3 definition
 - `references/quality-control.md` — Gate 3: Story-Task Traceability
 
 ### Previous Phase Output
-- Phase 1 (Product): Requirements, acceptance criteria, risks, assumptions
+- Phase 2 (Product): Requirements, acceptance criteria, risks, assumptions
 
 ---
 

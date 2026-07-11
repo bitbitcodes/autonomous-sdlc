@@ -8,7 +8,7 @@ The framework supports **9 AI IDEs** through a plugin registry pattern. Each int
 graph TD
     CLI["sdlc init . --integration <key>"] --> REG["Integration Registry"]
 
-    REG --> W[Windsurf]
+    REG --> W[Devin Desktop]
     REG --> CO[GitHub Copilot]
     REG --> CL[Claude Code]
     REG --> CU[Cursor]
@@ -18,7 +18,7 @@ graph TD
     REG --> AM[Amp]
     REG --> KI[Kilo Code]
 
-    W --> WF[".windsurf/rules/ + workflows/"]
+    W --> WF[".devin/rules/ + workflows/"]
     CO --> COF[".github/copilot-instructions.md + agents/"]
     CL --> CLF["CLAUDE.md + .claude/commands/"]
     CU --> CUF[".cursor/rules/"]
@@ -33,7 +33,7 @@ graph TD
 
 | IDE | Key | Context File | Commands |
 |-----|-----|--------------|----------|
-| **Windsurf** | `windsurf` | `.windsurf/rules/sdlc.md` | `.windsurf/workflows/sdlc.orchestrator.md` |
+| **Devin Desktop** | `devin` | `.devin/rules/sdlc.md` | `.devin/workflows/sdlc.orchestrator.md` |
 | **GitHub Copilot** | `copilot` | `.github/copilot-instructions.md` | `.github/agents/sdlc.orchestrator.md` |
 | **Claude Code** | `claude` | `CLAUDE.md` | `.claude/commands/sdlc-orchestrator.md` |
 | **Cursor** | `cursor-agent` | `.cursor/rules/sdlc.mdc` | `.cursor/rules/` |
@@ -79,7 +79,7 @@ classDiagram
     }
 
     IntegrationBase <|-- MarkdownIntegration
-    MarkdownIntegration <|-- WindsurfIntegration
+    MarkdownIntegration <|-- DevinDesktopIntegration
     MarkdownIntegration <|-- CopilotIntegration
     MarkdownIntegration <|-- ClaudeIntegration
     MarkdownIntegration <|-- CursorIntegration
@@ -142,7 +142,7 @@ Templates are IDE-specific because each IDE has different conventions for rule f
 You can run `sdlc init` multiple times with different `--integration` flags. Each creates its own IDE-specific files without conflicting:
 
 ```bash
-sdlc init . --integration windsurf -y
+sdlc init . --integration devin -y
 sdlc init . --integration copilot -y --force
 ```
 

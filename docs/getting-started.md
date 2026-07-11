@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - **Python 3.11+**
-- An AI IDE: Windsurf, Cursor, GitHub Copilot, Claude Code, opencode, Gemini CLI, Codex CLI, Amp, or Kilo Code
+- An AI IDE: Devin Desktop (formerly Windsurf), Cursor, GitHub Copilot, Claude Code, opencode, Gemini CLI, Codex CLI, Amp, or Kilo Code
 - A git repository (or any directory) where you want to bootstrap the framework
 
 ## Installation
@@ -71,7 +71,7 @@ your-project/
 │   ├── specs/              ← Runtime (gitignored)
 │   └── CONTINUITY.md       ← Working memory (gitignored)
 ├── AGENTS.md               ← Agent discovery file
-└── <IDE config files>      ← Windsurf rules, Copilot agents, etc.
+└── <IDE config files>      ← Devin Desktop rules, Copilot agents, etc.
 ```
 
 ### 3. Select the Orchestrator and Paste Your Spec
@@ -85,11 +85,11 @@ The easiest path — no terminal commands needed:
 | IDE | How to Select |
 |-----|---------------|
 | **Copilot** | Click the agent dropdown → select `sdlc.orchestrator` |
-| **Windsurf** | Type `/sdlc.orchestrator` in Cascade chat |
+| **Devin Desktop** | Type `/sdlc.orchestrator` in Devin Local chat |
 | **Claude Code** | Type `/sdlc-orchestrator` in chat |
 | **Cursor** | Context auto-loads; say "start the SDLC orchestrator" |
 
-The orchestrator reads your message, saves it to `.sdlc/specs/normalized-spec.md`, and begins driving all 11 phases autonomously.
+The orchestrator reads your message, saves it to `.sdlc/specs/normalized-spec.md`, and begins driving all 13 phases autonomously.
 
 **Alternative (for large specs as files):**
 
@@ -121,7 +121,7 @@ For CI/CD or scripted setups:
 
 ```bash
 sdlc init . \
-  --integration windsurf \
+  --integration devin \
   --project-name "My API" \
   --tech-stack "Python, FastAPI, PostgreSQL" \
   --team-size "3 developers" \
@@ -134,18 +134,19 @@ Once initialized, the AI orchestrator drives the full SDLC autonomously:
 
 ```mermaid
 flowchart TD
-    SPEC[Your Spec] --> P0[Phase 0: Bootstrap]
-    P0 --> P1[Phase 1: Product]
-    P1 --> P2[Phase 2: Story-Tasks]
-    P2 --> P3[Phase 3: Architecture]
-    P3 --> P4[Phase 4: Design]
-    P4 --> P5[Phase 5: Development]
-    P5 --> P6[Phase 6: Testing]
-    P6 --> P7[Phase 7: Security]
-    P7 --> P8[Phase 8: Review]
-    P8 --> P9[Phase 9: DevOps]
-    P9 --> P10[Phase 10: Observability]
-    P10 --> DONE[Production Ready]
+    SPEC[Your Spec] --> P0[Phase 0: Problem Discovery]
+    P0 --> P1[Phase 1: Bootstrap]
+    P1 --> P2[Phase 2: Product]
+    P2 --> P3[Phase 3: Story-Tasks]
+    P3 --> P4[Phase 4: Architecture]
+    P4 --> P5[Phase 5: Design]
+    P5 --> P6[Phase 6: Development]
+    P6 --> P7[Phase 7: Testing]
+    P7 --> P8[Phase 8: Security]
+    P8 --> P9[Phase 9: Review]
+    P9 --> P10[Phase 10: DevOps]
+    P10 --> P11[Phase 11: Observability]
+    P11 --> DONE[Production Ready]
 
     style SPEC fill:#f9f,stroke:#333,stroke-width:2px
     style DONE fill:#9f9,stroke:#333,stroke-width:2px

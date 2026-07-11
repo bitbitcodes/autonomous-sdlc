@@ -77,7 +77,7 @@ autonomous-sdlc/
 │   └── integrations/           # IDE integration registry
 │       ├── __init__.py         # @register decorator + registry
 │       ├── base.py             # IntegrationBase, MarkdownIntegration
-│       ├── windsurf/           # Windsurf integration
+│       ├── devin/              # Devin Desktop integration (formerly Windsurf; "windsurf" key kept as alias)
 │       ├── copilot/            # GitHub Copilot integration
 │       ├── claude/             # Claude Code integration
 │       ├── cursor/             # Cursor integration

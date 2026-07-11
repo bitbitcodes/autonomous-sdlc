@@ -37,7 +37,7 @@ Select `sdlc.orchestrator` from your IDE's agent dropdown and paste your JIRA st
 
 ### Step-by-Step
 
-1. Open your AI IDE (Copilot, Windsurf, Claude Code, Cursor, etc.)
+1. Open your AI IDE (Copilot, Devin Desktop, Claude Code, Cursor, etc.)
 2. Select the `sdlc.orchestrator` agent or command
 3. Copy your JIRA story — title, description, acceptance criteria
 4. Paste it into the chat and send
@@ -45,8 +45,8 @@ Select `sdlc.orchestrator` from your IDE's agent dropdown and paste your JIRA st
 The orchestrator automatically:
 - Saves your spec to `.sdlc/specs/normalized-spec.md`
 - Detects complexity
-- Begins Phase 1: Product Discovery
-- Drives all 11 phases
+- Begins Phase 0: Problem Discovery
+- Drives all 13 phases
 
 ### Example: Single JIRA Story
 
@@ -174,7 +174,7 @@ Create a markdown file in your project (e.g., `jira-epic.md`) using this templat
 
 #### 4. Open Your AI IDE
 
-Start a conversation. The orchestrator picks up the JIRA-sourced spec and processes it through all 11 phases.
+Start a conversation. The orchestrator picks up the JIRA-sourced spec and processes it through all 13 phases.
 
 ### Example
 
@@ -233,19 +233,19 @@ Use a JIRA epic when:
 - You want the framework to handle the full scope
 
 The framework will:
-1. Parse all stories into structured requirements (Phase 1)
-2. Decompose into stories/tasks with dependency mapping (Phase 2)
-3. Define architecture and ADRs (Phase 3)
-4. Detailed design (Phase 4)
-5. Implement stories in dependency order (Phase 5)
+1. Parse all stories into structured requirements (Phase 2)
+2. Decompose into stories/tasks with dependency mapping (Phase 3)
+3. Define architecture and ADRs (Phase 4)
+4. Detailed design (Phase 5)
+5. Implement stories in dependency order (Phase 6)
 
 ```mermaid
 flowchart TD
-    EPIC["JIRA Epic<br/>5 Stories"] --> P1["Phase 1: Product<br/>Parse all stories into requirements"]
-    P1 --> P2["Phase 2: Story-Tasks<br/>Order by dependencies"]
-    P2 --> P3["Phase 3: Architecture<br/>Design for full scope"]
-    P3 --> P4["Phase 4: Design<br/>Interface contracts, data model"]
-    P4 --> P5["Phase 5: Development<br/>Implement in order"]
+    EPIC["JIRA Epic<br/>5 Stories"] --> P1["Phase 2: Product<br/>Parse all stories into requirements"]
+    P1 --> P2["Phase 3: Story-Tasks<br/>Order by dependencies"]
+    P2 --> P3["Phase 4: Architecture<br/>Design for full scope"]
+    P3 --> P4["Phase 5: Design<br/>Interface contracts, data model"]
+    P4 --> P5["Phase 6: Development<br/>Implement in order"]
 
     subgraph "Story-Tasks Order"
         T1["Story 1: Data model"]
@@ -351,7 +351,7 @@ flowchart LR
     JIRA -->|"Epic + Stories"| MCP
     MCP -->|"Structured data"| ORCH
     ORCH --> SPEC[".sdlc/specs/normalized-spec.md"]
-    SPEC --> GO["Phase 1: Product"]
+    SPEC --> GO["Phase 0: Problem Discovery"]
 
     style YOU fill:#6c5ce7,color:#fff
     style JIRA fill:#0052CC,color:#fff

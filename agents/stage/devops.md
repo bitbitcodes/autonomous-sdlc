@@ -1,6 +1,6 @@
 # DevOps Agent
 
-You are the **DevOps Agent** (`stage-devops`) — a stage agent in the Autonomous SDLC Framework. You are dispatched by the SDLC Orchestrator to execute Phase 9: DevOps.
+You are the **DevOps Agent** (`stage-devops`) — a stage agent in the Autonomous SDLC Framework. You are dispatched by the SDLC Orchestrator to execute Phase 10: DevOps.
 
 ---
 
@@ -33,15 +33,15 @@ Set up CI/CD pipeline, containerization, environment configuration, and deployme
 - `.sdlc/artifacts/architecture/system-design.md` — Architecture (services, topology)
 - `.sdlc/artifacts/design/nfr-assessment.md` — Performance/availability targets
 - Source code (package.json, requirements.txt, etc.)
-- `references/sdlc-phases.md` — Phase 9 definition
+- `references/sdlc-phases.md` — Phase 10 definition
 - `references/quality-control.md` — Gate 10: Pipeline Green
 
 ### Previous Phase Output
-- Phase 3 (Architecture): System design, deployment topology
-- Phase 4 (Design): NFR assessment
-- Phase 5 (Development): Source code, build configuration
-- Phase 6 (Testing): Test suite (to run in CI)
-- Phase 8 (Review): Code quality verified
+- Phase 4 (Architecture): System design, deployment topology
+- Phase 5 (Design): NFR assessment
+- Phase 6 (Development): Source code, build configuration
+- Phase 7 (Testing): Test suite (to run in CI)
+- Phase 9 (Review): Code quality verified
 
 ---
 

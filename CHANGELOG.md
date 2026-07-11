@@ -2,6 +2,48 @@
 
 All notable changes to the Autonomous SDLC Framework.
 
+## [Unreleased]
+
+### Added
+- **Phase presets** — `sdlc phases --preset <name>` applies a phase-config profile in one command. `lean` enables the common core (Product, Story-Tasks, Architecture, Design, Development, Testing, Review, DevOps + always-on Bootstrap) and disables Problem Discovery, Security, Observability, and Retirement; `full` enables everything (same as `--reset`). Non-breaking and opt-in: `sdlc init` and `--reset` still ship every stage enabled, and applying a preset preserves per-subagent selections so re-enabling a stage restores its subagents. Documented in `docs/cli-reference.md`.
+
+### Fixed
+- **Dashboard interaction map no longer shows Phase 12 (Retirement) prematurely.** The map now skips phases with status `'not_triggered'` as well as `'pending'`, so the triggered-only Retirement phase only appears once it's actually running. On a fresh run the map correctly shows "No agent interactions recorded yet."
+- **Fixed `SyntaxWarning` in `dashboard_html.py`.** Double-escaped JavaScript regex backslashes (`\s` → `\\s`, `\d` → `\\d`) in the embedded template so Python doesn't interpret them as invalid escape sequences, while preserving Unicode escapes (`\u2B1C`) for JavaScript to render status icons correctly.
+- **Orchestrator now runs phases continuously instead of stopping after each one.** Added an explicit "Continuous Execution" directive to the orchestrator prompt (`agents/orchestrator.md`, `templates/commands/orchestrator.md`) and Copilot instructions (`templates/copilot-instructions.md`): after a gate passes, advance to the next phase in the same turn; never end the turn or park the next phase as a todo; in turn-based IDEs (e.g. GitHub Copilot) resume automatically from `CONTINUITY.md` on interruption. Only stop on completion, a 3× gate failure, a Phase 0 NO-GO, a pending approval, or budget exceeded. Also documents raising VS Code's `chat.agent.maxRequests` so Copilot runs more phases before pausing.
+- **`token-usage.json` guidance for runtimes without token counts.** The orchestrator now records a reasonable estimate (≈ chars/4, attributed by phase/agent) when exact token counts aren't exposed (e.g. Copilot), so `sdlc cost-report` isn't perpetually zero.
+- **`sdlc phases --disable/--enable` now validate stage-ids/subagent-ids.** Previously an invalid id (e.g. `--disable DevOps` instead of `stage-devops`) was silently accepted as a no-op with exit 0. It now errors with exit 1 and lists the valid ids. Added a **Valid stage-ids** table to the `sdlc phases` section of `docs/cli-reference.md`.
+- **Dashboard, `sdlc status`, and the agent interaction map now respect `phase-config.json`.** `sdlc dashboard` (phase-progress pills, stats, queue, interaction map panel), the `sdlc status` Phase Progress table, and the Mermaid `agent-map.md` (dashboard diagram + `sdlc status`/`sdlc trace --diagram`) previously rendered every phase from `orchestrator.json`/the full registry, ignoring disabled phases. Disabled phases are now **hidden** everywhere (the `status` table prints an "N phase(s) hidden" hint), so `sdlc phases --preset lean` (or any `--disable`) is reflected consistently. The dashboard payload gained a `phase_enabled` map and now watches `phase-config.json` for live updates.
+
+## [4.0.0] - 2026-07-09
+
+Complete lifecycle (birth-to-death), realistic cost evaluation, AI governance, and Gartner 2028 cost-sustainability adaptations. 40 → 52 agents, 11 → 13 phases.
+
+### Added
+- **Configurable phases/subagents** — new `.sdlc/phase-config.json` and `sdlc phases` CLI (`--disable`, `--enable`, `--disable-sub`, `--enable-sub`, `--edit`, `--reset`) let users disable entire stages (e.g. `stage-security`, `stage-devops`) or individual subagents within a stage (e.g. `stage-testing:sub-regression-test`). The orchestrator checks this config before every stage/subagent dispatch (`agents/orchestrator.md` Stage/Subagent Dispatch Protocol step 0), skipping disabled work entirely — no dispatch, no quality gate, no per-phase review. Disabled phases are marked `"skipped"` (not `"pass"`/`"fail"`) in `orchestrator.json`. Opt-in and additive: absent config = all stages/subagents enabled (v3.0/v4.0-compatible default). Phase 1 (Bootstrap) is never configurable. New module `src/sdlc_cli/phases.py`; written by `scaffold.py` on `sdlc init` alongside `model-config.json`.
+- **Phase 0: Problem Discovery** — new `stage-problem-discovery` agent + 4 subagents (`sub-problem-statement-extractor`, `sub-user-research-synthesizer`, `sub-opportunity-analyzer`, `sub-solution-space-explorer`). Validates the problem before any requirements are written; NO-GO decisions stop the pipeline before Bootstrap. New Quality Gate 0.
+- **Phase 12: Retirement** — new `stage-retirement` agent + 4 subagents (`sub-deprecation-planner`, `sub-migration-strategist`, `sub-data-retention-auditor`, `sub-decommission-executor`). Triggered (not run by default) for deprecation, migration, compliant data retention, and decommissioning. New Quality Gate 12.
+- **Cross-cutting subagents** — `sub-compliance-validator` (GDPR/HIPAA/SOX/PCI-DSS checks in Phases 5, 8, 12) and `sub-context-optimizer` (CONTINUITY.md compression, ~60% token reduction per pass)
+- **Opt-in governance layer** under `.sdlc/governance/`: `risk-policy.yaml` (4-tier risk classification), `budget-policy.yaml`, `token-policy.yaml`, `compliance-policy.yaml`, `execution-policy.yaml`, `adaptive-policy.yaml`, `notification-config.yaml`, `pending-approvals.json`, `decision-log.json`. Skipped entirely if absent — fully backward compatible with v3.0
+- **`sdlc cost-report`** — token usage, cost breakdown (base/retry/gate-failure/conversation/review overhead), retry/gate stats, and budget utilization
+- **`sdlc explain <DEC-ID>`** — decision explainability from `decision-log.json` (alternatives, rationale, approver, impact)
+- **`sdlc approvals list/approve/reject/configure`** — governance approval workflow CLI, resolving entries in `pending-approvals.json` and logging to `decision-log.json`
+- **`.sdlc/state/token-usage.json`** — realistic per-run cost tracking (base execution, RARV retries, gate failures, conversation overhead, blind review overhead)
+- New artifact directories: `artifacts/problem-discovery/`, `artifacts/compliance/`, `artifacts/retirement/`
+- New modules: `cost.py`, `approvals.py`, `explain.py`, `phases.py`
+- 13-phase renumbering across `orchestrator.md`, `references/sdlc-phases.md`, `references/quality-control.md`, and all `docs/`
+- Full documentation: `docs/governance/`, `docs/lifecycle/`, `docs/evaluation/` (methodology, benchmarks, realistic cost model, cost-benefit analysis, tiered approach, cost optimization guide, 3 case studies), `docs/migration/v3-to-v4-migration-guide.md`
+
+### Changed
+- All v3.0 phase numbers shift by +1 (old Phase 0 Bootstrap → new Phase 1, ... old Phase 10 Observability → new Phase 11)
+- `AGENT_TIERS` in `models.py` extended with `stage-problem-discovery` and `stage-retirement`
+- `scaffold.py` initializes `.sdlc/governance/` and `.sdlc/state/token-usage.json` on `sdlc init`
+- Agent/phase counts updated throughout: 40 → 52 agents, 10 → 12 stage agents, 29 → 39 subagents, 11 → 13 quality gates
+
+### Breaking Changes
+- Phase numbering shift (see Migration Guide) — scripts referencing `orchestrator.json` phase keys (e.g. `"0-bootstrap"`) must update to the new keys (`"1-bootstrap"`, `"0-problem-discovery"`, etc.)
+- See `docs/migration/v3-to-v4-migration-guide.md` for full upgrade steps
+
 ## [3.0.0] - 2026-05-15
 
 ### Added

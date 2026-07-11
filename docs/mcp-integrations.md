@@ -42,7 +42,7 @@ During **Phase 0 (Bootstrap)**, the orchestrator checks for available MCP tools 
 
 ```mermaid
 flowchart TD
-    START["Phase 0: Bootstrap"] --> CHECK1{"User pasted spec<br/>in chat?"}
+    START["Spec Intake (Bootstrap)"] --> CHECK1{"User pasted spec<br/>in chat?"}
     CHECK1 -->|Yes| USE1["Use pasted spec"]
     CHECK1 -->|No| CHECK2{"Spec in<br/>.sdlc/specs/?"}
     CHECK2 -->|Yes| USE2["Use existing spec"]
@@ -54,7 +54,7 @@ flowchart TD
     CHECK4 -->|No| ASK["Ask user for spec"]
 
     USE1 & USE2 & FETCH_J & FETCH_G & USE4 & ASK --> NORM["Normalize → .sdlc/specs/normalized-spec.md"]
-    NORM --> PHASE1["Begin Phase 1: Product"]
+    NORM --> PHASE1["Begin Phase 0: Problem Discovery"]
 
     style START fill:#6c5ce7,color:#fff
     style PHASE1 fill:#00b894,color:#fff
@@ -88,7 +88,7 @@ The most impactful MCP integration. Lets the orchestrator pull epics, stories, a
 
 #### 2. Configure in Your IDE
 
-**Windsurf** — Add to `~/.codeium/windsurf/mcp_config.json`:
+**Devin Desktop** (formerly Windsurf) — Add to `~/.codeium/windsurf/mcp_config.json` (legacy path, still read):
 
 ```json
 {
@@ -166,7 +166,7 @@ The orchestrator will:
 3. Call `jira_search("parent = PROJ-100")` to fetch all child stories
 4. Extract titles, descriptions, acceptance criteria, priorities
 5. Normalize everything into `.sdlc/specs/normalized-spec.md`
-6. Begin Phase 1: Product Discovery
+6. Begin Phase 0: Problem Discovery
 
 ```mermaid
 sequenceDiagram
@@ -212,7 +212,7 @@ Useful for fetching GitHub Issues as specs and for DevOps phase integration.
 
 ### Setup
 
-**Windsurf / Cursor / VS Code** — Add to your MCP config:
+**Devin Desktop / Cursor / VS Code** — Add to your MCP config:
 
 ```json
 {
@@ -304,7 +304,7 @@ MCP servers are added the same way — configure in your IDE's MCP config, and t
 
 - **Never commit API tokens** — Use environment variables or IDE-level config files (which are outside your repo)
 - **Scope tokens minimally** — JIRA: read-only is sufficient for spec fetching. GitHub: `repo` scope for full integration
-- **MCP configs are IDE-local** — `.vscode/mcp.json` and `~/.codeium/windsurf/mcp_config.json` are typically gitignored or outside the repo
+- **MCP configs are IDE-local** — `.vscode/mcp.json` and `~/.codeium/windsurf/mcp_config.json` (Devin Desktop's legacy path) are typically gitignored or outside the repo
 - If you must share MCP config in a team, use placeholder values and document the required env vars
 
 ## Troubleshooting

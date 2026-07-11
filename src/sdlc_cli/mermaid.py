@@ -4,85 +4,14 @@ from __future__ import annotations
 
 from typing import Any
 
+from .phases import agent_registry
+
 # ---------------------------------------------------------------------------
-# Static agent registry — all 40 agents with phase/role/subagent structure
+# Agent registry — derived from the single source of truth in phases.py so the
+# interaction map always matches the actual 13-phase / 52-agent pipeline.
 # ---------------------------------------------------------------------------
 
-AGENT_REGISTRY: list[dict[str, Any]] = [
-    {
-        "phase": 0, "key": "0-bootstrap", "name": "Bootstrap",
-        "agent": "orch-sdlc", "role": "orchestrator", "subagents": [],
-    },
-    {
-        "phase": 1, "key": "1-product", "name": "Product",
-        "agent": "stage-product", "role": "stage",
-        "subagents": [
-            "sub-requirement-parser", "sub-acceptance-criteria",
-            "sub-risk-analyzer", "sub-assumption-extractor",
-        ],
-    },
-    {
-        "phase": 2, "key": "2-story-tasks", "name": "Story-Tasks",
-        "agent": "stage-story-tasks", "role": "stage",
-        "subagents": [
-            "sub-story-writer", "sub-task-decomposer", "sub-dependency-mapper",
-        ],
-    },
-    {
-        "phase": 3, "key": "3-architecture", "name": "Architecture",
-        "agent": "stage-architecture", "role": "stage",
-        "subagents": [
-            "sub-tech-stack-advisor", "sub-solution-evaluator", "sub-adr-writer",
-        ],
-    },
-    {
-        "phase": 4, "key": "4-design", "name": "Design",
-        "agent": "stage-design", "role": "stage",
-        "subagents": [
-            "sub-interface-designer", "sub-data-model-designer",
-            "sub-integration-planner", "sub-nfr-evaluator",
-        ],
-    },
-    {
-        "phase": 5, "key": "5-development", "name": "Development",
-        "agent": "stage-development", "role": "stage",
-        "subagents": [
-            "sub-repo-analyzer", "sub-code-generator",
-            "sub-refactoring-agent", "sub-documentation-agent",
-        ],
-    },
-    {
-        "phase": 6, "key": "6-testing", "name": "Testing",
-        "agent": "stage-testing", "role": "stage",
-        "subagents": [
-            "sub-unit-test", "sub-integration-test",
-            "sub-regression-test", "sub-test-data",
-        ],
-    },
-    {
-        "phase": 7, "key": "7-security", "name": "Security",
-        "agent": "stage-security", "role": "stage",
-        "subagents": [
-            "sub-secret-scanner", "sub-dependency-scanner",
-            "sub-owasp-reviewer", "sub-policy-validator",
-        ],
-    },
-    {
-        "phase": 8, "key": "8-review", "name": "Review",
-        "agent": "stage-review", "role": "stage",
-        "subagents": [
-            "sub-code-review", "sub-maintainability", "sub-performance",
-        ],
-    },
-    {
-        "phase": 9, "key": "9-devops", "name": "DevOps",
-        "agent": "stage-devops", "role": "stage", "subagents": [],
-    },
-    {
-        "phase": 10, "key": "10-observability", "name": "Observability",
-        "agent": "stage-observability", "role": "stage", "subagents": [],
-    },
-]
+AGENT_REGISTRY: list[dict[str, Any]] = agent_registry()
 
 
 def _node_id(agent: str) -> str:
@@ -103,6 +32,7 @@ def generate_mermaid(
     orch_data: dict | None = None,
     trace_data: dict | None = None,
     model_config: dict | None = None,
+    enabled_map: dict[str, bool] | None = None,
 ) -> str:
     """Generate a Mermaid flowchart showing per-phase agent interactions.
 
@@ -110,12 +40,18 @@ def generate_mermaid(
         orch_data: orchestrator.json content (for phase statuses)
         trace_data: agent-trace.json content (for actual dispatch info)
         model_config: model-config.json content (for model labels)
+        enabled_map: {phase_key: enabled} from phase-config.json. Disabled
+            phases are greyed out and marked; None means all enabled.
 
     Returns:
         Mermaid diagram source string
     """
     phases = (orch_data or {}).get("phases", {})
     traces = (trace_data or {}).get("traces", [])
+    enabled_map = enabled_map or {}
+
+    def _disabled(key: str) -> bool:
+        return enabled_map.get(key, True) is False
 
     # Build lookup: agent_id -> model name
     model_map: dict[str, str] = {}
@@ -155,6 +91,10 @@ def generate_mermaid(
         subs = reg["subagents"]
         nid = _node_id(agent)
 
+        # Hide disabled phases entirely.
+        if _disabled(key):
+            continue
+
         # Determine status
         phase_info = phases.get(key, {})
         status = phase_info.get("status", "pending")
@@ -166,7 +106,7 @@ def generate_mermaid(
 
         lines.append(f"    subgraph P{phase_num}[\"{phase_num}. {name}\"]")
 
-        if phase_num == 0:
+        if reg.get("role") == "orchestrator":
             lines.append(f"        {nid}[\"🎯 {agent}{model_suffix}\"]")
         else:
             lines.append(f"        {nid}[\"📋 {agent}{model_suffix}\"]")
@@ -188,18 +128,21 @@ def generate_mermaid(
         lines.append(f"    class P{phase_num} {cls}")
         lines.append("")
 
+    # Only enabled phases participate in arrows/sequence.
+    visible = [r for r in AGENT_REGISTRY if not _disabled(r["key"])]
+
     # Orchestrator dispatch arrows
     lines.append("    %% Dispatch flow")
-    for reg in AGENT_REGISTRY:
+    for reg in visible:
         nid = _node_id(reg["agent"])
         lines.append(f"    ORCH -.->|\"Phase {reg['phase']}\"| {nid}")
 
     # Phase sequence arrows
     lines.append("")
     lines.append("    %% Phase sequence")
-    for i in range(len(AGENT_REGISTRY) - 1):
-        a = _node_id(AGENT_REGISTRY[i]["agent"])
-        b = _node_id(AGENT_REGISTRY[i + 1]["agent"])
+    for i in range(len(visible) - 1):
+        a = _node_id(visible[i]["agent"])
+        b = _node_id(visible[i + 1]["agent"])
         lines.append(f"    {a} ==> {b}")
 
     # Style definitions
@@ -211,9 +154,10 @@ def generate_mermaid(
         "    classDef pending fill:#21262d,stroke:#30363d,color:#8b949e",
     ])
 
-    # Apply status styles to individual nodes
-    for reg in AGENT_REGISTRY:
-        phase_info = phases.get(reg["key"], {})
+    # Apply status styles to individual nodes (enabled phases only)
+    for reg in visible:
+        key = reg["key"]
+        phase_info = phases.get(key, {})
         status = phase_info.get("status", "pending")
         cls = _status_class(status)
         nid = _node_id(reg["agent"])
@@ -232,9 +176,10 @@ def generate_agent_map_md(
     orch_data: dict | None = None,
     trace_data: dict | None = None,
     model_config: dict | None = None,
+    enabled_map: dict[str, bool] | None = None,
 ) -> str:
     """Generate a full Markdown document with the Mermaid diagram."""
-    diagram = generate_mermaid(orch_data, trace_data, model_config)
+    diagram = generate_mermaid(orch_data, trace_data, model_config, enabled_map)
     return (
         "# Agent Interaction Map\n\n"
         "```mermaid\n"

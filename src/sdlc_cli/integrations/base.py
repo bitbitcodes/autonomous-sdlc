@@ -17,7 +17,7 @@ class IntegrationBase(ABC):
     """Abstract base class every integration must implement.
 
     Subclasses must set:
-    - ``key`` — unique identifier (e.g. "copilot", "windsurf")
+    - ``key`` — unique identifier (e.g. "copilot", "devin")
     - ``display_name`` — human-readable name (e.g. "GitHub Copilot")
     - ``config`` — metadata dict with "name", "folder", "commands_subdir"
     """

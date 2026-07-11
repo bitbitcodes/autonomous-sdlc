@@ -1,0 +1,35 @@
+# Adaptive mode switching — the framework adjusts token consumption
+# automatically based on monthly spend against budget.
+
+adaptive_modes:
+  aggressive_cost_saving:
+    trigger: "monthly_spend > 80% of budget"
+    actions:
+      - "Switch all agents to fast models"
+      - "Disable per-phase reviews"
+      - "Reduce retry limit from 3 to 1"
+      - "Compress context windows by 50%"
+    expected_cost: "30% of normal"
+    expected_quality: "70% of normal"
+
+  balanced:
+    trigger: "monthly_spend 50-80% of budget"
+    actions:
+      - "Use tiered model routing"
+      - "Enable selective reviews"
+      - "Standard retry limit (3)"
+      - "Standard context windows"
+    expected_cost: "60% of normal"
+    expected_quality: "90% of normal"
+
+  quality_focused:
+    trigger: "monthly_spend < 50% of budget"
+    actions:
+      - "Use frontier models for all agents"
+      - "Enable all per-phase reviews"
+      - "Extended retry limit (5)"
+      - "Full context windows"
+    expected_cost: "100% of normal"
+    expected_quality: "100% of normal"
+
+current_mode: "balanced"

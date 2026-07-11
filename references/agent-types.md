@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Autonomous SDLC Framework has 40 agents organized in a 3-tier hierarchy: 1 orchestrator, 10 stage agents, and 29 subagents. The orchestrator dispatches only the agents needed — typically all 10 stage agents run sequentially, but subagents are selected based on project complexity. After every phase (except Phase 8), the orchestrator dispatches the full Review agent (3 blind reviewers) to assess that phase's artifacts.
+The Autonomous SDLC Framework has 52 agents organized in a 3-tier hierarchy: 1 orchestrator, 12 stage agents, and 39 subagents. The orchestrator dispatches only the agents needed — typically all stage agents run sequentially, but subagents are selected based on project complexity. After every phase (except Phase 1 Bootstrap and Phase 9 Review), the orchestrator dispatches the full Review agent (3 blind reviewers) to assess that phase's artifacts.
 
 ---
 
@@ -16,18 +16,22 @@ The Autonomous SDLC Framework has 40 agents organized in a 3-tier hierarchy: 1 o
 
 ## Stage Agents
 
+Phase 1 (Bootstrap) is handled directly by the orchestrator and has no dedicated stage agent. Phase 12 (Retirement) is only dispatched when triggered.
+
 | Agent | ID | Phase | Capabilities | Subagent Count |
 |-------|----|-------|-------------|----------------|
-| Product Agent | `stage-product` | 1 | Requirements analysis, stakeholder synthesis, feature prioritization, scope definition | 4 |
-| Story-Tasks Agent | `stage-story-tasks` | 2 | Epic/story/task decomposition, dependency mapping, prioritization, queue population | 3 |
-| Architecture Agent | `stage-architecture` | 3 | High-level system design, tech stack selection, solution evaluation, ADR authoring | 3 |
-| Design Agent | `stage-design` | 4 | Interface contracts, data/state modeling, integration planning, NFR evaluation | 4 |
-| Development Agent | `stage-development` | 5 | Code generation, implementation orchestration, pattern enforcement, test-alongside workflow | 4 |
-| Testing Agent | `stage-testing` | 6 | Test strategy, coverage orchestration, test data management, regression planning | 4 |
-| Security Agent | `stage-security` | 7 | Threat modeling, vulnerability scanning, OWASP review, policy compliance | 4 |
-| Review Agent | `stage-review` | 8 | Blind review orchestration, severity aggregation, anti-sycophancy checks | 3 |
-| DevOps Agent | `stage-devops` | 9 | CI/CD pipelines, Docker, IaC, deployment strategies, environment configuration | 0 |
-| Observability Agent | `stage-observability` | 10 | SLO/SLI definition, logging, alerting, dashboards, health checks, runbooks | 0 |
+| Problem Discovery Agent | `stage-problem-discovery` | 0 | Problem validation, user-research synthesis, business case, build-vs-buy, go/no-go decision | 4 |
+| Product Agent | `stage-product` | 2 | Requirements analysis, stakeholder synthesis, feature prioritization, scope definition | 4 |
+| Story-Tasks Agent | `stage-story-tasks` | 3 | Epic/story/task decomposition, dependency mapping, prioritization, queue population | 3 |
+| Architecture Agent | `stage-architecture` | 4 | High-level system design, tech stack selection, solution evaluation, ADR authoring | 3 |
+| Design Agent | `stage-design` | 5 | Interface contracts, data/state modeling, integration planning, NFR evaluation | 4 |
+| Development Agent | `stage-development` | 6 | Code generation, implementation orchestration, pattern enforcement, test-alongside workflow | 4 |
+| Testing Agent | `stage-testing` | 7 | Test strategy, coverage orchestration, test data management, regression planning | 4 |
+| Security Agent | `stage-security` | 8 | Threat modeling, vulnerability scanning, OWASP review, policy compliance | 4 |
+| Review Agent | `stage-review` | 9 | Blind review orchestration, severity aggregation, anti-sycophancy checks | 3 |
+| DevOps Agent | `stage-devops` | 10 | CI/CD pipelines, Docker, IaC, deployment strategies, environment configuration | 0 |
+| Observability Agent | `stage-observability` | 11 | SLO/SLI definition, logging, alerting, dashboards, health checks, runbooks | 0 |
+| Retirement Agent | `stage-retirement` | 12 | Deprecation planning, user migration, data retention, decommissioning | 4 |
 
 ---
 
@@ -116,6 +120,37 @@ The Autonomous SDLC Framework has 40 agents organized in a 3-tier hierarchy: 1 o
 
 ---
 
+## Problem Discovery Subagents
+
+| Agent | ID | Capabilities |
+|-------|----|-------------|
+| Problem Statement Extractor | `sub-problem-statement-extractor` | Parse vague input into a clear, testable problem statement. |
+| User Research Synthesizer | `sub-user-research-synthesizer` | Validate problem severity via evidence and user research. |
+| Opportunity Analyzer | `sub-opportunity-analyzer` | Assess market/business value and build the business case. |
+| Solution Space Explorer | `sub-solution-space-explorer` | Evaluate build vs. buy vs. don't-build alternatives. |
+
+---
+
+## Retirement Subagents
+
+| Agent | ID | Capabilities |
+|-------|----|-------------|
+| Deprecation Planner | `sub-deprecation-planner` | Timeline, communication, and stakeholder management for deprecation. |
+| Migration Strategist | `sub-migration-strategist` | Plan user/data migration to replacement systems. |
+| Data Retention Auditor | `sub-data-retention-auditor` | GDPR/HIPAA-compliant data retention and deletion. |
+| Decommission Executor | `sub-decommission-executor` | Infrastructure removal and dependency cleanup. |
+
+---
+
+## Cross-Cutting Subagents
+
+| Agent | ID | Capabilities |
+|-------|----|-------------|
+| Compliance Validator | `sub-compliance-validator` | GDPR/HIPAA/SOX/PCI-DSS validation (Phases 5, 8, 12). |
+| Context Optimizer | `sub-context-optimizer` | Compress CONTINUITY.md working memory. |
+
+---
+
 ## Agent Execution Model
 
 Agents execute via role switching — the AI IDE takes on each agent's persona through its prompt file:
@@ -125,10 +160,11 @@ Agents execute via role switching — the AI IDE takes on each agent's persona t
 3. **Role switching:** The AI reads the agent's `.md` prompt and adopts that role
 
 ```
-# Sequential stage execution
-for stage in product story-tasks architecture design development testing security review devops observability; do
+# Sequential stage execution (Phase 1 Bootstrap is orchestrator-direct)
+for stage in problem-discovery product story-tasks architecture design development testing security review devops observability; do
   # AI reads agents/stage/$stage.md and executes
 done
+# Retirement (stage-retirement) runs only when triggered
 
 # Parallel subagent execution within a stage
 # Product stage dispatches all 4 subagents, then aggregates

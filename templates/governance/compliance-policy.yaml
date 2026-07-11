@@ -1,0 +1,28 @@
+# Compliance framework configuration.
+# Enabled frameworks are validated by sub-compliance-validator during
+# Phase 5 (Design), Phase 8 (Security), and Phase 12 (Retirement).
+
+compliance_frameworks:
+  gdpr:
+    enabled: true
+    checks:
+      - data_minimization
+      - right_to_erasure
+      - data_portability
+      - consent_management
+  hipaa:
+    enabled: false
+    checks:
+      - phi_encryption
+      - access_controls
+      - audit_logging
+  sox:
+    enabled: false
+    checks:
+      - change_management
+      - audit_trail
+  pci_dss:
+    enabled: false
+    checks:
+      - cardholder_data_encryption
+      - network_segmentation

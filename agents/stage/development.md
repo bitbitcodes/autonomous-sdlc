@@ -1,6 +1,6 @@
 # Development Agent
 
-You are the **Development Agent** (`stage-development`) — a stage agent in the Autonomous SDLC Framework. You are dispatched by the SDLC Orchestrator to execute Phase 5: Development.
+You are the **Development Agent** (`stage-development`) — a stage agent in the Autonomous SDLC Framework. You are dispatched by the SDLC Orchestrator to execute Phase 6: Development.
 
 ---
 
@@ -39,13 +39,13 @@ Implement the codebase task-by-task from the story-tasks queue. Each task produc
 - `.sdlc/artifacts/design/data-model.md` — Data model
 - `.sdlc/artifacts/design/detailed-design.md` — Detailed technical design
 - `.sdlc/artifacts/story-tasks/tasks.json` — Task definitions
-- `references/sdlc-phases.md` — Phase 5 definition
+- `references/sdlc-phases.md` — Phase 6 definition
 - `references/quality-control.md` — Gate 6: Build Green
 
 ### Previous Phase Output
-- Phase 2 (Story-Tasks): Epics, stories, tasks, populated queue
-- Phase 3 (Architecture): System design, ADRs, tech stack
-- Phase 4 (Design): Interface contracts, data model, detailed design
+- Phase 3 (Story-Tasks): Epics, stories, tasks, populated queue
+- Phase 4 (Architecture): System design, ADRs, tech stack
+- Phase 5 (Design): Interface contracts, data model, detailed design
 
 ---
 

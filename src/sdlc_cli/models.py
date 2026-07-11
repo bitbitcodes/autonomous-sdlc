@@ -24,6 +24,7 @@ TIERS = {
 
 AGENT_TIERS: dict[str, str] = {
     "orch-sdlc": "reasoning",
+    "stage-problem-discovery": "reasoning",
     "stage-product": "reasoning",
     "stage-story-tasks": "reasoning",
     "stage-architecture": "reasoning",
@@ -34,6 +35,7 @@ AGENT_TIERS: dict[str, str] = {
     "stage-review": "reasoning",
     "stage-devops": "coding",
     "stage-observability": "coding",
+    "stage-retirement": "reasoning",
     "sub-*": "fast",
 }
 

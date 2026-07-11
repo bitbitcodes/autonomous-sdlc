@@ -1,0 +1,31 @@
+# Budget controls for the Autonomous SDLC Framework.
+# The orchestrator checks spend against this policy after every
+# agent execution and enforces the configured overage policy.
+
+budget:
+  total_limit_usd: 100.00
+
+  phase_limits:
+    problem-discovery: 5.00
+    bootstrap: 1.00
+    product: 10.00
+    story-tasks: 5.00
+    architecture: 15.00
+    design: 10.00
+    development: 40.00
+    testing: 15.00
+    security: 10.00
+    review: 5.00
+    devops: 5.00
+    observability: 5.00
+    retirement: 5.00
+
+  alerts:
+    - threshold: 0.5   # 50%
+      action: log
+    - threshold: 0.8   # 80%
+      action: warn
+    - threshold: 1.0   # 100%
+      action: pause_and_escalate
+
+  overage_policy: "pause"  # or "continue_with_approval"

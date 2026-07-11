@@ -9,7 +9,7 @@ The simplest way to use the framework — no terminal commands needed after setu
 ```mermaid
 flowchart LR
     SELECT["Select<br/>sdlc.orchestrator"] --> PASTE["Paste your spec<br/>(JIRA story, PRD, brief)"]
-    PASTE --> GO["Orchestrator runs<br/>all 11 phases"]
+    PASTE --> GO["Orchestrator runs<br/>all 13 phases"]
     GO --> DONE["Production-ready<br/>codebase"]
 
     style SELECT fill:#6c5ce7,color:#fff
@@ -20,14 +20,14 @@ flowchart LR
 
 1. **Select the agent** — Pick `sdlc.orchestrator` from your IDE's agent/command dropdown
 2. **Paste your spec** — JIRA story, PRD, requirements, or even a one-liner
-3. **The orchestrator takes over** — It bootstraps `.sdlc/`, normalizes your spec, detects complexity, and drives all 11 phases autonomously
+3. **The orchestrator takes over** — It validates the problem (Phase 0), bootstraps `.sdlc/`, normalizes your spec, detects complexity, and drives all 13 phases autonomously
 
 ### Per-IDE Instructions
 
 | IDE | How to Select |
 |-----|---------------|
 | **Copilot** | Click the agent dropdown → select `sdlc.orchestrator` |
-| **Windsurf** | Type `/sdlc.orchestrator` in Cascade chat |
+| **Devin Desktop** | Type `/sdlc.orchestrator` in Devin Local chat |
 | **Claude Code** | Type `/sdlc-orchestrator` in chat |
 | **Cursor** | Context auto-loads; just say "start the SDLC orchestrator" |
 | **opencode** | Use `/sdlc-orchestrator` command |
@@ -53,7 +53,7 @@ Acceptance Criteria:
 Tech Stack: Python 3.12, FastAPI, PostgreSQL, pytest
 ```
 
-The orchestrator reads your message, saves it to `.sdlc/specs/normalized-spec.md`, and begins Phase 1: Product Discovery. No `run.sh` needed.
+The orchestrator reads your message, saves it to `.sdlc/specs/normalized-spec.md`, and begins Phase 0: Problem Discovery. No `run.sh` needed.
 
 ### Example: Quick Prototype
 
@@ -81,7 +81,7 @@ flowchart TD
     BOOT --> IDE["4. Open AI IDE<br/>Select sdlc.orchestrator"]
     IDE --> ORCH["5. Orchestrator Activates<br/>Reads pre-loaded spec"]
     ORCH --> PHASES["6. Phases Execute<br/>Product → Architecture → ... → Observability"]
-    PHASES --> DONE["7. Project Complete<br/>All 11 quality gates passed"]
+    PHASES --> DONE["7. Project Complete<br/>All 13 quality gates passed"]
 
     style SPEC fill:#6c5ce7,color:#fff
     style DONE fill:#00b894,color:#fff,font-weight:bold
@@ -180,7 +180,7 @@ Open your IDE and start a new conversation. The orchestrator activates automatic
 
 | IDE | How to Start |
 |-----|-------------|
-| **Windsurf** | Open Cascade chat → type `/sdlc.orchestrator` |
+| **Devin Desktop** | Open Devin Local chat → type `/sdlc.orchestrator` |
 | **GitHub Copilot** | Open Copilot Chat → use `/sdlc.orchestrator` agent |
 | **Claude Code** | Start conversation → use `/sdlc-orchestrator` slash command |
 | **Cursor** | Open chat → the rules auto-load, type "start the SDLC orchestrator" |
@@ -194,12 +194,12 @@ Open your IDE and start a new conversation. The orchestrator activates automatic
 
 When you start the conversation, the AI:
 
-1. **Reads `AGENTS.md`** — discovers the 40 available agents
-2. **Reads `.sdlc/CONTINUITY.md`** — picks up current state (Phase 1: Product Discovery)
+1. **Reads `AGENTS.md`** — discovers the 52 available agents
+2. **Reads `.sdlc/CONTINUITY.md`** — picks up current state (Phase 0: Problem Discovery)
 3. **Reads `.sdlc/state/orchestrator.json`** — confirms phase progress
 4. **Reads `.sdlc/framework/agents/orchestrator.md`** — adopts the orchestrator role
 5. **Reads `.sdlc/specs/normalized-spec.md`** — ingests your spec
-6. **Begins Phase 1** — dispatches the Product agent
+6. **Begins Phase 0** — dispatches the Problem Discovery agent
 
 ```mermaid
 sequenceDiagram
@@ -215,15 +215,29 @@ sequenceDiagram
     IDE->>Orch: Read orchestrator.json
     IDE->>Orch: Read orchestrator.md prompt
     Orch->>Orch: Read normalized-spec.md
-    Orch->>Agents: Dispatch stage-product
-    Note over Orch,Agents: Phase 1 begins autonomously
+    Orch->>Agents: Dispatch stage-problem-discovery
+    Note over Orch,Agents: Phase 0 begins autonomously
 ```
 
 ## Watch the Phases Execute
 
-The orchestrator drives all 11 phases autonomously. Here's what happens in each:
+The orchestrator drives all 13 phases autonomously. Here's what happens in each:
 
-### Phase 1: Product Discovery
+### Phase 0: Problem Discovery
+
+Before any build work, the AI validates the problem is worth solving and produces a go/no-go decision:
+
+| Artifact | Path | What It Contains |
+|----------|------|-----------------|
+| Problem Statement | `.sdlc/artifacts/problem-discovery/problem-statement.md` | Clear, testable problem definition |
+| Business Case | `.sdlc/artifacts/problem-discovery/business-case.md` | Value/opportunity assessment |
+| Go/No-Go Decision | `.sdlc/artifacts/problem-discovery/decision.md` | Build vs. buy vs. don't-build recommendation |
+
+### Phase 1: Bootstrap
+
+The orchestrator normalizes the spec, detects complexity, selects the agent team, and initializes governance. (Orchestrator-direct — no dedicated stage agent.)
+
+### Phase 2: Product
 
 The AI reads your spec and produces:
 
@@ -234,7 +248,7 @@ The AI reads your spec and produces:
 | Risk Register | `.sdlc/artifacts/product/risks.md` | Identified risks with severity + mitigations |
 | Assumptions | `.sdlc/artifacts/product/assumptions.md` | Hidden assumptions surfaced for validation |
 
-### Phase 2: Story-Tasks
+### Phase 3: Story-Tasks
 
 | Artifact | Path | What It Contains |
 |----------|------|------------------|
@@ -243,7 +257,7 @@ The AI reads your spec and produces:
 | Dependency Graph | `.sdlc/artifacts/story-tasks/dependency-graph.md` | Task dependency map |
 | Task Queue | `.sdlc/queue/pending.json` | Prioritized task list with dependencies |
 
-### Phase 3: Architecture
+### Phase 4: Architecture
 
 | Artifact | Path | What It Contains |
 |----------|------|------------------|
@@ -251,7 +265,7 @@ The AI reads your spec and produces:
 | Tech Stack | `.sdlc/artifacts/architecture/tech-stack.md` | Technology selection + justification |
 | ADRs | `.sdlc/artifacts/architecture/adrs/` | Architecture Decision Records |
 
-### Phase 4: Design
+### Phase 5: Design
 
 | Artifact | Path | What It Contains |
 |----------|------|------------------|
@@ -260,7 +274,7 @@ The AI reads your spec and produces:
 | NFR Assessment | `.sdlc/artifacts/design/nfr-assessment.md` | Non-functional requirements evaluation |
 | Integrations | `.sdlc/artifacts/design/integrations.md` | External system integration plan |
 
-### Phase 5: Development
+### Phase 6: Development
 
 The AI implements code task-by-task:
 - Claims tasks from the queue
@@ -268,9 +282,13 @@ The AI implements code task-by-task:
 - Commits after each passing task
 - Moves completed tasks to `queue/completed.json`
 
-### Phase 6–10: Testing → Security → Review → DevOps → Observability
+### Phase 7–11: Testing → Security → Review → DevOps → Observability
 
 Each phase produces artifacts in its respective `.sdlc/artifacts/<phase>/` directory.
+
+### Phase 12: Retirement (triggered only)
+
+Run only when a deprecation/decommission is explicitly triggered — produces the deprecation plan, migration guide, data-retention policy, and decommission checklist.
 
 ### Full Artifact Tree
 
@@ -351,7 +369,7 @@ cat .sdlc/STATUS.md
 Includes four tables:
 - **Overall Progress** — Status, complexity, current phase, tasks done, gates passed
 - **Phase & Agent Status** — Each phase with its responsible agent, subagents used, status, gate result, and key outcome
-- **Subagent Detail** — All 29 subagents with individual status and outcome
+- **Subagent Detail** — All subagents with individual status and outcome
 - **Artifacts Produced** — Every file generated, by phase
 
 ### Activity Log
@@ -485,7 +503,7 @@ If your AI IDE has aggressive token limits, consider running one phase per sessi
 
 ### "The orchestrator didn't start"
 
-- Check that your IDE context file exists (e.g., `.windsurf/rules/sdlc.md`)
+- Check that your IDE context file exists (e.g., `.devin/rules/sdlc.md`)
 - Verify `AGENTS.md` is at the project root
 - Try explicitly pasting the orchestrator prompt: copy contents of `.sdlc/framework/agents/orchestrator.md` into the chat
 

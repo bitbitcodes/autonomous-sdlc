@@ -2,12 +2,12 @@
 
 ## Overview
 
-The framework has **40 agents** in a 3-tier hierarchy: 1 orchestrator, 10 stage agents, and 29 subagents. After every phase, the orchestrator dispatches 3 blind reviewers to assess that phase's artifacts. Every agent is a `.md` file under `.sdlc/framework/agents/`.
+The framework has **52 agents** in a 3-tier hierarchy: 1 orchestrator, 12 stage agents, and 39 subagents. After every phase, the orchestrator dispatches 3 blind reviewers to assess that phase's artifacts. Every agent is a `.md` file under `.sdlc/framework/agents/`.
 
 ```mermaid
 graph TD
-    O["Orchestrator (1)"] -->|dispatches| S["Stage Agents (10)"]
-    S -->|dispatches| SUB["Subagents (29)"]
+    O["Orchestrator (1)"] -->|dispatches| S["Stage Agents (12)"]
+    S -->|dispatches| SUB["Subagents (39)"]
 
     style O fill:#ff6b6b,stroke:#333,color:#fff,font-weight:bold
     style S fill:#4ecdc4,stroke:#333,color:#fff,font-weight:bold
@@ -39,7 +39,7 @@ Every agent prompt follows this standard format:
 | **ID** | `orch-sdlc` |
 | **File** | `.sdlc/framework/agents/orchestrator.md` |
 | **Role** | Workflow control, phase transitions, task delegation, quality gate enforcement |
-| **Dispatches** | All 10 stage agents sequentially |
+| **Dispatches** | All 12 stage agents sequentially (Phase 12 Retirement dispatched only when triggered) |
 
 The orchestrator:
 - Reads `AGENTS.md` to discover available agents
@@ -66,18 +66,22 @@ stateDiagram-v2
 
 ## Stage Agents
 
-| # | Agent | ID | File | Subagents |
-|---|-------|----|------|-----------|
-| 1 | Product | `stage-product` | `agents/stage/product.md` | 4 |
-| 2 | Story-Tasks | `stage-story-tasks` | `agents/stage/story-tasks.md` | 3 |
-| 3 | Architecture | `stage-architecture` | `agents/stage/architecture.md` | 3 |
-| 4 | Design | `stage-design` | `agents/stage/design.md` | 4 |
-| 5 | Development | `stage-development` | `agents/stage/development.md` | 4 |
-| 6 | Testing | `stage-testing` | `agents/stage/testing.md` | 4 |
-| 7 | Security | `stage-security` | `agents/stage/security.md` | 4 |
-| 8 | Review | `stage-review` | `agents/stage/review.md` | 3 |
-| 9 | DevOps | `stage-devops` | `agents/stage/devops.md` | 0 |
-| 10 | Observability | `stage-observability` | `agents/stage/observability.md` | 0 |
+| Phase | Agent | ID | File | Subagents |
+|-------|-------|----|------|-----------|
+| 0 | Problem Discovery | `stage-problem-discovery` | `agents/stage/problem-discovery.md` | 4 |
+| 2 | Product | `stage-product` | `agents/stage/product.md` | 4 |
+| 3 | Story-Tasks | `stage-story-tasks` | `agents/stage/story-tasks.md` | 3 |
+| 4 | Architecture | `stage-architecture` | `agents/stage/architecture.md` | 3 |
+| 5 | Design | `stage-design` | `agents/stage/design.md` | 4 |
+| 6 | Development | `stage-development` | `agents/stage/development.md` | 4 |
+| 7 | Testing | `stage-testing` | `agents/stage/testing.md` | 4 |
+| 8 | Security | `stage-security` | `agents/stage/security.md` | 4 |
+| 9 | Review | `stage-review` | `agents/stage/review.md` | 3 |
+| 10 | DevOps | `stage-devops` | `agents/stage/devops.md` | 0 |
+| 11 | Observability | `stage-observability` | `agents/stage/observability.md` | 0 |
+| 12 | Retirement (triggered) | `stage-retirement` | `agents/stage/retirement.md` | 4 |
+
+(Phase 1: Bootstrap is handled directly by `orch-sdlc`, no dedicated stage agent.)
 
 ## Subagents by Stage
 
@@ -149,6 +153,31 @@ stateDiagram-v2
 | Code Review Agent | `sub-code-review` | `agents/sub/review/code-review-agent.md` | Code quality, SOLID, best practices |
 | Maintainability Reviewer | `sub-maintainability` | `agents/sub/review/maintainability-reviewer.md` | Tech debt, complexity, readability |
 | Performance Reviewer | `sub-performance` | `agents/sub/review/performance-reviewer.md` | Bottlenecks, optimization opportunities |
+
+### Problem Discovery Subagents (4)
+
+| Agent | ID | File | Task |
+|-------|----|------|------|
+| Problem Statement Extractor | `sub-problem-statement-extractor` | `agents/sub/problem-discovery/problem-statement-extractor.md` | Parse vague input into a clear problem statement |
+| User Research Synthesizer | `sub-user-research-synthesizer` | `agents/sub/problem-discovery/user-research-synthesizer.md` | Validate problem severity via evidence |
+| Opportunity Analyzer | `sub-opportunity-analyzer` | `agents/sub/problem-discovery/opportunity-analyzer.md` | Business case / ROI assessment |
+| Solution Space Explorer | `sub-solution-space-explorer` | `agents/sub/problem-discovery/solution-space-explorer.md` | Build vs. buy vs. don't-build |
+
+### Retirement Subagents (4)
+
+| Agent | ID | File | Task |
+|-------|----|------|------|
+| Deprecation Planner | `sub-deprecation-planner` | `agents/sub/retirement/deprecation-planner.md` | Timeline, communication, stakeholder mgmt |
+| Migration Strategist | `sub-migration-strategist` | `agents/sub/retirement/migration-strategist.md` | User migration to replacement systems |
+| Data Retention Auditor | `sub-data-retention-auditor` | `agents/sub/retirement/data-retention-auditor.md` | GDPR/HIPAA compliant data deletion |
+| Decommission Executor | `sub-decommission-executor` | `agents/sub/retirement/decommission-executor.md` | Infrastructure removal, dependency cleanup |
+
+### Cross-Cutting Subagents (2)
+
+| Agent | ID | File | Task |
+|-------|----|------|------|
+| Compliance Validator | `sub-compliance-validator` | `agents/sub/compliance/compliance-validator.md` | GDPR/HIPAA/SOX/PCI-DSS checks (Phases 5, 8, 12) |
+| Context Optimizer | `sub-context-optimizer` | `agents/sub/context-optimizer.md` | Compress CONTINUITY.md working memory |
 
 ## Agent Execution Model
 

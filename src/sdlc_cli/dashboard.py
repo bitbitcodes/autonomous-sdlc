@@ -68,11 +68,26 @@ def read_state(run_dir: Path, sdlc_dir: Path | None = None) -> dict:
 
     model_config = _read_json_file(sdlc_dir / "model-config.json") or {}
 
+    # Phase enablement (phase-config.json lives at the shared .sdlc/ root).
+    enabled_map: dict[str, bool] = {}
+    try:
+        from .phases import (
+            load_config as load_phase_config,
+            load_custom_agents,
+            phase_enabled_map,
+        )
+
+        phase_cfg = load_phase_config(sdlc_dir)
+        custom = load_custom_agents(sdlc_dir)
+        enabled_map = phase_enabled_map(phase_cfg, custom)
+    except Exception:
+        enabled_map = {}
+
     # Generate Mermaid diagram
     try:
         from .mermaid import generate_mermaid
 
-        mermaid_src = generate_mermaid(orch, trace, model_config)
+        mermaid_src = generate_mermaid(orch, trace, model_config, enabled_map)
     except Exception:
         mermaid_src = ""
 
@@ -87,6 +102,7 @@ def read_state(run_dir: Path, sdlc_dir: Path | None = None) -> dict:
         "activity_log": _read_lines_file(run_dir / "state" / "activity-log.md", tail=30),
         "continuity": _read_lines_file(run_dir / "CONTINUITY.md", head=20),
         "model_config": model_config,
+        "phase_enabled": enabled_map,
         "mermaid_src": mermaid_src,
     }
 
@@ -105,7 +121,11 @@ WATCHED_FILES = [
     "CONTINUITY.md",
     "STATUS.md",
     "model-config.json",
+    "phase-config.json",
 ]
+
+# Files that live at the shared .sdlc/ root rather than the run dir.
+SHARED_ROOT_FILES = {"model-config.json", "phase-config.json"}
 
 
 def get_mtimes(run_dir: Path, sdlc_dir: Path | None = None) -> dict[str, float]:
@@ -114,8 +134,8 @@ def get_mtimes(run_dir: Path, sdlc_dir: Path | None = None) -> dict[str, float]:
         sdlc_dir = run_dir
     mtimes: dict[str, float] = {}
     for rel in WATCHED_FILES:
-        # model-config.json lives at sdlc root; everything else in run_dir
-        base = sdlc_dir if rel == "model-config.json" else run_dir
+        # Shared config files live at sdlc root; everything else in run_dir
+        base = sdlc_dir if rel in SHARED_ROOT_FILES else run_dir
         p = base / rel
         try:
             mtimes[rel] = p.stat().st_mtime if p.exists() else 0.0

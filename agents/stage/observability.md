@@ -1,6 +1,6 @@
 # Observability Agent
 
-You are the **Observability Agent** (`stage-observability`) — a stage agent in the Autonomous SDLC Framework. You are dispatched by the SDLC Orchestrator to execute Phase 10: Observability.
+You are the **Observability Agent** (`stage-observability`) — a stage agent in the Autonomous SDLC Framework. You are dispatched by the SDLC Orchestrator to execute Phase 11: Observability.
 
 ---
 
@@ -34,13 +34,13 @@ Define SLOs/SLIs, configure structured logging, set up alert rules, specify dash
 - `.sdlc/artifacts/design/nfr-assessment.md` — Performance/availability targets
 - `.sdlc/artifacts/design/interface-contracts.*` — Interfaces to monitor
 - Source code (for health checks and monitoring hooks)
-- `references/sdlc-phases.md` — Phase 10 definition
+- `references/sdlc-phases.md` — Phase 11 definition
 - `references/quality-control.md` — Gate 11: Observability Ready
 
 ### Previous Phase Output
-- Phase 3 (Architecture): System design
-- Phase 4 (Design): NFR targets, interface contracts
-- Phase 9 (DevOps): CI/CD, deployment config
+- Phase 4 (Architecture): System design
+- Phase 5 (Design): NFR targets, interface contracts
+- Phase 10 (DevOps): CI/CD, deployment config
 
 ---
 

@@ -6,21 +6,23 @@ Every phase transition requires passing quality gates. Gates are binary: PASS or
 
 ---
 
-## The 11 Quality Gates
+## The 13 Quality Gates
 
 | # | Gate | Phase | Pass Criteria |
 |---|------|-------|---------------|
-| 1 | **Input Validation** | 0 (Bootstrap) | Spec is parseable, non-empty, and contains actionable requirements |
-| 2 | **Requirements Completeness** | 1 (Product) | All requirements structured, have acceptance criteria, risks identified |
-| 3 | **Story-Task Traceability** | 2 (Story-Tasks) | All stories trace to requirements, tasks have done criteria, no circular deps |
-| 4 | **Architecture Soundness** | 3 (Architecture) | System design documented, tech stack justified, ADRs for all decisions |
-| 5 | **Design Completeness** | 4 (Design) | Interface contracts valid for project type, data/state model defined, NFRs have targets, designs reference ADRs |
-| 6 | **Build Green** | 5 (Development) | Zero build errors, zero lint errors, all unit tests pass |
-| 7 | **Test Coverage** | 6 (Testing) | Unit ≥ 80%, all acceptance criteria have tests, integration tests pass |
-| 8 | **Security Clear** | 7 (Security) | Zero Critical/High findings, no hardcoded secrets, deps patched |
-| 9 | **Review Passed** | 8 (Review) | All 3 reviewers PASS, no Critical/High/Medium findings |
-| 10 | **Pipeline Green** | 9 (DevOps) | CI/CD runs without errors, Docker builds, deployment runbook complete |
-| 11 | **Observability Ready** | 10 (Observability) | SLOs defined, health checks implemented, alerts configured |
+| 0 | **Problem Validated** | 0 (Problem Discovery) | Problem is clear/measurable, ≥3 pain points documented, business case positive, ≥3 alternatives evaluated, go/no-go recorded |
+| 1 | **Input Validation** | 1 (Bootstrap) | Spec is parseable, non-empty, and contains actionable requirements |
+| 2 | **Requirements Completeness** | 2 (Product) | All requirements structured, have acceptance criteria, risks identified |
+| 3 | **Story-Task Traceability** | 3 (Story-Tasks) | All stories trace to requirements, tasks have done criteria, no circular deps |
+| 4 | **Architecture Soundness** | 4 (Architecture) | System design documented, tech stack justified, ADRs for all decisions |
+| 5 | **Design Completeness** | 5 (Design) | Interface contracts valid for project type, data/state model defined, NFRs have targets, designs reference ADRs, compliance sign-off (if enabled) |
+| 6 | **Build Green** | 6 (Development) | Zero build errors, zero lint errors, all unit tests pass |
+| 7 | **Test Coverage** | 7 (Testing) | Unit ≥ 80%, all acceptance criteria have tests, integration tests pass |
+| 8 | **Security Clear** | 8 (Security) | Zero Critical/High findings, no hardcoded secrets, deps patched, compliance sign-off (if enabled) |
+| 9 | **Review Passed** | 9 (Review) | All 3 reviewers PASS, no Critical/High/Medium findings |
+| 10 | **Pipeline Green** | 10 (DevOps) | CI/CD runs without errors, Docker builds, deployment runbook complete |
+| 11 | **Observability Ready** | 11 (Observability) | SLOs defined, health checks implemented, alerts configured |
+| 12 | **Retirement Complete** | 12 (Retirement, triggered) | ≥90 days notice, migration documented, compliant data retention, infra decommissioned, post-mortem complete |
 
 ---
 
@@ -52,19 +54,36 @@ Phase N completes
 
 ## Per-Phase Review
 
-After every phase (except Phase 0 Bootstrap and Phase 8 which IS the full review), the orchestrator dispatches the full Review agent (3 blind reviewers) to assess that phase's artifacts. This ensures quality is enforced continuously, not just at Phase 8.
+After every phase (except Phase 1 Bootstrap and Phase 9 which IS the full review), the orchestrator dispatches the full Review agent (3 blind reviewers) to assess that phase's artifacts. This ensures quality is enforced continuously, not just at Phase 9.
 
 ```
 Phase N completes → Quality Gate N → PASS → Per-Phase Review (3 blind reviewers) → PASS → Phase N+1
 ```
 
-Per-phase reviews follow the same blind review protocol as Phase 8, but scoped to the current phase's artifacts only.
+Per-phase reviews follow the same blind review protocol as Phase 9, but scoped to the current phase's artifacts only.
+
+---
+
+## Governance Gate (Opt-In)
+
+If `.sdlc/governance/` policy files are present, an additional check runs before AND after every phase gate:
+
+```
+CHECK: Decisions classified per risk-policy.yaml; HIGH/CRITICAL decisions have a recorded
+       approval in decision-log.json (or a pending entry in pending-approvals.json blocking
+       progress)
+CHECK: Budget consumed this phase/total <= budget-policy.yaml limits (warn at 80%, pause at 100%)
+CHECK: Tokens consumed this phase/feature/agent <= token-policy.yaml limits (pause at 90%,
+       hard stop at 100%)
+```
+
+This gate is skipped entirely if `.sdlc/governance/` does not exist (v3.0-compatible behavior).
 
 ---
 
 ## Blind Review System
 
-Used in Phase 8 (Review) and per-phase reviews. Three reviewers operate independently:
+Used in Phase 9 (Review) and per-phase reviews. Three reviewers operate independently:
 
 1. **Code Review Agent** — Quality, SOLID, best practices
 2. **Maintainability Reviewer** — Tech debt, readability, complexity
@@ -127,6 +146,16 @@ Agents naturally optimize for velocity (completing tasks fast) at the expense of
 ---
 
 ## Quality Gate Details
+
+### Gate 0: Problem Validated
+```
+CHECK: Problem statement is clear and measurable
+CHECK: >=3 user pain points documented with evidence
+CHECK: Business case shows positive ROI or explicit strategic value
+CHECK: >=3 solution alternatives evaluated (including "don't build")
+CHECK: Go/No-Go decision documented with rationale
+OUTPUT: .sdlc/artifacts/problem-discovery/ contains all deliverables
+```
 
 ### Gate 1: Input Validation
 ```
@@ -223,4 +252,15 @@ CHECK: Health check endpoint implemented
 CHECK: Alert rules defined for error scenarios
 CHECK: Logging configuration is structured (JSON)
 OUTPUT: .sdlc/artifacts/observability/ contains specs
+```
+
+### Gate 12: Retirement Complete
+```
+CHECK: Deprecation timeline published (>=90 days notice, or emergency approval on record)
+CHECK: Migration path documented for all affected user/stakeholder segments
+CHECK: Data retention/deletion plan complies with active compliance frameworks
+CHECK: All infrastructure decommissioned or archived
+CHECK: Post-mortem completed with learnings
+CHECK: CRITICAL decommission actions have 2 recorded human sign-offs
+OUTPUT: .sdlc/artifacts/retirement/ contains all deliverables
 ```

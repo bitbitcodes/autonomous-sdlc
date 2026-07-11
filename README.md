@@ -12,7 +12,7 @@ Bootstrap multi-agent SDLC workflows into any repository.
 /____/  \__,_/ /_/  \____/
 ```
 
-**autonomous-sdlc** scaffolds 40 AI agents into your project repo to execute the full software development lifecycle — from a spec to production-ready code with tests, security audit, CI/CD, and monitoring.
+**autonomous-sdlc** scaffolds 52 AI agents into your project repo to execute the full software development lifecycle — from problem validation through production-ready code with tests, security audit, CI/CD, monitoring, and eventual retirement.
 
 ## Quick Start
 
@@ -33,7 +33,7 @@ Running `sdlc init` scaffolds everything into a single `.sdlc/` directory in you
 your-project/
 ├── .sdlc/
 │   ├── framework/                # Installed by CLI — don't modify
-│   │   ├── agents/               #   40 agent prompts (orchestrator + 10 stage + 29 sub)
+│   │   ├── agents/               #   52 agent prompts (orchestrator + 12 stage + 39 sub)
 │   │   ├── references/           #   Architecture & workflow docs
 │   │   ├── skills/               #   Skill modules (loaded on demand)
 │   │   ├── templates/            #   Agent prompt templates
@@ -52,7 +52,7 @@ your-project/
 ├── AGENTS.md                     # Agent discovery (OpenAI/AAIF standard)
 ├── .github/agents/               # (if Copilot selected)
 │   └── sdlc.orchestrator.md
-├── .windsurf/                    # (if Windsurf selected)
+├── .devin/                       # (if Devin Desktop selected)
 │   ├── workflows/sdlc.orchestrator.md
 │   └── rules/sdlc.md
 └── ...
@@ -63,7 +63,7 @@ your-project/
 | Integration | Key | Context File | Commands Location |
 |-------------|-----|--------------|-------------------|
 | GitHub Copilot | `copilot` | `.github/copilot-instructions.md` | `.github/agents/` |
-| Windsurf | `windsurf` | `.windsurf/rules/sdlc.md` | `.windsurf/workflows/` |
+| Devin Desktop | `devin` | `.devin/rules/sdlc.md` | `.devin/workflows/` |
 | Claude Code | `claude` | `CLAUDE.md` | `.claude/commands/` |
 | Cursor | `cursor-agent` | `.cursor/rules/sdlc.mdc` | `.cursor/rules/` |
 | opencode | `opencode` | `.opencode/instructions.md` | `.opencode/commands/` |
@@ -89,7 +89,7 @@ This launches an interactive session with:
 
 ```bash
 sdlc init . \
-  --integration windsurf \
+  --integration devin \
   --project-name "My API" \
   --tech-stack "Python, FastAPI, PostgreSQL" \
   --team-size "3 developers" \
@@ -112,12 +112,12 @@ sdlc init . \
 
 ### Option A: Agent Dropdown (Easiest)
 
-Select the `sdlc.orchestrator` agent in your IDE and paste your spec — a JIRA story, PRD, or even a one-liner — directly into the chat. The orchestrator handles everything: bootstraps `.sdlc/`, normalizes your spec, detects complexity, and drives all 11 phases.
+Select the `sdlc.orchestrator` agent in your IDE and paste your spec — a JIRA story, PRD, or even a one-liner — directly into the chat. The orchestrator handles everything: validates the problem is worth solving, bootstraps `.sdlc/`, normalizes your spec, detects complexity, and drives all 13 phases through to production (and retirement, when triggered).
 
 | IDE | How |
 |-----|-----|
 | **Copilot** | Select `sdlc.orchestrator` from the agent dropdown → paste your spec |
-| **Windsurf** | Type `/sdlc.orchestrator` in Cascade chat → paste your spec |
+| **Devin Desktop** | Type `/sdlc.orchestrator` in Devin Local chat → paste your spec |
 | **Claude Code** | Use `/sdlc-orchestrator` command → paste your spec |
 | **Cursor** | Start chat (context auto-loads) → paste your spec |
 
@@ -177,6 +177,8 @@ Each phase produces artifacts in `.sdlc/artifacts/<phase>/` — requirements, in
 
 ## CLI Commands
 
+`[TARGET]` is the **project directory** to act on (the folder containing `.sdlc/`). It's **optional** — omit it to use the current directory, or pass a path to target another project (e.g. `sdlc status ./my-app`). Notation: `[...]` = optional, `<...>` = required.
+
 | Command | Description |
 |---------|-------------|
 | `sdlc init [TARGET]` | Scaffold `.sdlc/` framework into a project directory |
@@ -184,6 +186,10 @@ Each phase produces artifacts in `.sdlc/artifacts/<phase>/` — requirements, in
 | `sdlc trace [TARGET]` | Agent interaction map — tree view of orchestrator → stage → subagent calls |
 | `sdlc dashboard [TARGET]` | Real-time web dashboard with live updates (port 8420) |
 | `sdlc models [TARGET]` | View/edit per-agent model routing (3 tiers: reasoning, coding, fast) |
+| `sdlc phases [TARGET]` | View/enable/disable stages and subagents; `--preset lean\|full` applies a profile |
+| `sdlc cost-report [TARGET]` | Token usage, cost breakdown, retry stats, and budget status |
+| `sdlc explain <DEC-ID>` | Explain a logged decision — alternatives, rationale, approver, impact |
+| `sdlc approvals list\|approve\|reject\|configure` | Manage governance approval requests (risk-policy.yaml gates) |
 | `sdlc run <subcommand>` | Multi-run management — isolate separate specs/use-cases |
 | `sdlc upgrade [TARGET]` | Update framework files to the latest version |
 | `sdlc version` | Show installed version |
@@ -209,7 +215,8 @@ Commands that read state (`status`, `trace`, `dashboard`) accept `--run <slug>` 
 ### Workflow
 
 ```
-Spec → Orchestrator → Product → Story-Tasks → Architecture → Design → Development → Testing → Security → Review → DevOps → Observability
+Spec → Problem Discovery → Orchestrator (Bootstrap) → Product → Story-Tasks → Architecture → Design →
+Development → Testing → Security → Review → DevOps → Observability → (Retirement, when triggered)
 ```
 
 ### Agent Hierarchy
@@ -217,8 +224,8 @@ Spec → Orchestrator → Product → Story-Tasks → Architecture → Design �
 | Tier | Count | Agents |
 |------|-------|--------|
 | Orchestrator | 1 | SDLC Orchestrator — workflow control, delegation, validation |
-| Stage Agents | 10 | Product, Story-Tasks, Architecture, Design, Development, Testing, Security, Review, DevOps, Observability |
-| Subagents | 29 | Specialized workers dispatched by each stage agent |
+| Stage Agents | 12 | Problem Discovery, Product, Story-Tasks, Architecture, Design, Development, Testing, Security, Review, DevOps, Observability, Retirement |
+| Subagents | 39 | Specialized workers dispatched by each stage agent, plus cross-cutting compliance/context-optimizer agents |
 
 ### Subagents by Stage
 
@@ -242,7 +249,7 @@ Every agent follows: **Reason → Act → Reflect → Verify**
 3. **Reflect** — Verify success, update working memory
 4. **Verify** — Run tests, check spec compliance, enforce quality gates
 
-Each agent pauses at **quality gates** — 11 gates enforce phase transitions. After every phase, 3 blind reviewers assess the artifacts before advancing. Failures trigger self-correction: capture error → analyze root cause → update learnings → retry (max 3).
+Each agent pauses at **quality gates** — 13 gates (0-12) enforce phase transitions. After every phase, 3 blind reviewers assess the artifacts before advancing. Failures trigger self-correction: capture error → analyze root cause → update learnings → retry (max 3). Governance is opt-in: if `.sdlc/governance/` policy files are present, HIGH/CRITICAL risk decisions pause for human approval, and budget/token limits are enforced.
 
 ## Development
 
@@ -288,7 +295,8 @@ Adding a new IDE integration is a single file in `src/sdlc_cli/integrations/your
 - **Markdown-driven** — Every agent is a `.md` file. No framework dependency.
 - **CONTINUITY.md** — Working memory read/written every turn for cross-session persistence
 - **Structured prompting** — GOAL / CONSTRAINTS / CONTEXT / OUTPUT format
-- **11 Quality gates** — Must pass before each phase transition, with per-phase blind review
+- **13 Quality gates** — Must pass before each phase transition (0: Problem Validated → 12: Retirement Complete), with per-phase blind review
+- **Governance (opt-in)** — Risk classification, budget/token limits, human approval gates, compliance validation, and a decision audit trail
 - **3-tier memory** — Episodic (traces), semantic (patterns), learnings (mistakes)
 - **Blind review** — 3 parallel reviewers with anti-sycophancy check
 
@@ -302,11 +310,14 @@ Full documentation lives in [`docs/`](docs/):
 | [Usage Guide](docs/usage-guide.md) | End-to-end: feed spec → phases → artifacts |
 | [JIRA Workflow](docs/jira-workflow.md) | Using JIRA epics/stories as input |
 | [Architecture](docs/architecture.md) | System design, component model, data flow |
-| [Agents](docs/agents.md) | All 40 agents — roles, dispatch, handoff |
-| [SDLC Phases](docs/phases.md) | 11 phases from spec to observability |
-| [Quality Gates](docs/quality-gates.md) | 11 gates, per-phase blind review, severity model |
+| [Agents](docs/agents.md) | All 52 agents — roles, dispatch, handoff |
+| [SDLC Phases](docs/phases.md) | 13 phases from problem discovery to retirement |
+| [Quality Gates](docs/quality-gates.md) | 13 gates, per-phase blind review, severity model |
 | [Memory System](docs/memory-system.md) | 3-tier memory + CONTINUITY.md protocol |
-| [CLI Reference](docs/cli-reference.md) | All 8 commands — init, status, trace, dashboard, models, run, upgrade, version |
+| [CLI Reference](docs/cli-reference.md) | All commands — init, status, trace, dashboard, models, cost-report, explain, approvals, run, upgrade, version |
+| [Governance](docs/governance/ai-governance-overview.md) | Risk classification, approvals, budget controls, compliance |
+| [Lifecycle](docs/lifecycle/complete-lifecycle-overview.md) | Problem Discovery and Retirement phases |
+| [Migration Guide](docs/migration/v3-to-v4-migration-guide.md) | Upgrading from v3.0 to v4.0 |
 | [Agent Graph](docs/agent-graph.md) | Full agent hierarchy Mermaid diagram, dispatch patterns, data flow |
 | [IDE Integrations](docs/ide-integrations.md) | 9 supported IDEs, adding your own |
 | [MCP Integrations](docs/mcp-integrations.md) | JIRA, GitHub, Database MCP setup |

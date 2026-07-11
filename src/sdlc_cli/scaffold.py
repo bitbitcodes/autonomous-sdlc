@@ -25,6 +25,7 @@ RUNTIME_SUBDIRS = [
     "memory/episodic",
     "memory/semantic",
     "memory/learnings",
+    "artifacts/problem-discovery",
     "artifacts/product",
     "artifacts/story-tasks",
     "artifacts/architecture",
@@ -35,7 +36,21 @@ RUNTIME_SUBDIRS = [
     "artifacts/review",
     "artifacts/devops",
     "artifacts/observability",
+    "artifacts/retirement",
+    "artifacts/compliance",
     "specs",
+]
+
+# Governance policy templates copied once into .sdlc/governance/ (never
+# overwritten by upgrade — these are user-editable policy files).
+GOVERNANCE_TEMPLATES = [
+    "risk-policy.yaml",
+    "budget-policy.yaml",
+    "token-policy.yaml",
+    "compliance-policy.yaml",
+    "execution-policy.yaml",
+    "adaptive-policy.yaml",
+    "notification-config.yaml",
 ]
 
 # Legacy full-path list (used by scaffold for single-run init)
@@ -140,8 +155,14 @@ def scaffold(
         ".sdlc/memory/semantic/anti-patterns.json",
         ".sdlc/memory/learnings/index.json",
         ".sdlc/state/agent-trace.json",
+        ".sdlc/state/token-usage.json",
         ".sdlc/CONTINUITY.md",
     ])
+
+    # 3b. Governance: copy policy templates + init decision-log/pending-approvals
+    gov_files = _init_governance(target_dir, force=force)
+    dirs_created.append(".sdlc/governance/")
+    files_created.extend(gov_files)
 
     # 4. Install AGENTS.md at project root
     templates_dir = IntegrationBase.shared_templates_dir()
@@ -312,23 +333,13 @@ def _init_runtime_state_in(sdlc: Path) -> None:
     """Initialize runtime state files inside a given directory."""
 
     # Orchestrator state
+    from .phases import orchestrator_phases_template
+
     state = {
         "current_phase": 0,
         "status": "initialized",
         "complexity": None,
-        "phases": {
-            "0-bootstrap": {"status": "pending", "gate": None, "review": None},
-            "1-product": {"status": "pending", "gate": None, "review": None},
-            "2-story-tasks": {"status": "pending", "gate": None, "review": None},
-            "3-architecture": {"status": "pending", "gate": None, "review": None},
-            "4-design": {"status": "pending", "gate": None, "review": None},
-            "5-development": {"status": "pending", "gate": None, "review": None},
-            "6-testing": {"status": "pending", "gate": None, "review": None},
-            "7-security": {"status": "pending", "gate": None, "review": None},
-            "8-review": {"status": "pending", "gate": None, "review": None},
-            "9-devops": {"status": "pending", "gate": None, "review": None},
-            "10-observability": {"status": "pending", "gate": None, "review": None},
-        },
+        "phases": orchestrator_phases_template(),
         "active_agents": [],
         "total_tasks": 0,
         "completed_tasks": 0,
@@ -360,12 +371,41 @@ def _init_runtime_state_in(sdlc: Path) -> None:
         json.dumps({"traces": []}, indent=2) + "\n", encoding="utf-8"
     )
 
+    # Token usage tracking (realistic cost evaluation)
+    token_usage = {
+        "total_tokens": 0,
+        "total_cost_usd": 0.0,
+        "budget_limit_usd": 100.0,
+        "breakdown": {
+            "base_execution": 0,
+            "retry_overhead": 0,
+            "gate_failure_overhead": 0,
+            "conversation_overhead": 0,
+            "review_overhead": 0,
+        },
+        "retry_stats": {
+            "total_retries": 0,
+            "tasks_failed_first_attempt": 0,
+            "average_retries_per_task": 0.0,
+        },
+        "gate_stats": {
+            "gates_passed_first_attempt": 0,
+            "gates_failed": 0,
+            "average_retries_per_gate": 0.0,
+        },
+        "by_phase": {},
+        "by_agent": {},
+    }
+    (sdlc / "state" / "token-usage.json").write_text(
+        json.dumps(token_usage, indent=2) + "\n", encoding="utf-8"
+    )
+
     # CONTINUITY.md
     continuity = """\
 # CONTINUITY — Working Memory
 
 ## Current Phase
-Phase 0: Bootstrap — Initialized, awaiting spec input.
+Phase 0: Problem Discovery — Initialized, awaiting spec input.
 
 ## Active Tasks
 - None
@@ -381,9 +421,10 @@ Phase 0: Bootstrap — Initialized, awaiting spec input.
 
 ## Next Steps
 1. Receive input spec (PRD, brief, YAML, or issue)
-2. Normalize spec to .sdlc/specs/normalized-spec.md
-3. Detect complexity and select agent team
-4. Begin Phase 1: Product Discovery
+2. Run Phase 0: Problem Discovery (stage-problem-discovery) and reach a GO decision
+3. Normalize spec to .sdlc/specs/normalized-spec.md
+4. Detect complexity and select agent team
+5. Begin Phase 1: Bootstrap
 
 ## Open Questions
 - None
@@ -396,9 +437,66 @@ Phase 0: Bootstrap — Initialized, awaiting spec input.
     # Model routing config — only at .sdlc/ root level (shared, not per-run)
     model_cfg = sdlc / "model-config.json"
     if not model_cfg.exists():
-        from .models import write_config
+        from .models import write_config as write_model_config
 
-        write_config(sdlc)
+        write_model_config(sdlc)
+
+    # Phase/subagent enablement config — only at .sdlc/ root level (shared,
+    # not per-run). Defaults to everything enabled (v3.0-compatible).
+    phase_cfg = sdlc / "phase-config.json"
+    if not phase_cfg.exists():
+        from .phases import write_config as write_phase_config
+
+        write_phase_config(sdlc)
+
+    # Custom agent registry — user-added stage agents/subagents beyond the
+    # 52 built-in agents. Defaults to empty (no custom agents).
+    custom_agents_cfg = sdlc / "custom-agents.json"
+    if not custom_agents_cfg.exists():
+        from .phases import write_custom_agents
+
+        write_custom_agents(sdlc)
+    (sdlc / "framework" / "agents" / "custom" / "stage").mkdir(parents=True, exist_ok=True)
+    (sdlc / "framework" / "agents" / "custom" / "sub").mkdir(parents=True, exist_ok=True)
+
+
+def _init_governance(target_dir: Path, *, force: bool = False) -> list[str]:
+    """Copy governance policy templates into .sdlc/governance/ and
+    initialize decision-log.json / pending-approvals.json.
+
+    Policy YAML files are copied ONCE and never overwritten by `sdlc upgrade`
+    (they are user-editable config, like model-config.json). Returns the list
+    of files created, relative to target_dir.
+    """
+    gov_dir = target_dir / ".sdlc" / "governance"
+    gov_dir.mkdir(parents=True, exist_ok=True)
+    created: list[str] = []
+
+    templates_src = _find_source_dir("templates")
+    gov_templates_src = (templates_src / "governance") if templates_src else None
+    if gov_templates_src and gov_templates_src.is_dir():
+        for name in GOVERNANCE_TEMPLATES:
+            src_file = gov_templates_src / name
+            dst_file = gov_dir / name
+            if src_file.exists() and (not dst_file.exists() or force):
+                shutil.copy2(src_file, dst_file)
+                created.append(f".sdlc/governance/{name}")
+
+    decision_log = gov_dir / "decision-log.json"
+    if not decision_log.exists() or force:
+        decision_log.write_text(
+            json.dumps({"decisions": []}, indent=2) + "\n", encoding="utf-8"
+        )
+        created.append(".sdlc/governance/decision-log.json")
+
+    pending_approvals = gov_dir / "pending-approvals.json"
+    if not pending_approvals.exists() or force:
+        pending_approvals.write_text(
+            json.dumps({"approvals": []}, indent=2) + "\n", encoding="utf-8"
+        )
+        created.append(".sdlc/governance/pending-approvals.json")
+
+    return created
 
 
 def _update_gitignore(target_dir: Path) -> None:

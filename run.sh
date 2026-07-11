@@ -15,7 +15,8 @@ else
   PROJECT_ROOT="$SCRIPT_DIR"
 fi
 SDLC_DIR="${PROJECT_ROOT}/.sdlc"
-VERSION="3.0.0"
+# Single source of truth: read the package version; fall back if unavailable.
+VERSION="$(python3 -c "import sys, os; sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src')); from sdlc_cli.version import __version__; print(__version__)" 2>/dev/null || echo "4.0.0")"
 
 # Colors
 RED='\033[0;31m'
@@ -74,34 +75,29 @@ cmd_init() {
   # Specs
   mkdir -p "${SDLC_DIR}/specs"
 
-  # Initialize orchestrator state
-  cat > "${SDLC_DIR}/state/orchestrator.json" << 'EOF'
-{
-  "current_phase": 0,
-  "status": "initialized",
-  "complexity": null,
-  "phases": {
-    "0-bootstrap": { "status": "pending", "gate": null, "review": null },
-    "1-product": { "status": "pending", "gate": null, "review": null },
-    "2-story-tasks": { "status": "pending", "gate": null, "review": null },
-    "3-architecture": { "status": "pending", "gate": null, "review": null },
-    "4-design": { "status": "pending", "gate": null, "review": null },
-    "5-development": { "status": "pending", "gate": null, "review": null },
-    "6-testing": { "status": "pending", "gate": null, "review": null },
-    "7-security": { "status": "pending", "gate": null, "review": null },
-    "8-review": { "status": "pending", "gate": null, "review": null },
-    "9-devops": { "status": "pending", "gate": null, "review": null },
-    "10-observability": { "status": "pending", "gate": null, "review": null }
-  },
-  "active_agents": [],
-  "total_tasks": 0,
-  "completed_tasks": 0,
-  "failed_tasks": 0,
-  "blocked_tasks": 0,
-  "start_time": null,
-  "last_updated": null
+  # Initialize orchestrator state — phases derived from the single source of
+  # truth (sdlc_cli.phases) so this never drifts from the actual pipeline.
+  python3 -c "
+import sys, os, json
+sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
+from sdlc_cli.phases import orchestrator_phases_template
+state = {
+    'current_phase': 0,
+    'status': 'initialized',
+    'complexity': None,
+    'phases': orchestrator_phases_template(),
+    'active_agents': [],
+    'total_tasks': 0,
+    'completed_tasks': 0,
+    'failed_tasks': 0,
+    'blocked_tasks': 0,
+    'start_time': None,
+    'last_updated': None,
 }
-EOF
+with open('${SDLC_DIR}/state/orchestrator.json', 'w') as f:
+    json.dump(state, f, indent=2)
+    f.write('\n')
+" || log_error "Could not initialize orchestrator.json (python3 with sdlc_cli required)"
 
   # Initialize queue files
   echo '[]' > "${SDLC_DIR}/queue/pending.json"
@@ -114,79 +110,58 @@ EOF
   echo '{"anti_patterns": []}' > "${SDLC_DIR}/memory/semantic/anti-patterns.json"
   echo '[]' > "${SDLC_DIR}/memory/learnings/index.json"
 
-  # Initialize STATUS.md — overall agent dashboard
-  cat > "${SDLC_DIR}/STATUS.md" << 'EOF'
-# SDLC Status Dashboard
+  # Initialize STATUS.md — overall agent dashboard, generated from the single
+  # source of truth (sdlc_cli.phases) so the phase/subagent tables always
+  # match the actual pipeline.
+  python3 -c "
+import sys, os
+sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
+from sdlc_cli.phases import agent_registry
 
-> Auto-updated by the orchestrator at every phase transition.
-> Last updated: not started
-
-## Overall Progress
-
-| Metric       | Value       |
-|--------------|-------------|
-| Status       | initialized |
-| Complexity   | —           |
-| Current Phase| 0 (Bootstrap) |
-| Tasks Done   | 0 / 0       |
-| Gate Passes  | 0 / 11      |
-
-## Phase & Agent Status
-
-| Phase | Name           | Agent                  | Subagents Used | Status  | Gate | Key Outcome |
-|-------|----------------|------------------------|----------------|---------|------|-------------|
-| 0     | Bootstrap      | orch-sdlc              | —              | pending | —    | —           |
-| 1     | Product        | stage-product          | —              | pending | —    | —           |
-| 2     | Story-Tasks    | stage-story-tasks      | —              | pending | —    | —           |
-| 3     | Architecture   | stage-architecture     | —              | pending | —    | —           |
-| 4     | Design         | stage-design           | —              | pending | —    | —           |
-| 5     | Development    | stage-development      | —              | pending | —    | —           |
-| 6     | Testing        | stage-testing          | —              | pending | —    | —           |
-| 7     | Security       | stage-security         | —              | pending | —    | —           |
-| 8     | Review         | stage-review           | —              | pending | —    | —           |
-| 9     | DevOps         | stage-devops           | —              | pending | —    | —           |
-| 10    | Observability  | stage-observability    | —              | pending | —    | —           |
-
-## Subagent Detail
-
-| Phase | Subagent                    | Status  | Outcome |
-|-------|-----------------------------|---------|---------|
-| 1     | sub-requirement-parser      | pending | —       |
-| 1     | sub-acceptance-criteria     | pending | —       |
-| 1     | sub-risk-analyzer           | pending | —       |
-| 1     | sub-assumption-extractor    | pending | —       |
-| 2     | sub-story-writer            | pending | —       |
-| 2     | sub-task-decomposer         | pending | —       |
-| 2     | sub-dependency-mapper       | pending | —       |
-| 3     | sub-tech-stack-advisor      | pending | —       |
-| 3     | sub-solution-evaluator      | pending | —       |
-| 3     | sub-adr-writer              | pending | —       |
-| 4     | sub-interface-designer      | pending | —       |
-| 4     | sub-data-model-designer     | pending | —       |
-| 4     | sub-integration-planner     | pending | —       |
-| 4     | sub-nfr-evaluator           | pending | —       |
-| 5     | sub-repo-analyzer           | pending | —       |
-| 5     | sub-code-generator          | pending | —       |
-| 5     | sub-refactoring-agent       | pending | —       |
-| 5     | sub-documentation-agent     | pending | —       |
-| 6     | sub-unit-test               | pending | —       |
-| 6     | sub-integration-test        | pending | —       |
-| 6     | sub-regression-test         | pending | —       |
-| 6     | sub-test-data               | pending | —       |
-| 7     | sub-secret-scanner          | pending | —       |
-| 7     | sub-dependency-scanner      | pending | —       |
-| 7     | sub-owasp-reviewer          | pending | —       |
-| 7     | sub-policy-validator        | pending | —       |
-| 8     | sub-code-review             | pending | —       |
-| 8     | sub-maintainability         | pending | —       |
-| 8     | sub-performance             | pending | —       |
-
-## Artifacts Produced
-
-| Phase | Artifact | Path |
-|-------|----------|------|
-| —     | —        | —    |
-EOF
+reg = agent_registry()
+total_gates = len(reg)
+lines = []
+lines.append('# SDLC Status Dashboard')
+lines.append('')
+lines.append('> Auto-updated by the orchestrator at every phase transition.')
+lines.append('> Last updated: not started')
+lines.append('')
+lines.append('## Overall Progress')
+lines.append('')
+lines.append('| Metric        | Value       |')
+lines.append('|---------------|-------------|')
+lines.append('| Status        | initialized |')
+lines.append('| Complexity    | —           |')
+lines.append('| Current Phase | 0 (%s) |' % reg[0]['name'])
+lines.append('| Tasks Done    | 0 / 0       |')
+lines.append('| Gate Passes   | 0 / %d      |' % total_gates)
+lines.append('')
+lines.append('## Phase & Agent Status')
+lines.append('')
+lines.append('| Phase | Name | Agent | Subagents Used | Status | Gate | Key Outcome |')
+lines.append('|-------|------|-------|----------------|--------|------|-------------|')
+for row in reg:
+    n = len(row['subagents'])
+    subs = str(n) if n else '—'
+    lines.append('| %d | %s | %s | %s | pending | — | — |' % (row['phase'], row['name'], row['agent'], subs))
+lines.append('')
+lines.append('## Subagent Detail')
+lines.append('')
+lines.append('| Phase | Subagent | Status | Outcome |')
+lines.append('|-------|----------|--------|---------|')
+for row in reg:
+    for sub in row['subagents']:
+        lines.append('| %d | %s | pending | — |' % (row['phase'], sub))
+lines.append('')
+lines.append('## Artifacts Produced')
+lines.append('')
+lines.append('| Phase | Artifact | Path |')
+lines.append('|-------|----------|------|')
+lines.append('| — | — | — |')
+lines.append('')
+with open('${SDLC_DIR}/STATUS.md', 'w') as f:
+    f.write('\n'.join(lines))
+" || log_warn "Could not generate STATUS.md (python3 with sdlc_cli required)"
 
   # Initialize agent trace log
   echo '{"traces": []}' > "${SDLC_DIR}/state/agent-trace.json"
@@ -205,7 +180,7 @@ EOF
 # CONTINUITY — Working Memory
 
 ## Current Phase
-Phase 0: Bootstrap — Initialized, awaiting spec input.
+Phase 0: Problem Discovery — Initialized, awaiting spec input.
 
 ## Active Tasks
 - None
@@ -221,9 +196,10 @@ Phase 0: Bootstrap — Initialized, awaiting spec input.
 
 ## Next Steps
 1. Receive input spec (PRD, brief, YAML, or issue)
-2. Normalize spec to .sdlc/specs/normalized-spec.md
-3. Detect complexity and select agent team
-4. Begin Phase 1: Product Discovery
+2. Run Phase 0: Problem Discovery (stage-problem-discovery) and reach a GO decision
+3. Normalize spec to .sdlc/specs/normalized-spec.md
+4. Detect complexity and select agent team
+5. Begin Phase 1: Bootstrap
 
 ## Open Questions
 - None
@@ -294,7 +270,8 @@ cmd_start() {
   local now
   now=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-  # Use python for JSON update (cross-platform)
+  # Use python for JSON update (cross-platform). The spec is now loaded; the
+  # orchestrator drives the pipeline starting at Phase 0 (Problem Discovery).
   python3 -c "
 import json, sys
 with open('${SDLC_DIR}/state/orchestrator.json', 'r') as f:
@@ -303,11 +280,10 @@ state['complexity'] = '${complexity}'
 state['status'] = 'in_progress'
 state['start_time'] = '${now}'
 state['last_updated'] = '${now}'
-state['phases']['0-bootstrap']['status'] = 'complete'
-state['phases']['0-bootstrap']['gate'] = 'pass'
-state['current_phase'] = 1
+state['current_phase'] = 0
 with open('${SDLC_DIR}/state/orchestrator.json', 'w') as f:
     json.dump(state, f, indent=2)
+    f.write('\n')
 " 2>/dev/null || log_warn "Could not update orchestrator.json (python3 not available)"
 
   # Update CONTINUITY.md
@@ -315,16 +291,16 @@ with open('${SDLC_DIR}/state/orchestrator.json', 'w') as f:
 # CONTINUITY — Working Memory
 
 ## Current Phase
-Phase 1: Product Discovery — Bootstrap complete, spec loaded.
+Phase 0: Problem Discovery — Spec loaded, ready to run.
 
 ## Complexity
 ${complexity}
 
 ## Active Tasks
-- Phase 1: Dispatch Product Agent
+- Phase 0: Dispatch Problem Discovery Agent (stage-problem-discovery)
 
 ## Completed Tasks
-- Phase 0: Bootstrap — Initialized .sdlc/, normalized spec, detected complexity: ${complexity}
+- None (spec loaded, complexity detected: ${complexity})
 
 ## Mistakes & Learnings
 - None yet
@@ -334,8 +310,8 @@ ${complexity}
 
 ## Next Steps
 1. Read .sdlc/framework/agents/orchestrator.md — adopt orchestrator role
-2. Dispatch stage-product agent (.sdlc/framework/agents/stage/product.md)
-3. Execute Phase 1: Product Discovery
+2. Dispatch stage-problem-discovery agent (.sdlc/framework/agents/stage/problem-discovery.md)
+3. Reach a GO decision, then proceed to Phase 1: Bootstrap
 
 ## Open Questions
 - None
@@ -354,7 +330,7 @@ EOF
   echo -e "${CYAN}║  Open your AI IDE and select the sdlc.orchestrator agent:    ║${NC}"
   echo -e "${CYAN}║                                                              ║${NC}"
   echo -e "${CYAN}║  Copilot:    Select sdlc.orchestrator from agent dropdown    ║${NC}"
-  echo -e "${CYAN}║  Windsurf:   Type /sdlc.orchestrator in Cascade chat         ║${NC}"
+  echo -e "${CYAN}║  Devin:      Type /sdlc.orchestrator in Devin Local chat     ║${NC}"
   echo -e "${CYAN}║  Claude Code: Type /sdlc-orchestrator in chat                ║${NC}"
   echo -e "${CYAN}║  Cursor:     Start chat (context auto-loads)                 ║${NC}"
   echo -e "${CYAN}║                                                              ║${NC}"
@@ -373,120 +349,15 @@ cmd_status() {
     exit 1
   fi
 
-  print_banner
-
-  # Show STATUS.md dashboard if available
-  if [[ -f "${SDLC_DIR}/STATUS.md" ]]; then
-    echo -e "${CYAN}─── Agent Dashboard (STATUS.md) ───${NC}"
-    echo ""
-    cat "${SDLC_DIR}/STATUS.md" | sed 's/^/  /'
-    echo ""
-    echo -e "${CYAN}─── Detailed State ───${NC}"
-    echo ""
-  fi
-
-  echo -e "${BLUE}Current State:${NC}"
-  echo ""
-
-  # Show orchestrator state
-  if [[ -f "${SDLC_DIR}/state/orchestrator.json" ]]; then
-    python3 -c "
-import json
-with open('${SDLC_DIR}/state/orchestrator.json', 'r') as f:
-    content = f.read()
-try:
-    state = json.loads(content)
-except json.JSONDecodeError:
-    state, _ = json.JSONDecoder().raw_decode(content)
-    print('  ⚠ Warning: orchestrator.json has extra data — using first valid object.')
-
-phase_names = {
-    '0-bootstrap': 'Bootstrap',
-    '1-product': 'Product',
-    '2-story-tasks': 'Story-Tasks',
-    '3-architecture': 'Architecture',
-    '4-design': 'Design',
-    '5-development': 'Development',
-    '6-testing': 'Testing',
-    '7-security': 'Security',
-    '8-review': 'Review',
-    '9-devops': 'DevOps',
-    '10-observability': 'Observability'
-}
-
-agent_map = {
-    '0-bootstrap': 'orch-sdlc',
-    '1-product': 'stage-product (4 subagents)',
-    '2-story-tasks': 'stage-story-tasks (3 subagents)',
-    '3-architecture': 'stage-architecture (3 subagents)',
-    '4-design': 'stage-design (4 subagents)',
-    '5-development': 'stage-development (4 subagents)',
-    '6-testing': 'stage-testing (4 subagents)',
-    '7-security': 'stage-security (4 subagents)',
-    '8-review': 'stage-review (3 subagents)',
-    '9-devops': 'stage-devops',
-    '10-observability': 'stage-observability'
-}
-
-status_icons = {
-    'complete': '✅',
-    'in_progress': '🔄',
-    'pending': '⬜',
-    'failed': '❌'
-}
-
-print(f'  Status:     {state[\"status\"]}')
-print(f'  Complexity: {state.get(\"complexity\", \"unknown\")}')
-print(f'  Phase:      {state[\"current_phase\"]}')
-print(f'  Tasks:      {state[\"completed_tasks\"]}/{state[\"total_tasks\"]} complete')
-print()
-print('  Phases:')
-for key, phase in state['phases'].items():
-    name = phase_names.get(key, key)
-    icon = status_icons.get(phase['status'], '❓')
-    agent = agent_map.get(key, '')
-    gate = f' (gate: {phase[\"gate\"]})' if phase['gate'] else ''
-    print(f'    {icon} {name}: {phase[\"status\"]}{gate}')
-    print(f'       Agent: {agent}')
-" 2>/dev/null || cat "${SDLC_DIR}/state/orchestrator.json"
-  fi
-
-  echo ""
-
-  # Show CONTINUITY.md summary
-  if [[ -f "${SDLC_DIR}/CONTINUITY.md" ]]; then
-    echo -e "${BLUE}Working Memory (CONTINUITY.md):${NC}"
-    head -20 "${SDLC_DIR}/CONTINUITY.md" | sed 's/^/  /'
-  fi
-
-  echo ""
-
-  # Show queue counts
-  if [[ -f "${SDLC_DIR}/queue/pending.json" ]]; then
-    local pending active completed
-    pending=$(python3 -c "import json; print(len(json.load(open('${SDLC_DIR}/queue/pending.json'))))" 2>/dev/null || echo "?")
-    active=$(python3 -c "import json; print(len(json.load(open('${SDLC_DIR}/queue/active.json'))))" 2>/dev/null || echo "?")
-    completed=$(python3 -c "import json; print(len(json.load(open('${SDLC_DIR}/queue/completed.json'))))" 2>/dev/null || echo "?")
-    echo -e "${BLUE}Queue:${NC}"
-    echo "  Pending:   ${pending}"
-    echo "  Active:    ${active}"
-    echo "  Completed: ${completed}"
-  fi
-
-  echo ""
-
-  # Show activity log (last 20 lines)
-  if [[ -f "${SDLC_DIR}/state/activity-log.md" ]]; then
-    local log_lines
-    log_lines=$(wc -l < "${SDLC_DIR}/state/activity-log.md" | tr -d ' ')
-    if (( log_lines > 5 )); then
-      echo -e "${BLUE}Activity Log (last 20 lines):${NC}"
-      tail -20 "${SDLC_DIR}/state/activity-log.md" | sed 's/^/  /'
-    else
-      echo -e "${BLUE}Activity Log:${NC}"
-      echo "  No agent actions recorded yet."
-    fi
-  fi
+  # Delegate to the Python CLI — the single source of truth for phase/agent
+  # rendering. This avoids maintaining a second (drift-prone) status renderer.
+  python3 -c "
+import sys, os
+sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
+from sdlc_cli.__init__ import app
+sys.argv = ['sdlc', 'status', '${PROJECT_ROOT}']
+app()
+"
 }
 
 # ─────────────────────────────────────────────
@@ -499,103 +370,19 @@ cmd_trace() {
     exit 1
   fi
 
-  local trace_file="${SDLC_DIR}/state/agent-trace.json"
-  if [[ ! -f "$trace_file" ]]; then
-    log_error "No trace file found. Run the orchestrator first."
-    exit 1
-  fi
-
+  # Delegate to the Python CLI (single source of truth). An optional numeric
+  # argument is passed through as a phase filter.
   local phase_filter="${1:-}"
-
-  echo -e "${CYAN}"
-  echo "  ╔═══════════════════════════════════════════╗"
-  echo "  ║        Agent Interaction Map              ║"
-  echo "  ╚═══════════════════════════════════════════╝"
-  echo -e "${NC}"
-
   python3 -c "
-import json, os, sys
-
-with open('${trace_file}', 'r') as f:
-    data = json.load(f)
-
-traces = data.get('traces', [])
-if not traces:
-    print('  No agent interactions recorded yet.')
-    print('  Run the orchestrator to generate trace data.')
-    sys.exit(0)
-
-phase_filter = '${phase_filter}' if '${phase_filter}' else None
-
-# Group by phase
-phases = {}
-for t in traces:
-    p = t.get('phase', 0)
-    if phase_filter and str(p) != phase_filter:
-        continue
-    phases.setdefault(p, [])
-    phases[p].append(t)
-
-status_icon = {'complete': '✅', 'in_progress': '🔄', 'pending': '⬜', 'failed': '❌', 'skipped': '⏭️'}
-verified = 0
-missing = 0
-
-for phase_num in sorted(phases.keys()):
-    entries = phases[phase_num]
-    # Find the stage-level entry
-    stage = next((e for e in entries if e.get('role') in ('orchestrator', 'stage')), entries[0])
-    icon = status_icon.get(stage.get('status', 'pending'), '❓')
-    print(f\"Phase {phase_num}: {stage.get('phase_name', '?').title()} {icon}\")
-    print(f\"  {stage['agent']}\")
-
-    # Show subagent dispatches
-    subs = [e for e in entries if e.get('role') == 'subagent']
-    for i, sub in enumerate(subs):
-        is_last = (i == len(subs) - 1)
-        prefix = '└──' if is_last else '├──'
-        sub_icon = status_icon.get(sub.get('status', 'pending'), '❓')
-        print(f\"  {prefix} {sub['agent']} {sub_icon}\")
-        child_prefix = '    ' if is_last else '│   '
-        # Show inputs
-        for inp in sub.get('input_artifacts', []):
-            exists = os.path.isfile(os.path.join('${PROJECT_ROOT}', inp))
-            mark = '✅' if exists else '⚠️  MISSING'
-            print(f\"  {child_prefix}In:  {os.path.basename(inp)} {mark}\")
-        # Show outputs
-        for out in sub.get('output_artifacts', []):
-            exists = os.path.isfile(os.path.join('${PROJECT_ROOT}', out))
-            if exists:
-                verified += 1
-                mark = '✅'
-            else:
-                missing += 1
-                mark = '⚠️  MISSING'
-            print(f\"  {child_prefix}Out: {os.path.basename(out)} {mark}\")
-
-    # Show stage-level outputs if no subs
-    if not subs:
-        for out in stage.get('output_artifacts', []):
-            exists = os.path.isfile(os.path.join('${PROJECT_ROOT}', out))
-            if exists:
-                verified += 1
-                mark = '✅'
-            else:
-                missing += 1
-                mark = '⚠️  MISSING'
-            print(f\"  └── Out: {os.path.basename(out)} {mark}\")
-
-    gate = stage.get('gate', '')
-    if gate:
-        print(f\"  Gate: {gate.upper()}\")
-    print()
-
-print('─── Artifact Verification ───')
-print(f'✅ {verified} artifacts traced and verified on disk')
-if missing:
-    print(f'⚠️  {missing} artifacts traced but MISSING on disk')
-else:
-    print(f'✅ 0 artifacts traced but missing on disk')
-" 2>/dev/null || log_error "Could not render trace (python3 required)"
+import sys, os
+sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
+from sdlc_cli.__init__ import app
+argv = ['sdlc', 'trace', '${PROJECT_ROOT}', '--verify']
+if '${phase_filter}':
+    argv += ['--phase', '${phase_filter}']
+sys.argv = argv
+app()
+"
 }
 
 # ─────────────────────────────────────────────
@@ -713,65 +500,13 @@ cmd_models() {
     exit 1
   fi
 
-  local flag="${1:-}"
-
-  if [[ "$flag" == "--reset" ]]; then
-    python3 -c "
-import sys, os
-sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
-from pathlib import Path
-from sdlc_cli.models import write_config
-write_config(Path('${SDLC_DIR}'))
-print('Model config reset to defaults.')
-"
-    return
-  fi
-
-  if [[ "$flag" == "--edit" ]]; then
-    local config_file="${SDLC_DIR}/model-config.json"
-    if [[ ! -f "$config_file" ]]; then
-      python3 -c "
-import sys, os
-sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
-from pathlib import Path
-from sdlc_cli.models import write_config
-write_config(Path('${SDLC_DIR}'))
-"
-    fi
-    "${EDITOR:-vi}" "$config_file"
-    return
-  fi
-
-  # Display current config
   python3 -c "
-import sys, os, json
+import sys, os
 sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
-from pathlib import Path
-from sdlc_cli.models import load_config, resolve_all, default_config, write_config, TIER_DESCRIPTIONS
-
-sdlc_dir = Path('${SDLC_DIR}')
-config = load_config(sdlc_dir)
-if config is None:
-    config = default_config()
-    write_config(sdlc_dir, config)
-
-tiers = config.get('tiers', {})
-print('Model Tiers:')
-print(f'  {"Tier":<12} {"Model":<22} Purpose')
-print(f'  {"-"*12} {"-"*22} {"-"*40}')
-for t, m in tiers.items():
-    desc = TIER_DESCRIPTIONS.get(t, '')
-    print(f'  {t:<12} {m:<22} {desc}')
-
-print()
-resolved = resolve_all(config)
-print('Agent Assignments:')
-print(f'  {"Agent":<24} {"Tier":<12} Model')
-print(f'  {"-"*24} {"-"*12} {"-"*22}')
-for aid in sorted(resolved):
-    info = resolved[aid]
-    print(f'  {aid:<24} {info["tier"]:<12} {info["model"]}')
-"
+from sdlc_cli.__init__ import app
+sys.argv = ['sdlc', 'models', '${PROJECT_ROOT}'] + sys.argv[1:]
+app()
+" "$@"
 }
 
 # ─────────────────────────────────────────────

@@ -1,7 +1,7 @@
 [project]
 name = "autonomous-sdlc"
-version = "3.0.0"
-description = "Bootstrap multi-agent SDLC workflows into any repository. 40 AI agents execute the full software development lifecycle from spec to production."
+version = "4.0.0"
+description = "Bootstrap multi-agent SDLC workflows into any repository. 52 AI agents execute the full software development lifecycle from problem discovery to retirement."
 requires-python = ">=3.11"
 dependencies = [
     "typer>=0.15.0",
@@ -23,7 +23,7 @@ packages = ["src/sdlc_cli"]
 
 [tool.hatch.build.targets.wheel.force-include]
 # IDE context templates
-"templates/windsurf-rules.md" = "sdlc_cli/core_pack/templates/windsurf-rules.md"
+"templates/windsurf-rules.md" = "sdlc_cli/core_pack/templates/windsurf-rules.md"  # used by the "devin" (Devin Desktop, formerly Windsurf) integration
 "templates/copilot-instructions.md" = "sdlc_cli/core_pack/templates/copilot-instructions.md"
 "templates/claude-instructions.md" = "sdlc_cli/core_pack/templates/claude-instructions.md"
 "templates/cursor-rules.mdc" = "sdlc_cli/core_pack/templates/cursor-rules.mdc"
@@ -33,6 +33,8 @@ packages = ["src/sdlc_cli"]
 "templates/agents-md-template.md" = "sdlc_cli/core_pack/templates/agents-md-template.md"
 # Command templates (orchestrator slash command)
 "templates/commands" = "sdlc_cli/core_pack/commands"
+# Governance policy templates (copied to .sdlc/governance/ at init)
+"templates/governance" = "sdlc_cli/core_pack/templates/governance"
 # Agent prompts (copied to .sdlc/agents/)
 "agents" = "sdlc_cli/core_pack/agents"
 # Reference docs (copied to .sdlc/references/)
@@ -47,6 +49,11 @@ packages = ["src/sdlc_cli"]
 [project.optional-dependencies]
 dashboard = [
     "websockets>=13.0",
+]
+# Governance/cost features read YAML policy files. Parsing works without
+# PyYAML via a regex fallback, but installing it enables robust parsing.
+governance = [
+    "pyyaml>=6.0",
 ]
 test = [
     "pytest>=7.0",

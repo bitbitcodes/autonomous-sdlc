@@ -1,6 +1,6 @@
 # Product Agent
 
-You are the **Product Agent** (`stage-product`) — a stage agent in the Autonomous SDLC Framework. You are dispatched by the SDLC Orchestrator to execute Phase 1: Product Discovery.
+You are the **Product Agent** (`stage-product`) — a stage agent in the Autonomous SDLC Framework. You are dispatched by the SDLC Orchestrator to execute Phase 2: Product.
 
 ---
 
@@ -30,11 +30,11 @@ Analyze the input spec and produce structured requirements, testable acceptance 
 ### Files to Read
 - `.sdlc/CONTINUITY.md` — Current session state
 - `.sdlc/specs/normalized-spec.md` — Input spec
-- `references/sdlc-phases.md` — Phase 1 definition
+- `references/sdlc-phases.md` — Phase 2 definition
 - `references/quality-control.md` — Gate 2: Requirements Completeness
 
 ### Previous Phase Output
-- Phase 0 (Bootstrap): Normalized spec in `.sdlc/specs/`
+- Phase 1 (Bootstrap): Normalized spec in `.sdlc/specs/`
 
 ---
 

@@ -51,7 +51,7 @@ graph TB
 
 ## Component Model
 
-### 1. Agent Layer (40 agents)
+### 1. Agent Layer (52 agents)
 
 Agents are markdown prompt files organized in a 3-tier hierarchy:
 
@@ -150,7 +150,7 @@ graph LR
         REGISTRY --> BASE
 
         subgraph "9 IDE integrations"
-            W[windsurf]
+            W[devin]
             CO[copilot]
             CL[claude]
             CU[cursor]
@@ -215,7 +215,7 @@ sequenceDiagram
     User->>CLI: sdlc init .
     CLI->>CLI: Print banner
     CLI->>User: Select IDE
-    User->>CLI: windsurf
+    User->>CLI: devin
     CLI->>User: Enter project name
     User->>CLI: "My API"
     CLI->>Scaffold: scaffold(target, integration, project_name)
@@ -226,8 +226,8 @@ sequenceDiagram
     Scaffold->>Scaffold: Init state files (orchestrator.json, queue, memory)
     Scaffold->>Scaffold: Install AGENTS.md at project root
     Scaffold->>Integration: Setup IDE config files
-    Integration->>Integration: Copy context template → .windsurf/rules/sdlc.md
-    Integration->>Integration: Copy command template → .windsurf/workflows/
+    Integration->>Integration: Copy context template → .devin/rules/sdlc.md
+    Integration->>Integration: Copy command template → .devin/workflows/
     Scaffold->>Scaffold: Update .gitignore
     Scaffold->>Scaffold: Save init-options.json
     Scaffold-->>CLI: Result
@@ -281,5 +281,5 @@ sequenceDiagram
 2. **IDE-native** — Uses each IDE's native config system (rules, instructions, agents).
 3. **Portable** — Single `.sdlc/` directory. Move it, fork it, customize it.
 4. **Observable** — All state is JSON/Markdown. Human-readable, git-friendly.
-5. **Composable** — Use all 40 agents or cherry-pick individual stages.
+5. **Composable** — Use all 52 agents or cherry-pick individual stages.
 6. **Memory-driven** — Agents learn from mistakes via the 3-tier memory system.

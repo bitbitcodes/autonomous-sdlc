@@ -1,0 +1,25 @@
+# Token governance layer (Gartner 2028 forecast adaptation).
+# Enforces hard limits on token consumption per feature/phase/agent
+# to keep AI coding costs sustainable as token prices rise.
+
+token_governance:
+  limits:
+    per_feature_max: 5000000  # 5M tokens (~$100 at $0.02/1K)
+    per_phase_max: 500000     # 500K tokens
+    per_agent_max: 100000     # 100K tokens
+
+  alerts:
+    - threshold: 0.5
+      action: log
+    - threshold: 0.75
+      action: warn
+    - threshold: 0.9
+      action: pause_and_review
+    - threshold: 1.0
+      action: hard_stop
+
+  escalation:
+    over_budget_action: "pause_and_require_approval"
+    approval_required_from: ["engineering_lead", "finance"]
+
+  rate_usd_per_1k_tokens: 0.02

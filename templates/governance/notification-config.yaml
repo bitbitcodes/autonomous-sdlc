@@ -1,0 +1,17 @@
+# Notification channels for approval requests and budget/token alerts.
+# Configure via `sdlc approvals configure` or edit directly.
+
+channels:
+  slack:
+    enabled: false
+    webhook_url: ""
+  email:
+    enabled: false
+    smtp_host: ""
+    smtp_port: 587
+    from_address: ""
+    to_addresses: []
+  desktop:
+    enabled: false
+
+default_channel: "cli"  # falls back to CLI/IDE prompt if no channel is enabled

@@ -1,0 +1,38 @@
+# Task-based execution models (Gartner recommendation: define when AI
+# agents should be used and at what autonomy level).
+
+execution_models:
+  developer_led:
+    description: "Human drives, AI assists with suggestions"
+    token_budget: 50000
+    autonomy_level: "advisory"
+    use_cases:
+      - "Architecture decisions"
+      - "Novel problem solving"
+      - "Strategic technical choices"
+
+  developer_with_agent:
+    description: "Human + AI collaboration"
+    token_budget: 500000
+    autonomy_level: "collaborative"
+    use_cases:
+      - "Standard feature development"
+      - "API implementation"
+      - "Database schema design"
+
+  fully_agent_led:
+    description: "AI autonomous with human oversight"
+    token_budget: 5000000
+    autonomy_level: "autonomous"
+    use_cases:
+      - "CRUD generation"
+      - "Test suite creation"
+      - "Documentation generation"
+
+classification_rules:
+  - pattern: "architecture|design pattern|technology choice"
+    model: developer_led
+  - pattern: "implement|build|create api"
+    model: developer_with_agent
+  - pattern: "generate crud|add tests|write docs"
+    model: fully_agent_led

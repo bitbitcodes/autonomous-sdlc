@@ -1,10 +1,10 @@
-# I Built 40 AI Agents That Execute the Entire Software Development Lifecycle — Here's How
+# I Built 52 AI Agents That Execute the Entire Software Development Lifecycle — Here's How
 
-*One command. 40 agents. From spec to production-ready code with tests, security audit, CI/CD, and monitoring.*
+*One command. 52 agents. From spec to production-ready code with tests, security audit, CI/CD, and monitoring.*
 
 ---
 
-You paste a JIRA story into your IDE. Five minutes later, you have structured requirements, architecture decisions, interface contracts, a working implementation, test suites, a security audit, CI/CD pipelines, and monitoring dashboards — all generated autonomously by 40 coordinated AI agents.
+You paste a JIRA story into your IDE. Five minutes later, you have structured requirements, architecture decisions, interface contracts, a working implementation, test suites, a security audit, CI/CD pipelines, and monitoring dashboards — all generated autonomously by 52 coordinated AI agents.
 
 No, this isn't a demo. It's a framework called **autonomous-sdlc**, and it's open source.
 
@@ -29,21 +29,21 @@ That's what autonomous-sdlc does.
 
 ---
 
-## The Architecture: 40 Markdown Agents, Zero Dependencies
+## The Architecture: 52 Markdown Agents, Zero Dependencies
 
 The framework has **zero runtime dependencies**. No server. No process. No Docker container. Every agent is a markdown file.
 
 ```
-40 agents = 1 orchestrator + 10 stage agents + 29 subagents
+52 agents = 1 orchestrator + 12 stage agents + 39 subagents
 ```
 
 ### The Three Tiers
 
-**Tier 1: Orchestrator** — The parent agent that controls the entire lifecycle. It reads your spec, determines complexity, selects the right team of agents, and drives 11 sequential phases. It enforces quality gates between every phase and manages retries when things fail.
+**Tier 1: Orchestrator** — The parent agent that controls the entire lifecycle. It reads your spec, determines complexity, selects the right team of agents, and drives 13 sequential phases. It enforces quality gates between every phase and manages retries when things fail.
 
-**Tier 2: Stage Agents (10)** — Each owns a phase: Product, Story-Tasks, Architecture, Design, Development, Testing, Security, Review, DevOps, Observability. They dispatch specialized subagents to do the actual work.
+**Tier 2: Stage Agents (12)** — Each owns a phase: Problem Discovery, Product, Story-Tasks, Architecture, Design, Development, Testing, Security, Review, DevOps, Observability, and (when triggered) Retirement. They dispatch specialized subagents to do the actual work. (Bootstrap is handled directly by the orchestrator.)
 
-**Tier 3: Subagents (29)** — The workers. A Requirement Parser that structures your messy PRD. A Tech Stack Advisor that evaluates options with trade-off analysis. A Code Generator that implements features. A Secret Scanner that finds hardcoded API keys. And 25 others.
+**Tier 3: Subagents (39)** — The workers. A Requirement Parser that structures your messy PRD. A Tech Stack Advisor that evaluates options with trade-off analysis. A Code Generator that implements features. A Secret Scanner that finds hardcoded API keys. And 35 others.
 
 ### No Magic — Just Structured Prompts
 
@@ -67,23 +67,25 @@ The AI IDE reads the agent's `.md` file, adopts that persona, executes, and hand
 
 ---
 
-## The 11 Phases
+## The 13 Phases
 
-The framework executes a complete SDLC in 11 phases:
+The framework executes a complete SDLC in 13 phases (0–12):
 
 | Phase | What Happens | Key Output |
 |-------|-------------|------------|
-| **0. Bootstrap** | Parse input spec, detect complexity, select team | Normalized spec, project config |
-| **1. Product** | Requirements analysis, risks, acceptance criteria | Structured requirements, Given/When/Then criteria |
-| **2. Story-Tasks** | Decompose into epics, stories, tasks with dependencies | Story map, task queue, dependency graph |
-| **3. Architecture** | High-level design, tech stack selection, ADRs | System design, Architecture Decision Records |
-| **4. Design** | Interface contracts, data models, integration plans | OpenAPI specs, DB schemas, NFR assessment |
-| **5. Development** | Implement the codebase | Production code, written directly into your repo |
-| **6. Testing** | Unit, integration, and regression tests | Test suites with ≥80% coverage target |
-| **7. Security** | Secret scanning, dependency audit, OWASP review | Security report, remediated vulnerabilities |
-| **8. Review** | 3 blind reviewers assess the full codebase | Review verdicts, remediation |
-| **9. DevOps** | CI/CD pipelines, Docker, deployment configs | GitHub Actions, Dockerfile, IaC |
-| **10. Observability** | SLOs, alerting, health checks, runbooks | Monitoring config, dashboards, runbooks |
+| **0. Problem Discovery** | Validate the problem is worth solving, build vs. buy | Problem statement, business case, go/no-go decision |
+| **1. Bootstrap** | Parse input spec, detect complexity, select team | Normalized spec, project config |
+| **2. Product** | Requirements analysis, risks, acceptance criteria | Structured requirements, Given/When/Then criteria |
+| **3. Story-Tasks** | Decompose into epics, stories, tasks with dependencies | Story map, task queue, dependency graph |
+| **4. Architecture** | High-level design, tech stack selection, ADRs | System design, Architecture Decision Records |
+| **5. Design** | Interface contracts, data models, integration plans | OpenAPI specs, DB schemas, NFR assessment |
+| **6. Development** | Implement the codebase | Production code, written directly into your repo |
+| **7. Testing** | Unit, integration, and regression tests | Test suites with ≥80% coverage target |
+| **8. Security** | Secret scanning, dependency audit, OWASP review | Security report, remediated vulnerabilities |
+| **9. Review** | 3 blind reviewers assess the full codebase | Review verdicts, remediation |
+| **10. DevOps** | CI/CD pipelines, Docker, deployment configs | GitHub Actions, Dockerfile, IaC |
+| **11. Observability** | SLOs, alerting, health checks, runbooks | Monitoring config, dashboards, runbooks |
+| **12. Retirement** *(triggered)* | Deprecation, migration, data retention, decommission | Deprecation plan, migration guide, decommission checklist |
 
 Every phase has a **quality gate**. If the gate fails, the agent self-corrects: captures the error, analyzes root cause, updates learnings, and retries (max 3 attempts). If it still fails, it escalates to the human.
 
@@ -93,7 +95,7 @@ Every phase has a **quality gate**. If the gate fails, the agent self-corrects: 
 
 This is the feature I'm most proud of.
 
-After *every* phase (except Bootstrap and Review itself), the orchestrator dispatches **3 independent reviewers**:
+After *every* phase (except Problem Discovery, Bootstrap, and Review itself), the orchestrator dispatches **3 independent reviewers**:
 
 1. **Code Review Agent** — SOLID principles, patterns, correctness
 2. **Maintainability Reviewer** — Tech debt, complexity, readability
@@ -101,7 +103,7 @@ After *every* phase (except Bootstrap and Review itself), the orchestrator dispa
 
 They run **simultaneously and blindly** — no shared context between them. This prevents groupthink and sycophantic agreement. An anti-sycophancy check verifies they didn't just rubber-stamp the work.
 
-If ≥2 reviewers find critical issues, the phase fails and gets reworked. This catches problems early — a flawed architecture in Phase 3 is caught before any code is written in Phase 5.
+If ≥2 reviewers find critical issues, the phase fails and gets reworked. This catches problems early — a flawed architecture in Phase 4 is caught before any code is written in Phase 6.
 
 ---
 
@@ -137,7 +139,7 @@ One `sdlc init` scaffolds everything into a `.sdlc/` directory and configures yo
 | IDE | How It Works |
 |-----|-------------|
 | **GitHub Copilot** | Agent appears in dropdown → select → paste spec |
-| **Windsurf** | Type `/sdlc.orchestrator` → paste spec |
+| **Devin Desktop** | Type `/sdlc.orchestrator` → paste spec |
 | **Claude Code** | Use `/sdlc-orchestrator` command |
 | **Cursor** | Context auto-loads → just paste spec |
 | **Gemini CLI** | Command available in `.gemini/commands/` |
@@ -156,19 +158,19 @@ There are other AI coding tools. Here's why this approach is different:
 
 ### 1. Process, Not Just Code Generation
 
-Most tools generate code. This framework executes an *entire SDLC* — requirements, architecture, design, implementation, testing, security, review, deployment, monitoring. The code generation is Phase 5 of 11.
+Most tools generate code. This framework executes an *entire SDLC* — problem discovery, requirements, architecture, design, implementation, testing, security, review, deployment, monitoring, and retirement. The code generation is Phase 6 of 13.
 
 ### 2. Zero Vendor Lock-In
 
 Agents are markdown files. The framework has no runtime. You can:
 - Switch IDEs freely (just re-run `sdlc init` with a different integration)
 - Fork and customize any agent prompt
-- Cherry-pick individual phases instead of running all 11
+- Cherry-pick individual phases instead of running all 13
 - Read every agent's instructions in plain English
 
 ### 3. Quality Built In, Not Bolted On
 
-Security scanning isn't an afterthought — it's Phase 7 with 4 specialized agents. Code review isn't optional — it's Phase 8 with 3 blind reviewers. Observability isn't "we'll add it later" — it's Phase 10 with SLOs, alerting, and runbooks.
+Security scanning isn't an afterthought — it's Phase 8 with 4 specialized agents. Code review isn't optional — it's Phase 9 with 3 blind reviewers. Observability isn't "we'll add it later" — it's Phase 11 with SLOs, alerting, and runbooks.
 
 ### 4. Project-Type Agnostic
 
@@ -226,7 +228,7 @@ All from a 6-line JIRA story.
 
 ### Agents need constraints, not capabilities
 
-The biggest mistake in agent design is making them too capable. A "do everything" agent produces mediocre results. A narrowly-scoped agent with clear constraints produces excellent results. Each of our 29 subagents does exactly one thing.
+The biggest mistake in agent design is making them too capable. A "do everything" agent produces mediocre results. A narrowly-scoped agent with clear constraints produces excellent results. Each of our 39 subagents does exactly one thing.
 
 ### Memory beats reasoning
 
