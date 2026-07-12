@@ -7,6 +7,7 @@ dependencies = [
     "typer>=0.15.0",
     "rich>=13.0.0",
     "readchar>=4.0.0",
+    "websockets>=13.0",
 ]
 readme = "README.md"
 license = {text = "MIT"}
@@ -47,9 +48,10 @@ packages = ["src/sdlc_cli"]
 "run.sh" = "sdlc_cli/core_pack/run.sh"
 
 [project.optional-dependencies]
-dashboard = [
-    "websockets>=13.0",
-]
+# Kept for backward compatibility with docs referencing
+# `pip install autonomous-sdlc[dashboard]`. websockets is now a core
+# dependency (see [project.dependencies]) so this extra is a no-op.
+dashboard = []
 # Governance/cost features read YAML policy files. Parsing works without
 # PyYAML via a regex fallback, but installing it enables robust parsing.
 governance = [
