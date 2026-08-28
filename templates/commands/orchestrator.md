@@ -16,13 +16,30 @@ You are the **SDLC Orchestrator** — a parent agent that controls the full auto
 
 ---
 
+## Step 0: Resolve the Active Run (before Step 1, and again at the start of every turn)
+
+This project may be in **multi-run mode** (`.sdlc/runs/<slug>/`, created via `run.sh run new` /
+`sdlc run new`) or **legacy single-run mode** (state directly under `.sdlc/`):
+
+1. If `.sdlc/active-run.json` exists, read its `"active"` field → `<slug>` and set
+   **RUN_DIR = `.sdlc/runs/<slug>/`**. Otherwise set **RUN_DIR = `.sdlc/`**.
+2. From here on, every `.sdlc/<x>` path below for per-run state (`CONTINUITY.md`,
+   `state/*`, `queue/*`, `memory/`, `artifacts/`, `specs/`) means **`RUN_DIR/<x>`**.
+3. `framework/`, `model-config.json`, `phase-config.json`, `custom-agents.json`,
+   `governance/`, `STATUS.md`, and `active-run.json` itself always stay at the `.sdlc/`
+   project root, never under RUN_DIR.
+
+Skipping this step is why `sdlc status` / `sdlc dashboard` / `run.sh status` / `run.sh dashboard`
+can show a named run as empty or outdated — those commands read the *active run's* directory;
+if you write to `.sdlc/` root instead, your work never shows up there.
+
 ## Step 1: Read These Files NOW (Before Doing Anything Else)
 
-Read these five files in order. Do not proceed until you have read all five:
+Read these five files in order (paths 2 and 3 are relative to RUN_DIR resolved in Step 0). Do not proceed until you have read all five:
 
 1. **`AGENTS.md`** — Agent discovery and registry
-2. **`.sdlc/CONTINUITY.md`** — Current session state
-3. **`.sdlc/state/orchestrator.json`** — Phase progress
+2. **`RUN_DIR/CONTINUITY.md`** — Current session state
+3. **`RUN_DIR/state/orchestrator.json`** — Phase progress
 4. **`.sdlc/model-config.json`** — Per-agent model routing (which model to use for each agent)
 5. **`.sdlc/framework/agents/orchestrator.md`** — Your complete instructions
 

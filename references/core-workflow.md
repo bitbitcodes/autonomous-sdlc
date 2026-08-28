@@ -1,5 +1,18 @@
 # Core Workflow Reference
 
+## Run Resolution
+
+Every `.sdlc/<x>` path below for per-run state (`CONTINUITY.md`, `state/`, `queue/`, `memory/`,
+`artifacts/`, `specs/`) means the **active run's directory**, not necessarily the `.sdlc/` root:
+
+- If `.sdlc/active-run.json` exists, resolve `RUN_DIR = .sdlc/runs/<active-slug>/` and use that.
+- Otherwise (legacy single-run mode), `RUN_DIR = .sdlc/`.
+
+`framework/`, `model-config.json`, `phase-config.json`, `custom-agents.json`, `governance/`,
+`STATUS.md`, and `active-run.json` itself are shared and always live at the `.sdlc/` root.
+Writing per-run state to the wrong location is why `sdlc status`/`sdlc dashboard` (which read
+the active run) can show a run as empty or outdated after the orchestrator has done real work.
+
 ## Autonomy Rules
 
 ### Core Rules

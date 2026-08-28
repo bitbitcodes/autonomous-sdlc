@@ -469,24 +469,18 @@ cmd_dashboard() {
 
   local port="${1:-8420}"
 
-  if ! python3 -c 'import websockets' 2>/dev/null; then
-    log_error "The 'websockets' package is required for the dashboard."
-    echo "  Install it with: pip install websockets"
-    echo "  or: pip install autonomous-sdlc[dashboard]"
-    exit 1
-  fi
-
-  echo -e "${CYAN}SDLC Dashboard${NC} starting on http://127.0.0.1:${port}"
-  echo "WebSocket on port $((port + 1))"
-  echo "Press Ctrl+C to stop."
-  echo ""
-
+  # Delegate to the Python CLI — the single source of truth for run
+  # resolution (active run via .sdlc/active-run.json), same as `status` and
+  # `trace`. Calling dashboard.serve() directly here (as this used to do)
+  # bypassed run resolution entirely and always served the root .sdlc/
+  # state, showing empty/stale data whenever a named run (`run.sh run new`)
+  # was active.
   python3 -c "
 import sys, os
 sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
-from pathlib import Path
-from sdlc_cli.dashboard import serve
-serve(Path('${SDLC_DIR}'), port=${port})
+from sdlc_cli.__init__ import app
+sys.argv = ['sdlc', 'dashboard', '${PROJECT_ROOT}', '--port', '${port}']
+app()
 "
 }
 
