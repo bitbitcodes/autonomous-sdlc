@@ -91,6 +91,19 @@ def read_state(run_dir: Path, sdlc_dir: Path | None = None) -> dict:
     except Exception:
         mermaid_src = ""
 
+    # CONTINUITY.md freshness — see continuity.py. Never let a checker bug break
+    # the dashboard payload.
+    try:
+        from .continuity import check_freshness
+
+        freshness = check_freshness(run_dir)
+        continuity_freshness = {
+            "status": freshness.status,
+            "reasons": freshness.reasons,
+        }
+    except Exception:
+        continuity_freshness = {"status": "unknown", "reasons": []}
+
     return {
         "orchestrator": orch,
         "trace": trace,
@@ -101,6 +114,7 @@ def read_state(run_dir: Path, sdlc_dir: Path | None = None) -> dict:
         },
         "activity_log": _read_lines_file(run_dir / "state" / "activity-log.md", tail=30),
         "continuity": _read_lines_file(run_dir / "CONTINUITY.md", head=20),
+        "continuity_freshness": continuity_freshness,
         "model_config": model_config,
         "phase_enabled": enabled_map,
         "mermaid_src": mermaid_src,
