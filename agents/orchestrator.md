@@ -313,11 +313,20 @@ For each phase:
    b. Each reviewer produces VERDICT (PASS/FAIL) + FINDINGS
    c. If any Critical/High/Medium findings: fix and re-review (max 3 cycles)
    d. All 3 reviewers must PASS before advancing
-9. UPDATE orchestrator.json, advance phase
-10. UPDATE CONTINUITY.md with phase results
-11. APPEND trace entry to .sdlc/state/agent-trace.json (see Trace Schema below)
+9. SYNC CONTINUITY.md with STATUS.md (after gate pass, before phase advance):
+   a. Import: from sdlc_cli.continuity_sync import sync_continuity_after_phase
+   b. Call: sync_continuity_after_phase(
+        status_path=Path(".sdlc/STATUS.md"),
+        continuity_path=Path(f"{RUN_DIR}/CONTINUITY.md"),
+        logger_instance=logger
+      )
+   c. If sync fails: log warning but continue (per ADR-002 - log and continue)
+   d. If sync succeeds: log success with duration and method used
+10. UPDATE orchestrator.json, advance phase
+11. UPDATE CONTINUITY.md with phase results
+12. APPEND trace entry to .sdlc/state/agent-trace.json (see Trace Schema below)
     Include "model": "<resolved model>" in the trace entry
-12. APPEND to .sdlc/state/activity-log.md:
+13. APPEND to .sdlc/state/activity-log.md:
     ## [timestamp] Phase N: <phase-name>
     - Agent: <stage-agent-id>
     - Subagents dispatched: <list of subagent IDs used>
@@ -326,7 +335,7 @@ For each phase:
     - Gate: PASS | FAIL
     - Per-Phase Review: PASS | FAIL (N cycles)
     - Next: <next phase>
-13. UPDATE .sdlc/STATUS.md:
+14. UPDATE .sdlc/STATUS.md:
     - Phase & Agent Status table: set row Status → complete, Gate → PASS, fill Subagents Used + Key Outcome
     - Subagent Detail table: set each subagent Status → complete/skipped, fill Outcome
     - Artifacts Produced table: append rows for new artifacts

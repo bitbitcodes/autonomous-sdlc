@@ -124,6 +124,17 @@ Update `.sdlc/STATUS.md` at every phase transition:
 4. **Artifacts Produced table** — Append a row for each artifact file produced
 5. **Last updated timestamp** — Update the `> Last updated:` line
 
+### CONTINUITY.md Synchronization
+
+After every phase gate passes (before advancing to the next phase), synchronize CONTINUITY.md with STATUS.md to ensure working memory stays fresh:
+
+1. Import: `from sdlc_cli.continuity_sync import sync_continuity_after_phase`
+2. Call: `sync_continuity_after_phase(status_path=Path(".sdlc/STATUS.md"), continuity_path=Path(f"{RUN_DIR}/CONTINUITY.md"), logger_instance=logger)`
+3. If sync fails: log warning but continue (per ADR-002 - log and continue)
+4. If sync succeeds: log success with duration and method used
+
+This ensures that if the orchestrator is interrupted and resumes, it will read accurate, up-to-date state from CONTINUITY.md.
+
 ## Step 4: Dispatch Subagents
 
 For each phase, read the stage agent prompt from `.sdlc/framework/agents/stage/<phase>.md`, adopt that role, and dispatch its subagents as needed. Log each subagent dispatch in the activity log.
