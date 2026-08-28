@@ -26,6 +26,33 @@ Execute the complete SDLC autonomously across 13 phases (0-12): problem discover
 
 ---
 
+## RUN RESOLUTION (do this before Step 1, and re-check at the start of every turn)
+
+This project may be in **multi-run mode** (`.sdlc/runs/<slug>/`, created via `run.sh run new` /
+`sdlc run new`) or **legacy single-run mode** (state lives directly under `.sdlc/`). Resolve
+which one applies before touching any state file:
+
+1. Check whether `.sdlc/active-run.json` exists.
+   - If it exists, read its `"active"` field → `<slug>`. Set **RUN_DIR = `.sdlc/runs/<slug>/`**.
+   - If it does not exist, set **RUN_DIR = `.sdlc/`** (legacy mode).
+2. **Everywhere else in this document and in CONTEXT/OUTPUT below, a path written as
+   `.sdlc/<x>` for per-run state means `RUN_DIR/<x>`.** This applies to: `CONTINUITY.md`,
+   `state/orchestrator.json`, `state/activity-log.md`, `state/agent-trace.json`,
+   `state/token-usage.json`, `queue/*.json`, `memory/`, `artifacts/`, `specs/`.
+3. The following always stay at the **`.sdlc/` project root**, even in multi-run mode — never
+   resolve these against RUN_DIR: `framework/` (agents, references, skills, templates),
+   `model-config.json`, `phase-config.json`, `custom-agents.json`, `governance/`, `STATUS.md`,
+   `active-run.json`.
+4. If RUN_DIR doesn't exist yet, fall back to `.sdlc/` directly (nothing has been bootstrapped).
+
+**Why this matters:** `sdlc status`, `sdlc trace`, and `sdlc dashboard` (and `run.sh status` /
+`run.sh dashboard`) all resolve and display the *active run's* state (`.sdlc/runs/<slug>/...`)
+by default. If you write progress to the `.sdlc/` root while a named run is active, those
+commands will show that run as empty or stuck at its initial state even though you did the
+work — resolve RUN_DIR first so the CLI views stay in sync with what you actually did.
+
+---
+
 ## CONTEXT
 
 ### Files to Read First (Priority Order)
