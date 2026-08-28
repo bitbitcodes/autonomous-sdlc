@@ -62,9 +62,7 @@ GITIGNORE_ENTRIES = [
     ".sdlc/queue/",
     ".sdlc/memory/",
     ".sdlc/artifacts/",
-    ".sdlc/specs/",
     ".sdlc/CONTINUITY.md",
-    ".sdlc/runs/",
     ".sdlc/archive/",
 ]
 
@@ -145,19 +143,21 @@ def scaffold(
 
     # 3. Initialize runtime state files
     _init_runtime_state(target_dir)
-    files_created.extend([
-        ".sdlc/state/orchestrator.json",
-        ".sdlc/queue/pending.json",
-        ".sdlc/queue/active.json",
-        ".sdlc/queue/completed.json",
-        ".sdlc/memory/episodic/index.json",
-        ".sdlc/memory/semantic/patterns.json",
-        ".sdlc/memory/semantic/anti-patterns.json",
-        ".sdlc/memory/learnings/index.json",
-        ".sdlc/state/agent-trace.json",
-        ".sdlc/state/token-usage.json",
-        ".sdlc/CONTINUITY.md",
-    ])
+    files_created.extend(
+        [
+            ".sdlc/state/orchestrator.json",
+            ".sdlc/queue/pending.json",
+            ".sdlc/queue/active.json",
+            ".sdlc/queue/completed.json",
+            ".sdlc/memory/episodic/index.json",
+            ".sdlc/memory/semantic/patterns.json",
+            ".sdlc/memory/semantic/anti-patterns.json",
+            ".sdlc/memory/learnings/index.json",
+            ".sdlc/state/agent-trace.json",
+            ".sdlc/state/token-usage.json",
+            ".sdlc/CONTINUITY.md",
+        ]
+    )
 
     # 3b. Governance: copy policy templates + init decision-log/pending-approvals
     gov_files = _init_governance(target_dir, force=force)
@@ -180,7 +180,9 @@ def scaffold(
     # 5. Set up the selected IDE integration
     integration_cls = get_integration(integration)
     integration_instance = integration_cls()
-    integration_files = integration_instance.setup(target_dir, project_name=project_name)
+    integration_files = integration_instance.setup(
+        target_dir, project_name=project_name
+    )
     for f in integration_files:
         try:
             rel = f.relative_to(target_dir)
@@ -193,13 +195,16 @@ def scaffold(
     files_created.append(".gitignore")
 
     # 7. Save config
-    create_config(target_dir, {
-        "projectName": project_name,
-        "integration": integration,
-        "techStack": tech_stack,
-        "teamSize": team_size,
-        "complexity": complexity,
-    })
+    create_config(
+        target_dir,
+        {
+            "projectName": project_name,
+            "integration": integration,
+            "techStack": tech_stack,
+            "teamSize": team_size,
+            "complexity": complexity,
+        },
+    )
     files_created.append(".sdlc/init-options.json")
 
     return {
@@ -296,6 +301,7 @@ def _find_source_dir(dirname: str) -> Path | None:
 
     # Fallback: check relative to package
     import inspect
+
     pkg_dir = Path(inspect.getfile(base_cls)).resolve().parent.parent
     for candidate in [
         pkg_dir / "core_pack" / dirname,
@@ -306,7 +312,9 @@ def _find_source_dir(dirname: str) -> Path | None:
     return None
 
 
-def create_run(sdlc_dir: Path, slug: str, title: str, spec_file: str | None = None) -> Path:
+def create_run(
+    sdlc_dir: Path, slug: str, title: str, spec_file: str | None = None
+) -> Path:
     """Create a new named run under .sdlc/runs/<slug>/ with fresh state."""
     run_dir = sdlc_dir / "runs" / slug
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -456,8 +464,12 @@ Phase 0: Problem Discovery — Initialized, awaiting spec input.
         from .phases import write_custom_agents
 
         write_custom_agents(sdlc)
-    (sdlc / "framework" / "agents" / "custom" / "stage").mkdir(parents=True, exist_ok=True)
-    (sdlc / "framework" / "agents" / "custom" / "sub").mkdir(parents=True, exist_ok=True)
+    (sdlc / "framework" / "agents" / "custom" / "stage").mkdir(
+        parents=True, exist_ok=True
+    )
+    (sdlc / "framework" / "agents" / "custom" / "sub").mkdir(
+        parents=True, exist_ok=True
+    )
 
 
 def _init_governance(target_dir: Path, *, force: bool = False) -> list[str]:
