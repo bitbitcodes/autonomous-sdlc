@@ -199,7 +199,8 @@ Each phase produces artifacts in `.sdlc/artifacts/<phase>/` — requirements, in
 Isolate multiple SDLC executions within the same project:
 
 ```bash
-sdlc run new ./feature-spec.md    # Create a new isolated run
+sdlc run new ./feature-spec.md    # Create a new isolated run from a file
+sdlc run new "Build a todo app"   # ...or from an inline/online spec, no file needed
 sdlc run list                     # List all runs
 sdlc run switch <slug>            # Switch active run
 sdlc run active                   # Show current active run

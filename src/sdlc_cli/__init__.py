@@ -1392,11 +1392,20 @@ def agents_remove(
 
 @run_app.command("new")
 def run_new(
-    spec_file: str | None = typer.Argument(None, help="Path to a spec/requirements file"),
+    spec_file: str | None = typer.Argument(
+        None,
+        help="Path to a spec/requirements file, or an inline spec/brief typed directly on the command line",
+    ),
+    text: str | None = typer.Option(
+        None,
+        "--text",
+        "-x",
+        help="Inline spec text (an online spec typed or piped in) instead of a file",
+    ),
     name: str | None = typer.Option(None, "--name", "-n", help="Override auto-generated folder name"),
     target: str | None = typer.Option(None, "--target", "-t", help="Project directory (default: current)"),
 ) -> None:
-    """Create a new SDLC run from a spec — auto-names the folder from content."""
+    """Create a new SDLC run from a spec file or inline text — auto-names the folder from content."""
     import json as _json
 
     target_dir = Path(target).resolve() if target else Path.cwd()
@@ -1409,17 +1418,27 @@ def run_new(
     from .runs import generate_run_slug, list_runs, set_active_run
     from .scaffold import create_run
 
-    # Read spec content for slug generation
+    if spec_file and text:
+        console.print("[red]Error:[/] Provide either a spec file/argument or --text, not both.")
+        raise typer.Exit(1)
+
+    # Read spec content for slug generation. Three ways in: an explicit
+    # --text flag, a positional argument (a file path, or inline spec text
+    # if it doesn't resolve to a file), or an interactive prompt.
     spec_text = ""
     spec_path = None
-    if spec_file:
-        spec_path = Path(spec_file).resolve()
-        if not spec_path.exists():
-            console.print(f"[red]Error:[/] Spec file not found: {spec_file}")
-            raise typer.Exit(1)
-        spec_text = spec_path.read_text(encoding="utf-8")
+    if text:
+        spec_text = text
+    elif spec_file:
+        candidate = Path(spec_file)
+        if candidate.is_file():
+            spec_path = candidate.resolve()
+            spec_text = spec_path.read_text(encoding="utf-8")
+        else:
+            # Not a file on disk — treat the argument as an inline spec/brief.
+            spec_text = spec_file
     else:
-        console.print("[dim]No spec file provided. Enter a title/description for this run:[/]")
+        console.print("[dim]No spec provided. Enter a title/description for this run:[/]")
         spec_text = typer.prompt("Title")
 
     # Generate or use provided name
@@ -1447,14 +1466,14 @@ def run_new(
     # Create the run
     run_dir = create_run(sdlc_dir, slug, title, str(spec_path) if spec_path else None)
 
-    # Copy spec into the run
+    # Persist the spec into the run — always write normalized-spec.md
+    # (covers file, inline text, and interactive-prompt input alike), and
+    # additionally copy the original file when one was provided.
+    (run_dir / "specs" / "normalized-spec.md").write_text(spec_text, encoding="utf-8")
     if spec_path:
         import shutil
 
-        dst = run_dir / "specs" / spec_path.name
-        shutil.copy2(spec_path, dst)
-        # Also write normalized-spec.md
-        (run_dir / "specs" / "normalized-spec.md").write_text(spec_text, encoding="utf-8")
+        shutil.copy2(spec_path, run_dir / "specs" / spec_path.name)
 
     console.print(f"\n[bold green]✅ Run created:[/] [cyan]{slug}[/]")
     console.print(f"   [dim]Title:[/] {title}")

@@ -187,14 +187,15 @@ Manage multiple SDLC runs (specs/use-cases) within the same repository. Each run
 
 #### `sdlc run new`
 
-Create a new named run from a spec file. The folder name is **auto-generated** from the spec content (3-4 descriptive keywords).
+Create a new named run from a spec file **or from an inline (online) spec typed directly on the command line** — no `.md` file required. The folder name is **auto-generated** from the spec content (3-4 descriptive keywords).
 
 ```bash
-sdlc run new [SPEC_FILE] [OPTIONS]
+sdlc run new [SPEC_FILE_OR_TEXT] [OPTIONS]
 ```
 
 | Option | Short | Description |
 |--------|-------|-------------|
+| `--text` | `-x` | Inline spec text (an online spec) instead of a file |
 | `--name` | `-n` | Override the auto-generated folder name |
 | `--target` | `-t` | Project directory (default: current) |
 
@@ -208,9 +209,17 @@ sdlc run new ./specs/auth-api.md
 # Override the name
 sdlc run new ./specs/auth-api.md --name my-auth-run
 
-# No spec file — prompts for a title
+# Inline spec — positional argument that isn't a file path is treated as spec text
+sdlc run new "Build a REST API for JWT-based user authentication"
+
+# Inline spec — explicit flag (useful when piping or scripting)
+sdlc run new --text "Build a REST API for JWT-based user authentication"
+
+# No spec at all — prompts for a title
 sdlc run new
 ```
+
+**Detection rule:** the positional argument is treated as a path only if it resolves to an existing file on disk; otherwise it's treated as inline spec text, matching `./run.sh start`'s file-vs-brief detection.
 
 **Auto-naming:** Extracts the first heading or first line from the spec, strips stopwords, and joins 3-4 keywords with hyphens. If a slug already exists, appends `-2`, `-3`, etc.
 
