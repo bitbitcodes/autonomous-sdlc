@@ -25,9 +25,10 @@ This project may be in **multi-run mode** (`.sdlc/runs/<slug>/`, created via `ru
    **RUN_DIR = `.sdlc/runs/<slug>/`**. Otherwise set **RUN_DIR = `.sdlc/`**.
 2. From here on, every `.sdlc/<x>` path below for per-run state (`CONTINUITY.md`,
    `state/*`, `queue/*`, `memory/`, `artifacts/`, `specs/`) means **`RUN_DIR/<x>`**.
-3. `framework/`, `model-config.json`, `phase-config.json`, `custom-agents.json`,
-   `governance/`, `STATUS.md`, and `active-run.json` itself always stay at the `.sdlc/`
-   project root, never under RUN_DIR.
+3. `framework/`, `phase-config.json`, `custom-agents.json`, `governance/`, `STATUS.md`, and
+   `active-run.json` itself always stay at the `.sdlc/` project root, never under RUN_DIR.
+4. **`model-config.json`** is the one config read with run-folder priority: if
+   `RUN_DIR/model-config.json` exists, use it; otherwise fall back to `.sdlc/model-config.json`.
 
 Skipping this step is why `sdlc status` / `sdlc dashboard` / `run.sh status` / `run.sh dashboard`
 can show a named run as empty or outdated — those commands read the *active run's* directory;
@@ -40,7 +41,7 @@ Read these five files in order (paths 2 and 3 are relative to RUN_DIR resolved i
 1. **`AGENTS.md`** — Agent discovery and registry
 2. **`RUN_DIR/CONTINUITY.md`** — Current session state
 3. **`RUN_DIR/state/orchestrator.json`** — Phase progress
-4. **`.sdlc/model-config.json`** — Per-agent model routing (which model to use for each agent)
+4. **`model-config.json`** — Per-agent model routing (which model to use for each agent); read `RUN_DIR/model-config.json` if present, else `.sdlc/model-config.json`
 5. **`.sdlc/framework/agents/orchestrator.md`** — Your complete instructions
 
 ## Step 2: Follow the 13 Phases Sequentially
@@ -92,7 +93,7 @@ For `agent-trace.json`: read → parse → push to `traces` array → write **en
 After every agent dispatch (stage or subagent), append a trace entry to `.sdlc/state/agent-trace.json`:
 
 1. Read the file, parse JSON
-2. Push a new entry to the `traces` array with: `id` (sequential T001, T002...), `agent`, `role` (orchestrator/stage/subagent), `phase`, `phase_name`, `parent_id`, `action`, `input_artifacts`, `output_artifacts`, `dispatched`, `status`, `gate`, `model` (resolved from `.sdlc/model-config.json`), `timestamp`
+2. Push a new entry to the `traces` array with: `id` (sequential T001, T002...), `agent`, `role` (orchestrator/stage/subagent), `phase`, `phase_name`, `parent_id`, `action`, `input_artifacts`, `output_artifacts`, `dispatched`, `status`, `gate`, `model` (resolved from `RUN_DIR/model-config.json` if present, else `.sdlc/model-config.json`), `timestamp`
 3. Write back
 
 See `.sdlc/framework/agents/orchestrator.md` → agent-trace.json Schema for the full format.
