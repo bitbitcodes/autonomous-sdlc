@@ -400,20 +400,33 @@ cmd_run() {
 
   case "$subcmd" in
     new)
-      python3 -c "
+      # Target the project root explicitly unless the caller already did —
+      # without this, `run.sh run new` from outside the project would create
+      # the run in the wrong place.
+      if [[ " $* " == *" --target "* || " $* " == *" -t "* ]]; then
+        python3 -c "
 import sys, os
 sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
 from sdlc_cli.__init__ import app
 sys.argv = ['sdlc', 'run', 'new'] + sys.argv[1:]
 app()
 " "$@"
+      else
+        python3 -c "
+import sys, os
+sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
+from sdlc_cli.__init__ import app
+sys.argv = ['sdlc', 'run', 'new', '--target', '${PROJECT_ROOT}'] + sys.argv[1:]
+app()
+" "$@"
+      fi
       ;;
     list)
       python3 -c "
 import sys, os
 sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
 from sdlc_cli.__init__ import app
-sys.argv = ['sdlc', 'run', 'list']
+sys.argv = ['sdlc', 'run', 'list', '--target', '${PROJECT_ROOT}']
 app()
 "
       ;;
@@ -422,7 +435,7 @@ app()
 import sys, os
 sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
 from sdlc_cli.__init__ import app
-sys.argv = ['sdlc', 'run', 'switch', '$1']
+sys.argv = ['sdlc', 'run', 'switch', '$1', '--target', '${PROJECT_ROOT}']
 app()
 "
       ;;
@@ -431,7 +444,7 @@ app()
 import sys, os
 sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
 from sdlc_cli.__init__ import app
-sys.argv = ['sdlc', 'run', 'active']
+sys.argv = ['sdlc', 'run', 'active', '--target', '${PROJECT_ROOT}']
 app()
 "
       ;;
@@ -440,7 +453,7 @@ app()
 import sys, os
 sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
 from sdlc_cli.__init__ import app
-sys.argv = ['sdlc', 'run', 'archive', '$1']
+sys.argv = ['sdlc', 'run', 'archive', '$1', '--target', '${PROJECT_ROOT}']
 app()
 "
       ;;
@@ -448,11 +461,11 @@ app()
       echo "Usage: ./run.sh run <subcommand>"
       echo ""
       echo "Subcommands:"
-      echo "  new [spec-file]     Create a new run (auto-names from spec)"
-      echo "  list                List all runs with status"
-      echo "  switch <slug>       Set the active run"
-      echo "  active              Show current active run"
-      echo "  archive <slug>      Archive a completed run"
+    echo "  new [spec]          Create a new run (spec file, inline text, or --text)"
+    echo "  list                List all runs with status"
+    echo "  switch <slug>       Set the active run (refreshes Cursor model rules)"
+    echo "  active              Show current active run"
+    echo "  archive <slug>      Archive a completed run"
       ;;
   esac
 }
@@ -494,6 +507,10 @@ cmd_models() {
     exit 1
   fi
 
+  # Delegates to the Python CLI, which loads model-config.json with
+  # run-folder priority: the active run's (or --run <slug>'s) per-run copy
+  # wins over the global .sdlc/model-config.json. Flags like --edit,
+  # --reset, and --run pass through unchanged.
   python3 -c "
 import sys, os
 sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src'))
@@ -566,7 +583,7 @@ cmd_help() {
   echo "  trace [phase]       Show agent interaction map"
   echo "  run <subcommand>    Manage multiple runs (new/list/switch/archive)"
   echo "  dashboard [port]    Launch real-time web dashboard (default: 8420)"
-  echo "  models [--edit|--reset]  Show/manage per-agent model routing"
+    echo "  models [--edit|--reset] [--run <slug>]  Show/manage per-agent model routing (run folder config takes priority)"
   echo "  upgrade [--dry-run]     Update framework files (keeps runtime state)"
   echo "  reset               Reset .sdlc/ state"
   echo "  prompt [agent]      Output an agent's prompt (default: orchestrator)"
