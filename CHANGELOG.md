@@ -4,6 +4,8 @@ All notable changes to the Autonomous SDLC Framework.
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-08-30
+
 ### Added
 - **`sdlc run new` accepts an inline/online spec, not just a `.md` file.** Pass spec text directly — `sdlc run new "Build a REST API for JWT auth"` or `sdlc run new --text "..."` (new `-x`/`--text` option) — and it's normalized into `specs/normalized-spec.md` the same way a file-based spec is, with the run slug/title auto-generated from the text. Fixes a related gap where a run created via the interactive title prompt never persisted any spec content under `specs/`; it now always writes `normalized-spec.md`.
 - **Phase presets** — `sdlc phases --preset <name>` applies a phase-config profile in one command. `lean` enables the common core (Product, Story-Tasks, Architecture, Design, Development, Testing, Review, DevOps + always-on Bootstrap) and disables Problem Discovery, Security, Observability, and Retirement; `full` enables everything (same as `--reset`). Non-breaking and opt-in: `sdlc init` and `--reset` still ship every stage enabled, and applying a preset preserves per-subagent selections so re-enabling a stage restores its subagents. Documented in `docs/cli-reference.md`.

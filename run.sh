@@ -16,7 +16,7 @@ else
 fi
 SDLC_DIR="${PROJECT_ROOT}/.sdlc"
 # Single source of truth: read the package version; fall back if unavailable.
-VERSION="$(python3 -c "import sys, os; sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src')); from sdlc_cli.version import __version__; print(__version__)" 2>/dev/null || echo "4.0.0")"
+VERSION="$(python3 -c "import sys, os; sys.path.insert(0, os.path.join('${PROJECT_ROOT}', 'src')); from sdlc_cli.version import __version__; print(__version__)" 2>/dev/null || echo "4.1.0")"
 
 # Colors
 RED='\033[0;31m'
