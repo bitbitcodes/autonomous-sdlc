@@ -17,7 +17,11 @@ All notable changes to the Autonomous SDLC Framework.
   models with the same run-folder priority and are refreshed automatically whenever the
   run context or config changes: `sdlc run new`, `sdlc run switch`, `sdlc run archive`
   (when it clears the active run), and `sdlc models --edit` / `--reset`. Projects scaffolded
-  without Cursor are unaffected (no `.cursor/` files are created).
+  without Cursor are unaffected (no `.cursor/` files are created). `run.sh` stays in sync:
+  its `models` help documents `--run` and the priority, and its `run` subcommands
+  (`new`/`list`/`switch`/`active`/`archive`) now pass `--target <project root>` explicitly,
+  fixing a pre-existing bug where they only worked when the shell's cwd happened to be the
+  project root (`run new` would otherwise create runs in the wrong directory).
 
 ## [4.1.0] - 2026-08-30
 
