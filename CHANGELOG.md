@@ -4,6 +4,8 @@ All notable changes to the Autonomous SDLC Framework.
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-08-30
+
 ### Changed
 - **`model-config.json` now loads with run-folder priority.** When a run folder
   (`.sdlc/runs/<slug>/`) contains its own `model-config.json`, it takes precedence over the

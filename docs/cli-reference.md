@@ -636,7 +636,7 @@ Print the installed version.
 
 ```bash
 sdlc version
-# autonomous-sdlc 4.1.0
+# autonomous-sdlc 4.2.0
 ```
 
 ## Scaffold Behavior
