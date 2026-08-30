@@ -57,24 +57,47 @@ def default_config() -> dict[str, Any]:
     }
 
 
-def write_config(sdlc_dir: Path, config: dict[str, Any] | None = None) -> Path:
+def config_path(sdlc_dir: Path, run_dir: Path | None = None) -> Path:
+    """Return the config file that takes priority for a given run context.
+
+    Resolution order:
+    1. run_dir/model-config.json  → per-run config (if it exists)
+    2. sdlc_dir/model-config.json → global config (fallback)
+    """
+    if run_dir is not None:
+        run_path = run_dir / CONFIG_FILENAME
+        if run_path.exists():
+            return run_path
+    return sdlc_dir / CONFIG_FILENAME
+
+
+def write_config(
+    sdlc_dir: Path,
+    config: dict[str, Any] | None = None,
+    run_dir: Path | None = None,
+) -> Path:
     """Write model-config.json into the .sdlc directory.
 
-    Returns the path to the written file.
+    When a per-run config already exists in run_dir, it is updated in place;
+    otherwise the global .sdlc config is written. Returns the written path.
     """
     if config is None:
         config = default_config()
-    path = sdlc_dir / CONFIG_FILENAME
+    path = config_path(sdlc_dir, run_dir)
     path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
     return path
 
 
-def load_config(sdlc_dir: Path) -> dict[str, Any] | None:
-    """Load model-config.json from the .sdlc directory.
+def load_config(sdlc_dir: Path, run_dir: Path | None = None) -> dict[str, Any] | None:
+    """Load model-config.json, preferring the run folder over the global file.
 
-    Returns None if the file doesn't exist.
+    Resolution order:
+    1. run_dir/model-config.json  → per-run config (if run_dir given and file exists)
+    2. sdlc_dir/model-config.json → global config
+
+    Returns None if neither file exists.
     """
-    path = sdlc_dir / CONFIG_FILENAME
+    path = config_path(sdlc_dir, run_dir)
     if not path.exists():
         return None
     return json.loads(path.read_text(encoding="utf-8"))

@@ -660,6 +660,9 @@ def models(
     target: str | None = typer.Argument(None, help="Project directory (default: current)"),
     edit: bool = typer.Option(False, "--edit", "-e", help="Open model-config.json in $EDITOR"),
     reset: bool = typer.Option(False, "--reset", help="Reset model config to defaults"),
+    run: str | None = typer.Option(
+        None, "--run", "-r", help="Run name/slug (default: active run)"
+    ),
 ) -> None:
     """Show or manage per-agent model routing configuration."""
     target_dir = Path(target).resolve() if target else Path.cwd()
@@ -671,17 +674,23 @@ def models(
 
     from .models import (
         TIER_DESCRIPTIONS,
+        config_path,
         default_config,
         load_config,
         resolve_all,
         write_config,
     )
 
+    run_dir = resolve_run_dir(sdlc_dir, run)
+    if run_dir != sdlc_dir:
+        console.print(f"[dim]Run: {run_dir.name}[/]")
+
     # ── Reset ──
     if reset:
-        write_config(sdlc_dir)
+        written = write_config(sdlc_dir, run_dir=run_dir)
         console.print("[green]✅ Model config reset to defaults.[/]")
-        console.print(f"[dim]  → {sdlc_dir / 'model-config.json'}[/]")
+        console.print(f"[dim]  → {written}[/]")
+        _refresh_cursor_model_rules(target_dir)
         return
 
     # ── Edit ──
@@ -689,15 +698,16 @@ def models(
         import os
         import subprocess
 
-        config_path = sdlc_dir / "model-config.json"
-        if not config_path.exists():
-            write_config(sdlc_dir)
+        path = config_path(sdlc_dir, run_dir)
+        if not path.exists():
+            write_config(sdlc_dir, run_dir=run_dir)
         editor = os.environ.get("EDITOR", "vi")
-        subprocess.run([editor, str(config_path)])
+        subprocess.run([editor, str(path)])
+        _refresh_cursor_model_rules(target_dir)
         return
 
     # ── Display ──
-    config = load_config(sdlc_dir)
+    config = load_config(sdlc_dir, run_dir=run_dir)
     if config is None:
         console.print("[yellow]No model-config.json found.[/] Creating defaults...")
         config = default_config()
@@ -742,7 +752,7 @@ def models(
 
     if overrides:
         console.print(f"\n[dim]({len(overrides)} override(s) active)[/]")
-    console.print(f"\n[dim]Config: {sdlc_dir / 'model-config.json'}[/]")
+    console.print(f"\n[dim]Config: {config_path(sdlc_dir, run_dir)}[/]")
     console.print("[dim]Edit with: sdlc models --edit  |  Reset with: sdlc models --reset[/]")
 
 
@@ -1385,6 +1395,22 @@ def agents_remove(
     console.print(f"[green]✅ Removed custom agent '{agent_id}'.[/]")
 
 
+def _refresh_cursor_model_rules(target_dir: Path) -> None:
+    """Refresh Cursor model rules after the active run context changes.
+
+    No-op (prints nothing) when the Cursor integration isn't installed —
+    refresh_model_rules returns None if no sdlc.model.*.mdc rules exist.
+    """
+    from .integrations.cursor import CursorIntegration
+
+    refreshed = CursorIntegration().refresh_model_rules(target_dir)
+    if refreshed:
+        console.print(
+            f"[dim]Refreshed {len(refreshed)} Cursor model rule(s) to match "
+            "the active run's model config.[/]"
+        )
+
+
 # ---------------------------------------------------------------------------
 # Run management subcommands
 # ---------------------------------------------------------------------------
@@ -1479,6 +1505,7 @@ def run_new(
     console.print(f"   [dim]Title:[/] {title}")
     console.print(f"   [dim]Path:[/]  .sdlc/runs/{slug}/")
     console.print(f"   [dim]Set as active run.[/]")
+    _refresh_cursor_model_rules(target_dir)
     console.print(f"\n[dim]Next: Start the orchestrator in your AI IDE.[/]")
 
 
@@ -1548,6 +1575,7 @@ def run_switch(
 
     set_active_run(sdlc_dir, slug)
     console.print(f"[green]✅ Active run set to:[/] [cyan]{slug}[/]")
+    _refresh_cursor_model_rules(target_dir)
 
 
 @run_app.command("active")
@@ -1607,6 +1635,7 @@ def run_archive(
         # Clear active run
         (sdlc_dir / "active-run.json").unlink(missing_ok=True)
         console.print("[dim]Cleared active run (archived was active).[/]")
+        _refresh_cursor_model_rules(target_dir)
 
     console.print(f"[green]✅ Run archived:[/] .sdlc/archive/{slug}/")
 
