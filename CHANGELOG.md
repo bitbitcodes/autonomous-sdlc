@@ -4,6 +4,21 @@ All notable changes to the Autonomous SDLC Framework.
 
 ## [Unreleased]
 
+### Changed
+- **`model-config.json` now loads with run-folder priority.** When a run folder
+  (`.sdlc/runs/<slug>/`) contains its own `model-config.json`, it takes precedence over the
+  global `.sdlc/model-config.json`; absent a run config, behavior is unchanged (global file).
+  `sdlc models` gained a `--run/-r` option (default: active run) and its display, `--edit`,
+  and `--reset` now operate on whichever file is effective — an existing run config is edited
+  or reset in place, otherwise the global file is used as before. The orchestrator prompts
+  (`agents/orchestrator.md`, `templates/commands/orchestrator.md`) resolve per-agent models
+  from `RUN_DIR/model-config.json` first and fall back to `.sdlc/model-config.json`. The
+  Cursor integration's per-stage model rules (`.cursor/rules/sdlc.model.*.mdc`) now resolve
+  models with the same run-folder priority and are refreshed automatically whenever the
+  run context or config changes: `sdlc run new`, `sdlc run switch`, `sdlc run archive`
+  (when it clears the active run), and `sdlc models --edit` / `--reset`. Projects scaffolded
+  without Cursor are unaffected (no `.cursor/` files are created).
+
 ## [4.1.0] - 2026-08-30
 
 ### Added
