@@ -259,6 +259,7 @@ project/
         state/ queue/ memory/ artifacts/ specs/
         CONTINUITY.md
         run-info.json
+        model-config.json         # optional per-run model routing override
       stripe-payment-webhook/
         state/ queue/ memory/ artifacts/ specs/
         CONTINUITY.md
@@ -357,7 +358,7 @@ sdlc dashboard /path/to/my-project
 Show or manage per-agent model routing configuration.
 
 ```bash
-sdlc models [TARGET] [--edit] [--reset]
+sdlc models [TARGET] [--edit] [--reset] [--run RUN]
 ```
 
 **Arguments:**
@@ -372,6 +373,18 @@ sdlc models [TARGET] [--edit] [--reset]
 |--------|-------------|
 | `--edit, -e` | Open `model-config.json` in `$EDITOR` |
 | `--reset` | Reset model config to defaults |
+| `--run, -r` | Run name/slug (default: active run) |
+
+**Run-Folder Priority:**
+
+`model-config.json` is loaded with run-folder priority: if the active (or `--run`) run folder
+contains its own `.sdlc/runs/<slug>/model-config.json`, it takes precedence over the global
+`.sdlc/model-config.json`. `--edit` and `--reset` target whichever file is effective — an
+existing run config is updated in place; if no run config exists, the global file is used.
+The Cursor integration's per-stage model rules (`.cursor/rules/sdlc.model.*.mdc`) resolve
+models the same way and are refreshed automatically when the run context or config changes
+(`sdlc run new`, `sdlc run switch`, `sdlc run archive` when it clears the active run, and
+`sdlc models --edit` / `--reset`).
 
 **Model Tiers:**
 
@@ -391,7 +404,8 @@ The framework uses 3 capability tiers to assign models to agents:
 | `coding` | `stage-development`, `stage-testing`, `stage-devops`, `stage-observability` |
 | `fast` | All `sub-*` subagents |
 
-**Config File:** `.sdlc/model-config.json` (committed, not gitignored)
+**Config File:** `.sdlc/model-config.json` (committed, not gitignored). Per-run overrides:
+`.sdlc/runs/<slug>/model-config.json` (loaded with priority over the global file when present)
 
 ```json
 {

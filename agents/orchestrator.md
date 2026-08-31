@@ -26,13 +26,41 @@ Execute the complete SDLC autonomously across 13 phases (0-12): problem discover
 
 ---
 
+## RUN RESOLUTION (do this before Step 1, and re-check at the start of every turn)
+
+This project may be in **multi-run mode** (`.sdlc/runs/<slug>/`, created via `run.sh run new` /
+`sdlc run new`) or **legacy single-run mode** (state lives directly under `.sdlc/`). Resolve
+which one applies before touching any state file:
+
+1. Check whether `.sdlc/active-run.json` exists.
+   - If it exists, read its `"active"` field → `<slug>`. Set **RUN_DIR = `.sdlc/runs/<slug>/`**.
+   - If it does not exist, set **RUN_DIR = `.sdlc/`** (legacy mode).
+2. **Everywhere else in this document and in CONTEXT/OUTPUT below, a path written as
+   `.sdlc/<x>` for per-run state means `RUN_DIR/<x>`.** This applies to: `CONTINUITY.md`,
+   `state/orchestrator.json`, `state/activity-log.md`, `state/agent-trace.json`,
+   `state/token-usage.json`, `queue/*.json`, `memory/`, `artifacts/`, `specs/`.
+3. The following always stay at the **`.sdlc/` project root**, even in multi-run mode — never
+   resolve these against RUN_DIR: `framework/` (agents, references, skills, templates),
+   `phase-config.json`, `custom-agents.json`, `governance/`, `STATUS.md`, `active-run.json`.
+4. **`model-config.json`** is the one config read with run-folder priority: if
+   `RUN_DIR/model-config.json` exists, use it; otherwise fall back to `.sdlc/model-config.json`.
+5. If RUN_DIR doesn't exist yet, fall back to `.sdlc/` directly (nothing has been bootstrapped).
+
+**Why this matters:** `sdlc status`, `sdlc trace`, and `sdlc dashboard` (and `run.sh status` /
+`run.sh dashboard`) all resolve and display the *active run's* state (`.sdlc/runs/<slug>/...`)
+by default. If you write progress to the `.sdlc/` root while a named run is active, those
+commands will show that run as empty or stuck at its initial state even though you did the
+work — resolve RUN_DIR first so the CLI views stay in sync with what you actually did.
+
+---
+
 ## CONTEXT
 
 ### Files to Read First (Priority Order)
 1. `AGENTS.md` — Agent discovery and registry
 2. `.sdlc/CONTINUITY.md` — Current session state (if exists)
 3. `.sdlc/state/orchestrator.json` — Phase progress (if exists)
-4. `.sdlc/model-config.json` — Per-agent model routing (if exists)
+4. `model-config.json` — Per-agent model routing (RUN_DIR/model-config.json if present, else .sdlc/model-config.json)
 5. `.sdlc/phase-config.json` — Enabled/disabled stages and subagents (if exists; absent = all enabled)
 6. `.sdlc/framework/references/core-workflow.md` — RARV cycle and autonomy rules
 7. `.sdlc/framework/references/sdlc-phases.md` — Phase definitions and transitions
@@ -268,8 +296,8 @@ For each phase:
      treat the stage as enabled (default — v3.0/v4.0-compatible) and continue to step 1
    - Phase 1 (Bootstrap) has no stage agent entry in phase-config.json and can never be skipped
 1. READ CONTINUITY.md
-2. RESOLVE MODEL for this agent from .sdlc/model-config.json:
-   model = overrides[agent_id] || tiers[agent_tiers[agent_id]] || tiers[agent_tiers["sub-*"]]
+2. RESOLVE MODEL for this agent from model-config.json (RUN_DIR/model-config.json if present, else .sdlc/model-config.json):
+    model = overrides[agent_id] || tiers[agent_tiers[agent_id]] || tiers[agent_tiers["sub-*"]]
    If the IDE supports model switching, switch to the resolved model.
    Otherwise, note the intended model in the dispatch context.
 3. READ the stage agent prompt: .sdlc/framework/agents/stage/{phase}.md
@@ -324,8 +352,8 @@ When a stage agent needs a subagent:
      → Continue to the next subagent needed for this stage; do not retry or substitute
    - If phase-config.json is absent, or the subagent has no entry, or its value is true/missing:
      treat the subagent as enabled (default) and continue to step 1
-1. RESOLVE MODEL for this subagent from .sdlc/model-config.json:
-   model = overrides[subagent_id] || tiers[agent_tiers["sub-*"]]
+1. RESOLVE MODEL for this subagent from model-config.json (RUN_DIR/model-config.json if present, else .sdlc/model-config.json):
+    model = overrides[subagent_id] || tiers[agent_tiers["sub-*"]]
    If the IDE supports model switching, switch to the resolved model.
 2. READ the subagent prompt: .sdlc/framework/agents/sub/{stage}/{subagent}.md
 3. Prepare structured input:
@@ -538,7 +566,7 @@ The trace file records every agent invocation for the `sdlc trace` interaction m
 - `input_artifacts`: Files this agent read as input
 - `output_artifacts`: Files this agent produced
 - `dispatched`: Agent IDs this agent called
-- `model`: Resolved model name from `.sdlc/model-config.json` (e.g. `"claude-sonnet-4"`)
+- `model`: Resolved model name from model-config.json (run folder first, then `.sdlc/model-config.json`; e.g. `"claude-sonnet-4"`)
 - To append: read the file, parse JSON, push to `traces` array, write back
 
 ### Queue Schemas
