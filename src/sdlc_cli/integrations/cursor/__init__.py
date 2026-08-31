@@ -45,12 +45,32 @@ class CursorIntegration(MarkdownIntegration):
         created.extend(self._generate_model_rules(project_root))
         return created
 
+    def refresh_model_rules(self, project_root: Path) -> list[Path] | None:
+        """Regenerate the sdlc.model.*.mdc rules for the current run context.
+
+        Called after the active run changes so the baked `model:` frontmatter
+        reflects the effective config (run folder first, then global).
+
+        Returns the list of written files, or None when this project has no
+        Cursor model rules (integration not installed) — nothing to refresh.
+        """
+        rules_dir = project_root / ".cursor" / "rules"
+        if not rules_dir.is_dir() or not list(rules_dir.glob("sdlc.model.*.mdc")):
+            return None
+        return self._generate_model_rules(project_root)
+
     def _generate_model_rules(self, project_root: Path) -> list[Path]:
-        """Generate per-stage .mdc files with model: frontmatter."""
+        """Generate per-stage .mdc files with model: frontmatter.
+
+        model-config.json is loaded with run-folder priority: when an active
+        run exists and has its own model-config.json, its models take
+        precedence over the global .sdlc config.
+        """
         from ...models import load_config, resolve_model
+        from ...runs import resolve_run_dir
 
         sdlc_dir = project_root / ".sdlc"
-        config = load_config(sdlc_dir)
+        config = load_config(sdlc_dir, run_dir=resolve_run_dir(sdlc_dir))
         if config is None:
             return []
 
