@@ -11,6 +11,8 @@ from pathlib import Path
 from threading import Thread
 
 from .dashboard_html import DASHBOARD_HTML
+from .models import config_path
+from .models import load_config as load_model_config
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +68,8 @@ def read_state(run_dir: Path, sdlc_dir: Path | None = None) -> dict:
     active = _read_json_file(run_dir / "queue" / "active.json")
     completed = _read_json_file(run_dir / "queue" / "completed.json")
 
-    model_config = _read_json_file(sdlc_dir / "model-config.json") or {}
+    # Same resolution as the agent runtime: per-run config wins over shared root.
+    model_config = load_model_config(sdlc_dir, run_dir) or {}
 
     # Phase enablement (phase-config.json lives at the shared .sdlc/ root).
     enabled_map: dict[str, bool] = {}
@@ -139,7 +142,9 @@ WATCHED_FILES = [
 ]
 
 # Files that live at the shared .sdlc/ root rather than the run dir.
-SHARED_ROOT_FILES = {"model-config.json", "phase-config.json"}
+# model-config.json is NOT here: it resolves through models.config_path so
+# that edits to a per-run config also trigger refreshes.
+SHARED_ROOT_FILES = {"phase-config.json"}
 
 
 def get_mtimes(run_dir: Path, sdlc_dir: Path | None = None) -> dict[str, float]:
@@ -148,9 +153,14 @@ def get_mtimes(run_dir: Path, sdlc_dir: Path | None = None) -> dict[str, float]:
         sdlc_dir = run_dir
     mtimes: dict[str, float] = {}
     for rel in WATCHED_FILES:
-        # Shared config files live at sdlc root; everything else in run_dir
-        base = sdlc_dir if rel in SHARED_ROOT_FILES else run_dir
-        p = base / rel
+        if rel == "model-config.json":
+            # Same resolution as the runtime: per-run config takes priority.
+            p = config_path(sdlc_dir, run_dir)
+        elif rel in SHARED_ROOT_FILES:
+            # Shared config files live at sdlc root
+            p = sdlc_dir / rel
+        else:
+            p = run_dir / rel
         try:
             mtimes[rel] = p.stat().st_mtime if p.exists() else 0.0
         except OSError:

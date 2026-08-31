@@ -345,10 +345,12 @@ def status(
     # ── Generate agent-map.md ──
     try:
         from .mermaid import generate_agent_map_md
+        from .models import config_path as model_config_path
 
         orch_file_2 = run_dir / "state" / "orchestrator.json"
         trace_file_2 = run_dir / "state" / "agent-trace.json"
-        mc_file = sdlc_dir / "model-config.json"
+        # Same resolution as the agent runtime: per-run config wins.
+        mc_file = model_config_path(sdlc_dir, run_dir)
         orch_d = _json.loads(orch_file_2.read_text()) if orch_file_2.exists() else {}
         trace_d = _json.loads(trace_file_2.read_text()) if trace_file_2.exists() else {"traces": []}
         mc_d = _json.loads(mc_file.read_text()) if mc_file.exists() else {}
