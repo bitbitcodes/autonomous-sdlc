@@ -65,7 +65,7 @@ function render(data) {
   renderQueue(data.queue, data.orchestrator, data.activity_log);
   renderTrace(data.trace, data.orchestrator, data.activity_log, data.model_config);
   renderActivity(data.activity_log);
-  renderMemory(data.continuity);
+  renderMemory(data.continuity, data.continuity_freshness);
   if (data.mermaid_src) renderMermaid(data.mermaid_src);
   document.getElementById('lastUpdated').textContent = 'Updated: ' + new Date().toLocaleTimeString();
 }
@@ -193,31 +193,17 @@ const PHASE_SUBAGENTS = {
 function inferPhasesFromActivity(lines) {
   if (!lines || !lines.length) return {};
   const result = {};
-  let currentPhase = -1;
-
-  lines.forEach(line => {
-    const phaseMatch = line.match(/Phase (\d+):/i) || line.match(/Next: Phase (\d+)/i);
-    if (phaseMatch) {
-      const phaseNum = parseInt(phaseMatch[1], 10);
-      if (phaseNum > currentPhase) {
-        if (currentPhase !== -1) {
-          result[currentPhase] = 'complete';
-        }
-        for (let i = 0; i < phaseNum; i++) {
-          if (!result[i]) {
-            result[i] = 'complete';
-          }
-        }
-        currentPhase = phaseNum;
-        result[currentPhase] = 'in_progress';
-      }
+  let curPhase = null;
+  for (const l of lines) {
+    const pm = l.match(/Phase\s+(\d+)\s*[:\-]/i);
+    if (pm) {
+      const n = parseInt(pm[1]);
+      if (curPhase !== null && curPhase !== n) result[curPhase] = 'complete';
+      curPhase = n;
+      result[n] = 'in_progress';
     }
-
-    if (/Gate:\s*PASS/i.test(line) && currentPhase !== -1) {
-      result[currentPhase] = 'complete';
-    }
-  });
-
+    if (/Gate:\s*PASS/i.test(l) && curPhase !== null) result[curPhase] = 'complete';
+  }
   return result;
 }
 
@@ -372,19 +358,33 @@ function renderActivity(lines) {
     const esc = escHtml(l);
     // Bold markdown headers
     if (l.startsWith('## ')) return '<div class="activity-line"><strong>' + esc.slice(3) + '</strong></div>';
-    if (l.startsWith('- **')) return '<div class="activity-line">' + esc.replace(/\\*\\*/g, '') + '</div>';
+    if (l.startsWith('- **')) return '<div class="activity-line">' + esc.replace(/\*\*/g, '') + '</div>';
     return '<div class="activity-line">' + esc + '</div>';
   }).join('');
   el.scrollTop = el.scrollHeight;
 }
 
-function renderMemory(lines) {
+function renderMemory(lines, freshness) {
   const el = document.getElementById('memoryContent');
   if (!lines || lines.length === 0) {
     el.innerHTML = '<span class="no-data">No working memory yet.</span>';
-    return;
+  } else {
+    el.textContent = lines.join('\n');
   }
-  el.textContent = lines.join('\n');
+
+  const badgeEl = document.getElementById('memoryFreshness');
+  if (!badgeEl) return;
+  if (!freshness || freshness.status === 'stale') {
+    const reasons = (freshness && freshness.reasons) || [];
+    const detail = reasons.length
+      ? '<ul style="margin:4px 0 0 18px;">' + reasons.map(r => '<li>' + escHtml(r) + '</li>').join('') + '</ul>'
+      : '';
+    badgeEl.innerHTML = '<div style="color:#e3b341;margin-bottom:6px;">\u26A0 CONTINUITY.md may be stale' + detail + '</div>';
+  } else if (freshness.status === 'fresh') {
+    badgeEl.innerHTML = '<div style="color:#3fb950;margin-bottom:6px;">\u2705 CONTINUITY.md is fresh</div>';
+  } else {
+    badgeEl.innerHTML = '';
+  }
 }
 
 let mermaidReady = false;

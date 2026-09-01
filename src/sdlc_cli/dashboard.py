@@ -193,25 +193,32 @@ def _make_handler(ws_port: int) -> type:
                         self.send_response(200)
                         if self.path.endswith(".js"):
                             self.send_header("Content-Type", "application/javascript")
+                            # Live app code — never let the browser cache it
+                            self.send_header("Cache-Control", "no-cache")
                         else:
                             self.send_header("Content-Type", self.guess_type(str(filepath)))
                         self.end_headers()
-                        with open(filepath, 'rb') as f:
-                            self.wfile.write(f.read())
+                        if self.path.endswith("dashboard.js"):
+                            # Inject the WebSocket port exactly like the HTML does
+                            js = filepath.read_text(encoding="utf-8").replace(
+                                "/*WS_PORT*/8421", str(ws_port)
+                            )
+                            self.wfile.write(js.encode("utf-8"))
+                        else:
+                            with open(filepath, 'rb') as f:
+                                self.wfile.write(f.read())
                     else:
                         self.send_error(404, "File not found")
                 except Exception as e:
                     self.send_error(500, f"Server error: {e}")
             else:
-                # Serve the main dashboard HTML
-                html = DASHBOARD_HTML.replace(
-                    "/*WS_PORT*/8421", str(ws_port)
-                )
+                # Serve the main dashboard HTML. The WS port is injected into
+                # /static/dashboard.js — the only script that opens the socket.
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.send_header("Cache-Control", "no-cache")
                 self.end_headers()
-                self.wfile.write(html.encode("utf-8"))
+                self.wfile.write(DASHBOARD_HTML.encode("utf-8"))
 
         def log_message(self, format: str, *args: object) -> None:  # noqa: A002
             # Silence HTTP access logs
