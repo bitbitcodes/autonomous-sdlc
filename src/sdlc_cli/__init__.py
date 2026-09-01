@@ -30,6 +30,9 @@ app.add_typer(approvals_app, name="approvals")
 agents_app = typer.Typer(help="Add custom stage agents/subagents when the built-in 52 don't cover a need.")
 app.add_typer(agents_app, name="agents")
 
+continuity_app = typer.Typer(help="Check whether CONTINUITY.md (working memory) is stale.")
+app.add_typer(continuity_app, name="continuity")
+
 console = Console()
 
 
@@ -317,6 +320,19 @@ def status(
             console.print("[dim]Activity Log: No agent actions recorded yet.[/]")
         console.print()
 
+    # ── CONTINUITY.md freshness ──
+    try:
+        from .continuity import check_freshness
+
+        freshness = check_freshness(run_dir)
+        if freshness.status == "stale":
+            console.print("[yellow]⚠ CONTINUITY.md may be stale:[/]")
+            for reason in freshness.reasons:
+                console.print(f"  [yellow]-[/] {reason}")
+            console.print()
+    except Exception:
+        pass
+
     # ── CONTINUITY.md summary ──
     cont_file = run_dir / "CONTINUITY.md"
     if cont_file.exists():
@@ -342,6 +358,56 @@ def status(
         console.print(f"[dim]Agent diagram written to {map_path.relative_to(sdlc_dir.parent)}[/]")
     except Exception:
         pass
+
+
+@continuity_app.command("check")
+def continuity_check(
+    target: str | None = typer.Argument(None, help="Project directory (default: current)"),
+    run: str | None = typer.Option(None, "--run", "-r", help="Run name/slug (default: active run)"),
+) -> None:
+    """Check whether CONTINUITY.md is stale relative to orchestrator.json/activity-log.md.
+
+    Exits 0 when fresh (or when the run hasn't started yet), 1 when stale. Intended for
+    scripting: CI jobs or a git hook that wants to fail loudly on stale working memory.
+    """
+    from .continuity import check_freshness
+
+    target_dir = Path(target).resolve() if target else Path.cwd()
+    sdlc_dir = target_dir / ".sdlc"
+
+    if not sdlc_dir.is_dir():
+        console.print("[red]Error:[/] .sdlc/ directory not found. Run [cyan]sdlc init[/] first.")
+        raise typer.Exit(1)
+
+    run_dir = resolve_run_dir(sdlc_dir, run)
+    try:
+        result = check_freshness(run_dir)
+    except Exception as exc:
+        console.print(f"[dim]CONTINUITY.md freshness could not be determined: {exc}[/]")
+        raise typer.Exit(0) from None
+
+    if result.status == "not_started":
+        console.print("[dim]No orchestrator run started yet — nothing to check.[/]")
+        raise typer.Exit(0)
+
+    if result.status == "unknown":
+        console.print(f"[dim]CONTINUITY.md freshness unknown: {'; '.join(result.reasons)}[/]")
+        raise typer.Exit(0)
+
+    if result.status == "fresh":
+        if result.continuity_phase is not None:
+            console.print(
+                f"[green]✅ CONTINUITY.md is fresh[/] (Phase {result.continuity_phase}, "
+                "matches orchestrator.json)"
+            )
+        else:
+            console.print("[green]✅ CONTINUITY.md is fresh[/] (run complete)")
+        raise typer.Exit(0)
+
+    console.print("[yellow]⚠ CONTINUITY.md may be stale:[/]")
+    for reason in result.reasons:
+        console.print(f"  [yellow]-[/] {reason}")
+    raise typer.Exit(1)
 
 
 @app.command()
